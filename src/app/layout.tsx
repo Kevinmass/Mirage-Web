@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { DOMINIO_CANONICO } from "@/lib/dominio";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -13,8 +14,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mirage",
-  description: "Plataforma Mirage",
+  metadataBase: new URL(`https://${DOMINIO_CANONICO}`),
+  title: {
+    default: "Mirage",
+    template: "%s — Mirage",
+  },
+  description:
+    "Mirage desarrolla software a medida: sistemas específicos para las necesidades de cada cliente.",
+  openGraph: {
+    siteName: "Mirage",
+    locale: "es_AR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

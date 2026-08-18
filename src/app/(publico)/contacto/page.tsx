@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import { ContenidoMarkdown } from "@/components/contenido-markdown";
 import { obtenerPaginaPorSlug } from "@/modules/contenido/api";
 
 export const revalidate = 3600;
+export const metadata: Metadata = { title: "Contacto" };
 
 export default async function PaginaContacto() {
   const pagina = await obtenerPaginaPorSlug("contacto").catch(() => undefined);

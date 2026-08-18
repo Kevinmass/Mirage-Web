@@ -115,6 +115,12 @@ src/
   en el mismo número, y el cliente en `/portal` solo ve progreso.
 - **Sync de GitHub nunca en el request** — job cada 30 min que escribe
   `repositorio_snapshot`; las pantallas solo leen esa tabla.
+- **Multi-dominio por host, no por variable de entorno.** Un solo deploy
+  sirve `miragesoftware.com.ar` (canónico), `.online` (staging) y `.store`
+  (solo redirige). `src/lib/dominio.ts` + `robots.ts` (noindex si el host
+  no es el canónico) + `middleware.ts` (301 desde `.store`) deciden según
+  el header `Host` de cada request, no un env var por deploy — así hace
+  falta un solo servicio de Render con los tres dominios apuntados.
 - **Mails nunca dentro del request** — se escribe la fila en `notificacion` y
   un worker la toma, con hasta 5 reintentos y backoff exponencial.
 - **Bus de eventos: si un suscriptor falla, el publicador no se entera** — se

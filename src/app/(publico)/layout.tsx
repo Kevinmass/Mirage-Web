@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DOMINIO_CANONICO } from "@/lib/dominio";
 
 const navegacion = [
   { href: "/", etiqueta: "Inicio" },
@@ -7,6 +8,16 @@ const navegacion = [
   { href: "/contacto", etiqueta: "Contacto" },
 ];
 
+const datosEstructurados = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Mirage",
+  url: `https://${DOMINIO_CANONICO}`,
+  email: "mirage.software.ar@gmail.com",
+  description:
+    "Mirage desarrolla software a medida: sistemas específicos para las necesidades de cada cliente.",
+};
+
 export default function LayoutPublico({
   children,
 }: {
@@ -14,6 +25,14 @@ export default function LayoutPublico({
 }) {
   return (
     <>
+      <script
+        type="application/ld+json"
+        // JSON.stringify de un objeto propio definido en este archivo, sin
+        // datos de usuario ni de la base.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(datosEstructurados),
+        }}
+      />
       <header className="border-b">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <Link href="/" className="font-semibold">

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Card,
   CardContent,
@@ -8,6 +9,7 @@ import {
 import { listarServiciosActivos } from "@/modules/contenido/api";
 
 export const revalidate = 3600;
+export const metadata: Metadata = { title: "Servicios" };
 
 export default async function PaginaServicios() {
   const servicios = await listarServiciosActivos().catch(() => []);
