@@ -71,6 +71,17 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   ...fronterasDeModulo,
+  {
+    rules: {
+      // Convención del repo: un parámetro que hay que declarar por firma
+      // pero todavía no se usa (stubs como kernel/identidad/sesion.ts,
+      // que espera al PR 3.1) se prefija con _ a propósito.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

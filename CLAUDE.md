@@ -126,6 +126,23 @@ src/
 - **Bus de eventos: si un suscriptor falla, el publicador no se entera** — se
   registra el error y sigue. Si la falla del suscriptor debería invalidar la
   operación del publicador, no es un evento: es una llamada a `api.ts`.
+- **Auditoría append-only por trigger, no por rol.** `REVOKE UPDATE, DELETE
+  ... FROM CURRENT_USER` es un no-op: Postgres no aplica el ACL al dueño de
+  la tabla, y acá migración y app comparten un solo rol. Lo hace un trigger
+  (`evento_auditoria_bloquear_modificacion`) que rechaza sin condición.
+- **Permisos: el kernel no conoce a los módulos, un agregador sí.**
+  `kernel/permisos/registro.ts` es genérico; `capacidades-declaradas.ts`
+  agrega el `permissions.ts` de cada módulo (mismo patrón que
+  `db/schema.ts` con las tablas). El registro real corre en
+  `instrumentation.ts` (`register()` de Next, una vez al arrancar el
+  server node) — si falla, se loguea y el server arranca igual.
+- **Sesión: hoy es un stub.** `kernel/identidad/sesion.ts` existe desde el
+  PR 2.4 pero `obtenerSesion()` siempre devuelve `null` — no hay login
+  hasta el PR 3.1 (better-auth). El middleware ya aplica las reglas de
+  superficie contra esa sesión (siempre ausente por ahora), así que hoy
+  `/app` y `/portal` dan 404 para cualquiera. `reglas-acceso.ts` es la
+  función pura que decide; el PR 3.1 solo tiene que reemplazar
+  `obtenerSesion`, no tocar la regla.
 - **Aislamiento del portal:** toda consulta de `/portal` se filtra por
   `cliente_id` derivado de la sesión, nunca de un parámetro de URL. Es la
   superficie de mayor riesgo del sistema; tiene tests dedicados que se
