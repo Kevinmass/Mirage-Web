@@ -1,0 +1,6 @@
+.next/
+node_modules/
+pnpm-lock.yaml
+
+# documentos de diseño y plan: prosa aprobada, no se reformatea con Prettier
+*.md
