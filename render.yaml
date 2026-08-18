@@ -1,0 +1,32 @@
+# Blueprint de Render (Infrastructure as Code). Conectar el repo desde
+# Render > New > Blueprint apunta acá y crea el web service + la base en
+# un solo paso, con auto-deploy en cada push a main.
+#
+# Verificar contra la documentación actual de Render antes de aplicar:
+# nombres de plan y de región cambian con el tiempo y no los puedo probar
+# sin acceso a una cuenta de Render.
+databases:
+  - name: mirage-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: "17"
+
+services:
+  - type: web
+    name: mirage-web
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mirage-db
+          property: connectionString
+      - key: TZ
+        value: America/Argentina/Buenos_Aires
+      # noindex hasta que este servicio sea el dominio canónico (PR 1.4).
+      - key: ALLOW_INDEXING
+        value: "false"
