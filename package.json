@@ -13,9 +13,12 @@
     "test": "echo \"sin tests todavia (llegan en PR 0.5)\"",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:deploy": "node scripts/migrate.mjs",
     "db:seed": "echo \"sin seed todavia (llega con el primer modulo que lo necesite)\""
   },
   "dependencies": {
+    "@swc/helpers": "^0.5.23",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "next": "16.3.1",
     "postgres": "^3.4.9",
@@ -27,7 +30,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
