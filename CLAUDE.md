@@ -52,12 +52,12 @@ eventos) con **módulos** enchufados encima (`contenido`, `clientes`,
 `proyectos`, `solicitudes`, `notificaciones`).
 
 **La regla que sostiene todo:** un módulo nunca importa de
-`modules/<otro>/` salvo `modules/<otro>/api.ts`. Se comunican solo llamando al
-`api.ts` ajeno o vía el bus de eventos en proceso. Esto se impone con
-`no-restricted-imports` de ESLint, bloqueante en CI (PR 0.2) — no es una
-convención, es mecánico. Si aparece un `eslint-disable` sobre esa regla, es
-señal de que el límite entre módulos está mal puesto; el arreglo es rediseñar
-el límite, no silenciar la regla.
+`modules/<otro>/` salvo `modules/<otro>/api.ts`, ni de `kernel/<pieza>/internal/`.
+Se comunican solo llamando al `api.ts` ajeno o vía el bus de eventos en
+proceso. Esto se impone con `no-restricted-imports` de ESLint, bloqueante en
+CI (PR 0.2) — no es una convención, es mecánico. Si aparece un
+`eslint-disable` sobre esa regla, es señal de que el límite entre módulos está
+mal puesto; el arreglo es rediseñar el límite, no silenciar la regla.
 
 Forma fija de cada módulo:
 
@@ -70,6 +70,23 @@ modules/<nombre>/
   permissions.ts   capacidades que declara
   ui/              pantallas y entradas de navegación
   internal/        todo lo demás — privado
+```
+
+Estructura de carpetas planeada para PR 0.1 (fija desde ese PR, no se
+reabre después):
+
+```
+src/
+  app/
+    (publico)/          → /
+    (interno)/app/      → /app
+    (portal)/portal/    → /portal
+  kernel/
+    identidad/ organigrama/ permisos/ auditoria/ eventos/
+  modules/
+    <nombre>/ module.ts schema.ts api.ts events.ts permissions.ts ui/ internal/
+  db/
+    schema.ts migrations/ client.ts
 ```
 
 ### Puntos de diseño no obvios (para no repetirlos por error)
@@ -125,3 +142,14 @@ Dominio en español (`persona`, `nodo`, `cliente`, `solicitud`...). Tablas en
 Integración contra PostgreSQL real en contenedor efímero, no mocks — las
 invariantes (dos raíces únicas, un titular vigente por nodo, sin ciclos) viven
 en índices y constraints de la base, y un doble no las prueba.
+
+## CI (desde PR 0.2)
+
+GitHub Actions corre `lint`, `typecheck`, `test` y `build` en cada PR; merge
+bloqueado si falla alguno. El chequeo de frontera de módulos (ESLint) es parte
+de ese pipeline, no una revisión manual aparte.
+
+## Variables de entorno
+
+`DATABASE_URL`, secreto de sesión (better-auth), `GITHUB_TOKEN` (fino,
+solo lectura, org), `RESEND_API_KEY`, `TZ=America/Argentina/Buenos_Aires`.
