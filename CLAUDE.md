@@ -154,6 +154,13 @@ de ese pipeline, no una revisión manual aparte.
 `DATABASE_URL`, secreto de sesión (better-auth), `GITHUB_TOKEN` (fino,
 solo lectura, org), `RESEND_API_KEY`, `TZ=America/Argentina/Buenos_Aires`.
 
+## Ramas
+
+`main` no recibe pushes directos — está protegida en GitHub (requiere PR,
+incluso para el admin). Todo el trabajo va a `staging` vía PR: rama de
+feature/PR → PR contra `staging`. La promoción de `staging` a `main` es,
+a su vez, otro PR (`staging` → `main`), no un push directo.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
