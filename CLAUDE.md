@@ -4,12 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del repo
 
-**No hay código todavía.** Este repo contiene solo el diseño y el plan de
-implementación de la v1. El primer PR de código es "PR 0.1 — Esqueleto de
-Next.js" (ver plan). Antes de asumir que existe algo (`package.json`,
-`src/`, tests, CI), verificar con `ls` — este documento se queda desactualizado
-rápido apenas arranque la implementación, y en ese momento hay que actualizarlo
-con los comandos reales de build/lint/test.
+En implementación siguiendo el plan (Fase 0 completa, Fase 1 en curso).
+Next.js + TypeScript + Drizzle + Postgres ya están andando — ver
+`package.json` antes de asumir que un comando no existe.
+
+Comandos:
+
+```
+pnpm dev                # levanta las tres superficies en localhost:3000
+pnpm build / lint / typecheck / test / format:check
+pnpm db:generate         # genera una migración a partir de src/db/schema.ts
+pnpm db:migrate          # la aplica (drizzle-kit, requiere DATABASE_URL)
+pnpm db:migrate:deploy   # variante para producción (Docker), sin drizzle-kit
+pnpm db:seed             # carga contenido/datos base (tsx src/db/seed.ts)
+docker compose up -d     # Postgres local — copiar .env.example a .env primero
+```
+
+Los tests de integración (`*.integration.test.ts`) levantan su propio
+Postgres efímero vía testcontainers — no dependen de `docker compose`.
 
 Documentos de referencia, en orden de lectura:
 
@@ -103,6 +115,12 @@ src/
   en el mismo número, y el cliente en `/portal` solo ve progreso.
 - **Sync de GitHub nunca en el request** — job cada 30 min que escribe
   `repositorio_snapshot`; las pantallas solo leen esa tabla.
+- **Multi-dominio por host, no por variable de entorno.** Un solo deploy
+  sirve `miragesoftware.com.ar` (canónico), `.online` (staging) y `.store`
+  (solo redirige). `src/lib/dominio.ts` + `robots.ts` (noindex si el host
+  no es el canónico) + `middleware.ts` (301 desde `.store`) deciden según
+  el header `Host` de cada request, no un env var por deploy — así hace
+  falta un solo servicio de Render con los tres dominios apuntados.
 - **Mails nunca dentro del request** — se escribe la fila en `notificacion` y
   un worker la toma, con hasta 5 reintentos y backoff exponencial.
 - **Bus de eventos: si un suscriptor falla, el publicador no se entera** — se
