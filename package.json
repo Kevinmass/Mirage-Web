@@ -10,14 +10,13 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"sin tests todavia (llegan en PR 0.5)\"",
+    "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:deploy": "node scripts/migrate.mjs",
     "db:seed": "echo \"sin seed todavia (llega con el primer modulo que lo necesite)\""
   },
   "dependencies": {
-    "@swc/helpers": "^0.5.23",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "next": "16.3.1",
@@ -27,6 +26,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testcontainers/postgresql": "^12.1.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -35,7 +35,8 @@
     "eslint-config-next": "16.3.1",
     "prettier": "^3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "packageManager": "pnpm@10.12.4"
 }
