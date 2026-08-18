@@ -8,6 +8,27 @@
       "when": 1787089229826,
       "tag": "0000_fluffy_boom_boom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787091559986,
+      "tag": "0001_public_shadow_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787091584854,
+      "tag": "0002_revocar_update_delete_evento_auditoria",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787092017874,
+      "tag": "0003_omniscient_kronos",
+      "breakpoints": true
     }
   ]
 }
