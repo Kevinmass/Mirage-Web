@@ -1,0 +1,40 @@
+import {
+  boolean,
+  integer,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+export const contenidoPagina = pgTable("contenido_pagina", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  titulo: text("titulo").notNull(),
+  cuerpo: text("cuerpo").notNull(), // markdown
+  publicada: boolean("publicada").notNull().default(false),
+  actualizadoEn: timestamp("actualizado_en", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const contenidoServicio = pgTable("contenido_servicio", {
+  id: serial("id").primaryKey(),
+  nombre: text("nombre").notNull(),
+  descripcion: text("descripcion").notNull(),
+  orden: integer("orden").notNull().default(0),
+  activo: boolean("activo").notNull().default(true),
+});
+
+export const contenidoCaso = pgTable("contenido_caso", {
+  id: serial("id").primaryKey(),
+  titulo: text("titulo").notNull(),
+  // Nullable a propósito (diseño §6.1): por defecto el caso no nombra al
+  // cliente, nombrarlo requiere autorización explícita que se pide fuera
+  // del sistema. Sin FK: clientes es otro módulo (fase 4) y los módulos no
+  // comparten schema entre sí, solo api.ts.
+  clienteId: integer("cliente_id"),
+  resumen: text("resumen").notNull(),
+  publicado: boolean("publicado").notNull().default(false),
+});
