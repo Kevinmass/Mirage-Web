@@ -39,6 +39,9 @@ export default function LayoutInterno({
               <Link href="/app/tareas" className="hover:text-foreground">
                 Tareas
               </Link>
+              <Link href="/app/solicitudes" className="hover:text-foreground">
+                Solicitudes
+              </Link>
               <Link
                 href="/app/notificaciones"
                 className="hover:text-foreground"
