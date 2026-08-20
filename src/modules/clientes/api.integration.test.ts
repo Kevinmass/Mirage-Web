@@ -5,7 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Conflicto, NoEncontrado } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
-import { nodo } from "@/kernel/organigrama/schema";
+import { asignacion, nodo } from "@/kernel/organigrama/schema";
 import { clientesContacto, clientesInteraccion } from "./schema";
 
 // Contra Postgres real en un contenedor efímero, no mocks (diseño §10).
@@ -100,6 +100,47 @@ describe("modules/clientes api", () => {
     expect(await api.obtenerCliente(creado.id)).toMatchObject({
       nombre: "Acme",
     });
+  });
+
+  it("crearCliente publica cliente.creado con el titular del nodo responsable como destinatario", async () => {
+    const bus = await import("@/kernel/eventos/bus");
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const recibidos: unknown[] = [];
+    bus.suscribir("cliente.creado", (payload) => {
+      recibidos.push(payload);
+    });
+
+    // Sin titular todavía: destinatarioPersonaId debe salir null, no
+    // tirar ni inventar un destinatario.
+    const sinTitular = await api.crearCliente({
+      nombre: "Sin Titular SA",
+      cuit: "30-22222222-2",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+    expect(recibidos).toContainEqual({
+      clienteId: sinTitular.id,
+      nombre: "Sin Titular SA",
+      destinatarioPersonaId: null,
+    });
+
+    await db
+      .insert(asignacion)
+      .values({ personaId: p.id, nodoId: n.id, esTitular: true });
+
+    const conTitular = await api.crearCliente({
+      nombre: "Con Titular SA",
+      cuit: "30-33333333-3",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+    expect(recibidos).toContainEqual({
+      clienteId: conTitular.id,
+      nombre: "Con Titular SA",
+      destinatarioPersonaId: p.id,
+    });
+
+    bus._reiniciarParaTests();
   });
 
   it("crearCliente rechaza un CUIT duplicado", async () => {

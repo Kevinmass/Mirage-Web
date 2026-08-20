@@ -22,6 +22,14 @@ export async function register() {
     );
   }
 
+  // Las suscripciones a eventos (diseño §6.5/§7) NO se registran acá.
+  // Este archivo corre en un chunk de servidor separado del que
+  // ejecuta las Server Actions que publican eventos — cualquier
+  // suscripción hecha desde acá quedaría en una copia del bus que el
+  // publicar() real nunca ve. Ver el comentario de
+  // asegurarSuscripciones() en kernel/eventos/bus.ts: el propio bus se
+  // encarga, solo, en el chunk correcto.
+
   // Job de sync de repositorios (diseño §6.3): cada 30 minutos, en
   // proceso, nunca dentro de un request. sincronizarRepositorio ya
   // atrapa sus propios errores de red/GitHub y los deja en
@@ -38,4 +46,21 @@ export async function register() {
   };
   correrSyncDeRepositorios();
   setInterval(correrSyncDeRepositorios, TREINTA_MINUTOS);
+
+  // Worker de notificaciones (diseño §6.5): nunca se manda un mail
+  // dentro del request. Corre cada minuto — es el paso más chico del
+  // backoff (1/2/4/8/16 min), así una notificación recién encolada
+  // (0 intentos) sale casi al toque en vez de esperar hasta 30
+  // minutos como el sync de GitHub. procesarPendientes ya atrapa sus
+  // propios errores de envío (quedan en notificacion.error); este
+  // catch es solo para lo inesperado.
+  const UN_MINUTO = 60 * 1000;
+  const { procesarPendientes } = await import("@/modules/notificaciones/api");
+  const correrWorkerDeNotificaciones = () => {
+    procesarPendientes().catch((error) => {
+      console.error("[notificaciones] worker falló", error);
+    });
+  };
+  correrWorkerDeNotificaciones();
+  setInterval(correrWorkerDeNotificaciones, UN_MINUTO);
 }

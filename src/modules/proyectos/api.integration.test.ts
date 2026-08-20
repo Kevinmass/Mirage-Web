@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { NoEncontrado } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
-import { nodo } from "@/kernel/organigrama/schema";
+import { asignacion, nodo } from "@/kernel/organigrama/schema";
 
 // Contra Postgres real en un contenedor efímero, no mocks (diseño §10).
 //
@@ -134,6 +134,55 @@ describe("modules/proyectos api", () => {
     expect(actualizado.estado).toBe("activo");
   });
 
+  it("crearProyecto y cambiarEstadoProyecto publican con el titular del nodo como destinatario", async () => {
+    const bus = await import("@/kernel/eventos/bus");
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const [titular] = await db
+      .insert(persona)
+      .values({
+        nombre: "Titular",
+        apellido: "Uno",
+        email: "titular@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+    await db
+      .insert(asignacion)
+      .values({ personaId: titular!.id, nodoId: n.id, esTitular: true });
+
+    const creados: unknown[] = [];
+    const cambiados: unknown[] = [];
+    bus.suscribir("proyecto.creado", (payload) => {
+      creados.push(payload);
+    });
+    bus.suscribir("proyecto.estado_cambiado", (payload) => {
+      cambiados.push(payload);
+    });
+
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    expect(creados).toContainEqual({
+      proyectoId: proyecto.id,
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      destinatarioPersonaId: titular!.id,
+    });
+
+    await api.cambiarEstadoProyecto(proyecto.id, "activo");
+    expect(cambiados).toContainEqual({
+      proyectoId: proyecto.id,
+      nombre: "Sitio nuevo",
+      estadoAnterior: "propuesto",
+      estadoNuevo: "activo",
+      destinatarioPersonaId: titular!.id,
+    });
+
+    bus._reiniciarParaTests();
+  });
+
   it("crearTarea exige un proyecto y un nodo responsable existentes", async () => {
     const { nodo: n, cliente } = await armarClienteYNodo();
     const proyecto = await api.crearProyecto({
@@ -202,6 +251,42 @@ describe("modules/proyectos api", () => {
 
     const desasignada = await api.asignarPersonaATarea(tarea.id, null);
     expect(desasignada.personaAsignadaId).toBeNull();
+  });
+
+  it("asignarPersonaATarea publica tarea.asignada con el título, y no publica al desasignar", async () => {
+    const bus = await import("@/kernel/eventos/bus");
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const tarea = await api.crearTarea(proyecto.id, {
+      titulo: "Maquetar home",
+      nodoResponsableId: n.id,
+    });
+    const [empleado] = await db
+      .insert(persona)
+      .values({
+        nombre: "Dev",
+        apellido: "Uno",
+        email: "dev2@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+    const recibidos: unknown[] = [];
+    bus.suscribir("tarea.asignada", (payload) => {
+      recibidos.push(payload);
+    });
+
+    await api.asignarPersonaATarea(tarea.id, empleado!.id);
+    await api.asignarPersonaATarea(tarea.id, null);
+
+    expect(recibidos).toEqual([
+      { tareaId: tarea.id, personaId: empleado!.id, titulo: "Maquetar home" },
+    ]);
+
+    bus._reiniciarParaTests();
   });
 
   it("obtenerProgresoDeProyecto cuenta tareas hechas sobre el total", async () => {

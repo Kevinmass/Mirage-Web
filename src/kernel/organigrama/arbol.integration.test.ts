@@ -301,4 +301,20 @@ describe("kernel/organigrama — api del árbol", () => {
 
     expect(await arbol.listarNodosDeLaPersona(p.id)).toEqual([a.id]);
   });
+
+  it("obtenerTitularDeNodo devuelve null en un nodo vacante, y el id cuando hay titular", async () => {
+    const { a } = await armarCadena();
+    const p = await crearPersonaDePrueba("asig8@mirage.test");
+
+    expect(await arbol.obtenerTitularDeNodo(a.id)).toBeNull();
+
+    await arbol.asignarPersona(p.id, a.id, false);
+    expect(await arbol.obtenerTitularDeNodo(a.id)).toBeNull();
+
+    const asignacionTitular = await arbol.asignarPersona(p.id, a.id, true);
+    expect(await arbol.obtenerTitularDeNodo(a.id)).toBe(p.id);
+
+    await arbol.finalizarAsignacion(asignacionTitular.id);
+    expect(await arbol.obtenerTitularDeNodo(a.id)).toBeNull();
+  });
 });
