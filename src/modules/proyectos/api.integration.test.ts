@@ -488,4 +488,68 @@ describe("modules/proyectos api", () => {
     expect(repos.find((r) => r.id === repo1.id)?.error).toBeNull();
     expect(repos.find((r) => r.id === repo2.id)?.error).toBeNull();
   });
+
+  // Contrato de aislamiento del portal (PR 7.1, ítem 4: "un contacto
+  // del cliente A no ve proyectos del cliente B en /portal") — real
+  // desde PR 7.7. Mismo patrón que solicitudes.listarSolicitudesDeCliente
+  // / obtenerSolicitudDeCliente.
+  it("listarProyectosDeCliente y obtenerProyectoDeCliente nunca cruzan clientes", async () => {
+    const a = await armarClienteYNodo();
+    const clienteB = await clientesApi.crearCliente({
+      nombre: "Beta",
+      cuit: "30-55555555-5",
+      nodoResponsableId: a.nodo.id,
+      contactoDirectoId: a.cliente.contactoDirectoId,
+    });
+
+    const proyectoA = await api.crearProyecto({
+      clienteId: a.cliente.id,
+      nombre: "De Acme",
+      nodoResponsableId: a.nodo.id,
+    });
+    await api.crearProyecto({
+      clienteId: clienteB.id,
+      nombre: "De Beta",
+      nodoResponsableId: a.nodo.id,
+    });
+
+    const deAcme = await api.listarProyectosDeCliente(a.cliente.id);
+    expect(deAcme.map((p) => p.nombre)).toEqual(["De Acme"]);
+
+    await expect(
+      api.obtenerProyectoDeCliente(clienteB.id, proyectoA.id),
+    ).rejects.toThrow(NoEncontrado);
+
+    const propio = await api.obtenerProyectoDeCliente(
+      a.cliente.id,
+      proyectoA.id,
+    );
+    expect(propio.id).toBe(proyectoA.id);
+  });
+
+  // Contrato de aislamiento del portal (PR 7.1, ítem 5: "la ficha de
+  // un proyecto en /portal solo trae el porcentaje de progreso —
+  // nunca commits, PRs, contribuyentes, tareas individuales, nodos ni
+  // asignaciones"). El filtro de campos vive en api.ts (el shape que
+  // devuelve ProyectoDeCliente), no en lo que decide renderizar el
+  // componente — este test lo verifica sobre el objeto que sale de la
+  // función, antes de que llegue a ninguna página.
+  it("obtenerProyectoDeCliente nunca trae nodoResponsableId, descripcion, fechas ni ningún otro campo interno", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const creado = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      descripcion: "Detalle interno que el cliente no debería ver acá",
+      nodoResponsableId: n.id,
+    });
+
+    const paraElPortal = await api.obtenerProyectoDeCliente(
+      cliente.id,
+      creado.id,
+    );
+
+    expect(Object.keys(paraElPortal).sort()).toEqual(
+      ["id", "nombre", "estado", "hechas", "totales"].sort(),
+    );
+  });
 });

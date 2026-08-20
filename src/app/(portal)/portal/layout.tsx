@@ -38,12 +38,18 @@ export default async function LayoutPortal({
               )}
             </div>
             {sesion && (
-              <nav>
+              <nav className="flex gap-4">
                 <Link
                   href="/portal/solicitudes"
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Solicitudes
+                </Link>
+                <Link
+                  href="/portal/proyectos"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Proyectos
                 </Link>
               </nav>
             )}

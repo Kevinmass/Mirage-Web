@@ -219,6 +219,61 @@ export async function obtenerProgresoDeProyecto(proyectoId: number) {
   return { hechas, totales: tareas.length };
 }
 
+export interface ProyectoDeCliente {
+  id: number;
+  nombre: string;
+  estado: EstadoProyecto;
+  hechas: number;
+  totales: number;
+}
+
+// Las únicas dos funciones que el portal puede llamar para ver
+// proyectos (diseño §8, PR 7.7): el shape que devuelven es
+// deliberadamente angosto — id, nombre, estado y progreso, nada más.
+// Nunca nodoResponsableId, descripcion, fechaInicio/fechaFinEstimada,
+// tareas individuales ni actividad de GitHub — el filtrado de campos
+// pasa por acá, no por lo que el componente decide renderizar.
+export async function listarProyectosDeCliente(
+  clienteId: number,
+): Promise<ProyectoDeCliente[]> {
+  const proyectos = await db
+    .select({
+      id: proyectosProyecto.id,
+      nombre: proyectosProyecto.nombre,
+      estado: proyectosProyecto.estado,
+    })
+    .from(proyectosProyecto)
+    .where(eq(proyectosProyecto.clienteId, clienteId));
+
+  return Promise.all(
+    proyectos.map(async (p) => ({
+      ...p,
+      ...(await obtenerProgresoDeProyecto(p.id)),
+    })),
+  );
+}
+
+// Mismo criterio que solicitudes.obtenerSolicitudDeCliente: si el
+// proyecto existe pero es de otro cliente, tira el mismo NoEncontrado
+// que si no existiera — la ficha de /portal/proyectos/[id] nunca
+// puede distinguir uno de otro.
+export async function obtenerProyectoDeCliente(
+  clienteId: number,
+  id: number,
+): Promise<ProyectoDeCliente> {
+  const proyecto = await obtenerProyecto(id);
+  if (proyecto.clienteId !== clienteId) {
+    throw new NoEncontrado(`No existe el proyecto ${id}`);
+  }
+  const progreso = await obtenerProgresoDeProyecto(id);
+  return {
+    id: proyecto.id,
+    nombre: proyecto.nombre,
+    estado: proyecto.estado,
+    ...progreso,
+  };
+}
+
 export interface TareaConProyecto {
   id: number;
   titulo: string;

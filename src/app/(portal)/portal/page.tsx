@@ -27,10 +27,15 @@ export default async function PaginaPortal() {
       <p className="text-lg text-muted-foreground">
         Acá vas a poder cargar solicitudes y ver el progreso de tus proyectos.
       </p>
-      <Button
-        render={<Link href="/portal/solicitudes">Ver tus solicitudes</Link>}
-        className="self-start"
-      />
+      <div className="flex gap-2">
+        <Button
+          render={<Link href="/portal/solicitudes">Ver tus solicitudes</Link>}
+        />
+        <Button
+          variant="outline"
+          render={<Link href="/portal/proyectos">Ver tus proyectos</Link>}
+        />
+      </div>
     </main>
   );
 }
