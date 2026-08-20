@@ -23,6 +23,12 @@ describe("kernel/identidad — better-auth", () => {
     container = await new PostgreSqlContainer("postgres:17-alpine").start();
     process.env.DATABASE_URL = container.getConnectionUri();
     process.env.BETTER_AUTH_SECRET = "x".repeat(32);
+    // Sin esto, better-auth no puede derivar el origin (acá no hay una
+    // request HTTP entrante de la que sacarlo, se llama a auth.api.*
+    // directo) y las URLs que arma (como la de reset-password) salen
+    // relativas en vez de absolutas — rompe el parseo más abajo. En
+    // producción esto lo pone render.yaml.
+    process.env.BETTER_AUTH_URL = "http://localhost:3000";
 
     ({ db, client } = await import("@/db/client"));
     await migrate(db, { migrationsFolder: "./src/db/migrations" });

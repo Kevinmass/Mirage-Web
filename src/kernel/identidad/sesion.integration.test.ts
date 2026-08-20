@@ -15,6 +15,7 @@ describe("kernel/identidad — obtenerSesion", () => {
     container = await new PostgreSqlContainer("postgres:17-alpine").start();
     process.env.DATABASE_URL = container.getConnectionUri();
     process.env.BETTER_AUTH_SECRET = "x".repeat(32);
+    process.env.BETTER_AUTH_URL = "http://localhost:3000";
 
     ({ db, client } = await import("@/db/client"));
     await migrate(db, { migrationsFolder: "./src/db/migrations" });
