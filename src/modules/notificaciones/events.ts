@@ -55,15 +55,46 @@ export function suscribirseAEventos(): void {
     });
   });
 
-  // solicitud.creada / solicitud.aceptada / solicitud.rechazada /
-  // solicitud.mensaje_agregado / tarea.vencida: eventos de v1 (diseño
-  // §7) sin publicador todavía — solicitudes es la fase 7, y ningún
-  // job calcula tareas vencidas todavía. No se suscribe acá con un
-  // payload inventado: ningún módulo real declaró su forma en
-  // EventosRegistrados, así que cualquier handler sería adivinar. Se
-  // agregan cuando el publicador exista y declare su payload real —
-  // hasta entonces, "suscritos y sin disparar" significa
-  // literalmente eso, no un handler a ciegas.
+  suscribir("solicitud.creada", async (payload) => {
+    if (payload.destinatarioPersonaId === null) return;
+    await encolarNotificacion({
+      destinatarioPersonaId: payload.destinatarioPersonaId,
+      plantilla: "solicitud.creada",
+      datos: payload,
+    });
+  });
+
+  suscribir("solicitud.aceptada", async (payload) => {
+    if (payload.destinatarioPersonaId === null) return;
+    await encolarNotificacion({
+      destinatarioPersonaId: payload.destinatarioPersonaId,
+      plantilla: "solicitud.aceptada",
+      datos: payload,
+    });
+  });
+
+  suscribir("solicitud.rechazada", async (payload) => {
+    if (payload.destinatarioPersonaId === null) return;
+    await encolarNotificacion({
+      destinatarioPersonaId: payload.destinatarioPersonaId,
+      plantilla: "solicitud.rechazada",
+      datos: payload,
+    });
+  });
+
+  suscribir("solicitud.mensaje_agregado", async (payload) => {
+    if (payload.destinatarioPersonaId === null) return;
+    await encolarNotificacion({
+      destinatarioPersonaId: payload.destinatarioPersonaId,
+      plantilla: "solicitud.mensaje_agregado",
+      datos: payload,
+    });
+  });
+
+  // tarea.vencida: evento de v1 (diseño §7) sin publicador todavía —
+  // ningún job calcula tareas vencidas. Se agrega cuando ese job
+  // exista y declare su payload real (mismo criterio que el resto:
+  // no hay handler a ciegas para un payload inventado).
 }
 
 suscribirseAEventos();

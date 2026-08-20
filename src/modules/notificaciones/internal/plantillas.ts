@@ -67,11 +67,88 @@ function tareaAsignada(datos: unknown): PlantillaRenderizada {
   };
 }
 
+interface DatosSolicitudCreada {
+  solicitudId: number;
+  clienteId: number;
+  titulo: string;
+}
+
+function solicitudCreada(datos: unknown): PlantillaRenderizada {
+  const d = datos as DatosSolicitudCreada;
+  return {
+    asunto: `Nueva solicitud: ${d.titulo}`,
+    html: `<p>Llegó una nueva solicitud, <strong>${d.titulo}</strong>, para un cliente bajo tu nodo responsable.</p>`,
+  };
+}
+
+interface DatosSolicitudAceptada {
+  solicitudId: number;
+  clienteId: number;
+  titulo: string;
+}
+
+function solicitudAceptada(datos: unknown): PlantillaRenderizada {
+  const d = datos as DatosSolicitudAceptada;
+  return {
+    asunto: `Tu solicitud fue aceptada: ${d.titulo}`,
+    html: `<p>Tu solicitud <strong>${d.titulo}</strong> fue aceptada y se convirtió en un proyecto.</p>`,
+  };
+}
+
+interface DatosSolicitudRechazada {
+  solicitudId: number;
+  clienteId: number;
+  titulo: string;
+}
+
+function solicitudRechazada(datos: unknown): PlantillaRenderizada {
+  const d = datos as DatosSolicitudRechazada;
+  return {
+    asunto: `Tu solicitud fue rechazada: ${d.titulo}`,
+    html: `<p>Tu solicitud <strong>${d.titulo}</strong> fue rechazada.</p>`,
+  };
+}
+
+interface DatosSolicitudMensajeAgregado {
+  solicitudId: number;
+  clienteId: number;
+}
+
+function solicitudMensajeAgregado(datos: unknown): PlantillaRenderizada {
+  const d = datos as DatosSolicitudMensajeAgregado;
+  return {
+    asunto: `Nuevo mensaje en tu solicitud`,
+    html: `<p>Hay un mensaje nuevo en la solicitud #${d.solicitudId}.</p>`,
+  };
+}
+
+// No es un evento del bus — la dispara better-auth directo
+// (kernel/identidad/auth.ts, sendResetPassword) tanto para invitar a
+// alguien nuevo como para "olvidé mi contraseña": las dos usan el
+// mismo mecanismo de better-auth y no hay forma de distinguirlas
+// desde acá, así que la plantilla es neutra y sirve para ambas.
+interface DatosRecuperarPassword {
+  url: string;
+}
+
+function authRecuperarPassword(datos: unknown): PlantillaRenderizada {
+  const d = datos as DatosRecuperarPassword;
+  return {
+    asunto: "Acceso a Mirage",
+    html: `<p>Usá este link para poner tu contraseña de acceso a Mirage:</p><p><a href="${d.url}">${d.url}</a></p><p>Si no lo pediste vos, ignorá este mail.</p>`,
+  };
+}
+
 const PLANTILLAS: Record<string, Renderizador> = {
   "cliente.creado": clienteCreado,
   "proyecto.creado": proyectoCreado,
   "proyecto.estado_cambiado": proyectoEstadoCambiado,
   "tarea.asignada": tareaAsignada,
+  "solicitud.creada": solicitudCreada,
+  "solicitud.aceptada": solicitudAceptada,
+  "solicitud.rechazada": solicitudRechazada,
+  "solicitud.mensaje_agregado": solicitudMensajeAgregado,
+  "auth.recuperar-password": authRecuperarPassword,
 };
 
 function generica(plantilla: string, datos: unknown): PlantillaRenderizada {

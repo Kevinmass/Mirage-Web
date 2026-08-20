@@ -160,6 +160,24 @@ src/
   Next 16 (antes "middleware") corre en runtime node, no edge — con edge
   no se podría tocar la base acá. `reglas-acceso.ts` sigue siendo la
   función pura que decide permitir/no-encontrado; no cambió.
+- **`obtenerSesionActual()` no sirve para leer la sesión que se acaba
+  de crear en la misma Server Action.** `headers()` de `next/headers`
+  devuelve las cabeceras de la request ENTRANTE, de solo lectura — la
+  cookie que `signInEmail` fija (vía el plugin `nextCookies()`) es de
+  la respuesta que todavía no volvió al navegador. Llamar
+  `obtenerSesionActual()` justo después de `signInEmail`, en la misma
+  acción, resuelve la sesión VIEJA (quien estaba logueado antes en ese
+  navegador, si había alguien) — no la nueva. Encontrado en vivo (PR
+  7.2), verificando el login real en el navegador con dos cuentas
+  seguidas: la segunda te mandaba según la cuenta anterior, no la que
+  acababas de poner. La cookie en sí se fija bien (confirmado con
+  `/api/auth/get-session` después de que la acción termina); el
+  problema es solo leerla de vuelta demasiado pronto. El arreglo:
+  `signInEmail` ya devuelve `user.id` — resolver el `tipo` de la
+  persona con ese id directo (una consulta a `persona`), sin pasar por
+  la cookie. Ningún test de integración lo agarra (no hay ciclo
+  request/response real ahí); solo aparece con Server Actions de
+  verdad, en el navegador.
 - **better-auth: tablas en español, campos en inglés (default de la
   librería).** El diseño pide `usuario`/`sesion`/`cuenta` como nombres de
   tabla literales (backticks en el doc) — se cumple vía `modelName` en la

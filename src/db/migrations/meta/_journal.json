@@ -78,6 +78,20 @@
       "when": 1787238771457,
       "tag": "0010_rare_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787261913824,
+      "tag": "0011_panoramic_rhino",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1787264919017,
+      "tag": "0012_fuzzy_albert_cleary",
+      "breakpoints": true
     }
   ]
 }

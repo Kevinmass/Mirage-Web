@@ -1,8 +1,8 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eventoAuditoria } from "@/kernel/auditoria/schema";
 import { cuenta, persona, usuario } from "./schema";
 
@@ -120,38 +120,50 @@ describe("kernel/identidad — better-auth", () => {
     });
   });
 
-  it("recuperación: pedir el reset, usar el token y loguear con la contraseña nueva", async () => {
-    const enviarReset = vi.fn();
-    // sendResetPassword se configura una sola vez en auth.ts; para probar
-    // que el flujo entero funciona, se dispara vía requestPasswordReset y
-    // se confirma con resetPassword usando el token capturado en el mock
-    // de console.log (auth.ts loguea la URL con el token porque no hay
-    // RESEND_API_KEY todavía — ver comentario en auth.ts).
-    const logSpy = vi
-      .spyOn(console, "log")
-      .mockImplementation((...args) => enviarReset(...args));
-
-    await auth.api.requestPasswordReset({
-      body: { email: EMAIL, redirectTo: "http://localhost:3000/reset" },
+  it("recuperación: pedir el reset encola el mail, y con el token se loguea con la contraseña nueva", async () => {
+    // sendResetPassword (auth.ts, PR 7.2) encola vía notificaciones en
+    // vez de mandar el mail acá mismo — hace falta una persona
+    // vinculada para tener a quién encolarle (EMAIL, de arriba, no
+    // tiene una).
+    const EMAIL_RECUPERACION = "recupera@mirage.test";
+    const { user } = await auth.api.signUpEmail({
+      body: {
+        email: EMAIL_RECUPERACION,
+        password: CONTRASENA,
+        name: "Recupera",
+      },
+    });
+    await db.insert(persona).values({
+      nombre: "Recupera",
+      apellido: "Prueba",
+      email: EMAIL_RECUPERACION,
+      tipo: "empleado",
+      usuarioId: user.id,
     });
 
-    const mensaje = enviarReset.mock.calls
-      .map((args) => String(args[0]))
-      .find((linea) => linea.includes("recuperar contraseña"));
-    expect(mensaje).toBeDefined();
-    const token = new URL(mensaje!.split(": ").slice(1).join(": ")).pathname
-      .split("/")
-      .pop();
+    await auth.api.requestPasswordReset({
+      body: {
+        email: EMAIL_RECUPERACION,
+        redirectTo: "http://localhost:3000/reset",
+      },
+    });
+
+    const [notificacion] = await db.execute<{ datos: { url: string } }>(
+      sql`select datos from notificaciones_notificacion where plantilla = 'auth.recuperar-password' order by id desc limit 1`,
+    );
+    expect(notificacion).toBeDefined();
+    const token = new URL(notificacion!.datos.url).pathname.split("/").pop();
 
     await auth.api.resetPassword({
       body: { newPassword: "otra-contraseña-nueva-456", token: token! },
     });
 
     const resultado = await auth.api.signInEmail({
-      body: { email: EMAIL, password: "otra-contraseña-nueva-456" },
+      body: {
+        email: EMAIL_RECUPERACION,
+        password: "otra-contraseña-nueva-456",
+      },
     });
-    expect(resultado.user.email).toBe(EMAIL);
-
-    logSpy.mockRestore();
+    expect(resultado.user.email).toBe(EMAIL_RECUPERACION);
   });
 });

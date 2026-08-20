@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { cerrarSesionAction } from "@/lib/cerrar-sesion-action";
 
 // /app tiene sesión: todo lo que haya debajo muestra datos por
 // persona/por momento, nunca contenido cacheable entre visitantes. Sin
@@ -16,30 +18,43 @@ export default function LayoutInterno({
   return (
     <>
       <header className="border-b">
-        <div className="flex items-center gap-6 px-6 py-3">
-          <Link href="/app" className="font-semibold">
-            Mirage — interno
-          </Link>
-          <nav className="flex gap-4 text-sm text-muted-foreground">
-            <Link href="/app/personas" className="hover:text-foreground">
-              Personas
+        <div className="flex items-center justify-between gap-6 px-6 py-3">
+          <div className="flex items-center gap-6">
+            <Link href="/app" className="font-semibold">
+              Mirage — interno
             </Link>
-            <Link href="/app/organigrama" className="hover:text-foreground">
-              Organigrama
-            </Link>
-            <Link href="/app/clientes" className="hover:text-foreground">
-              Clientes
-            </Link>
-            <Link href="/app/proyectos" className="hover:text-foreground">
-              Proyectos
-            </Link>
-            <Link href="/app/tareas" className="hover:text-foreground">
-              Tareas
-            </Link>
-            <Link href="/app/notificaciones" className="hover:text-foreground">
-              Notificaciones
-            </Link>
-          </nav>
+            <nav className="flex gap-4 text-sm text-muted-foreground">
+              <Link href="/app/personas" className="hover:text-foreground">
+                Personas
+              </Link>
+              <Link href="/app/organigrama" className="hover:text-foreground">
+                Organigrama
+              </Link>
+              <Link href="/app/clientes" className="hover:text-foreground">
+                Clientes
+              </Link>
+              <Link href="/app/proyectos" className="hover:text-foreground">
+                Proyectos
+              </Link>
+              <Link href="/app/tareas" className="hover:text-foreground">
+                Tareas
+              </Link>
+              <Link href="/app/solicitudes" className="hover:text-foreground">
+                Solicitudes
+              </Link>
+              <Link
+                href="/app/notificaciones"
+                className="hover:text-foreground"
+              >
+                Notificaciones
+              </Link>
+            </nav>
+          </div>
+          <form action={cerrarSesionAction}>
+            <Button type="submit" variant="ghost" size="sm">
+              Cerrar sesión
+            </Button>
+          </form>
         </div>
       </header>
       {children}

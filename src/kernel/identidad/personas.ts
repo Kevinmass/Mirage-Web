@@ -102,8 +102,8 @@ export async function invitarPersona(id: number) {
   // No hay flujo de invitación nativo de better-auth para email+password:
   // se da de alta con una contraseña al azar que nadie conoce y se
   // dispara el mismo mecanismo de "recuperar contraseña" para que la
-  // persona ponga la suya. sendResetPassword loguea el link (auth.ts) —
-  // cuando exista notificaciones (fase 6) esto manda un mail real.
+  // persona ponga la suya. sendResetPassword (auth.ts) encola el mail
+  // real vía notificaciones.
   const { auth } = await import("./auth");
   const contraseniaAlAzar = randomBytes(24).toString("base64url");
 
@@ -121,6 +121,9 @@ export async function invitarPersona(id: number) {
     .where(eq(persona.id, id));
 
   await auth.api.requestPasswordReset({
-    body: { email: personaAInvitar.email },
+    body: {
+      email: personaAInvitar.email,
+      redirectTo: "/restablecer-password",
+    },
   });
 }

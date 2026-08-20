@@ -48,12 +48,14 @@ export const clientesContacto = pgTable(
     esPrincipal: boolean("es_principal").notNull().default(false),
   },
   (t) => [
-    // La misma persona no se agrega dos veces como contacto del mismo
-    // cliente.
-    uniqueIndex("clientes_contacto_cliente_persona_unico").on(
-      t.clienteId,
-      t.personaId,
-    ),
+    // Un contacto pertenece a un único cliente — invariante de la que
+    // depende todo el aislamiento del portal (diseño §8, PR 7.1): si
+    // una persona pudiera ser contacto de dos clientes, "el cliente de
+    // esta sesión" dejaría de tener una única respuesta. Único por
+    // personaId ya cubre "no se agrega la misma persona dos veces al
+    // mismo cliente" (4.3) — es la restricción más fuerte, así que el
+    // índice compuesto que hacía eso solo quedaría redundante.
+    uniqueIndex("clientes_contacto_persona_unica").on(t.personaId),
   ],
 );
 

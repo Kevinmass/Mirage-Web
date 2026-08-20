@@ -35,11 +35,35 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
-      // Sin RESEND_API_KEY todavía (llega en la fase 6, módulo
-      // notificaciones): se loguea el link en vez de perderlo. Cuando
-      // ese módulo exista, esto pasa a escribir en `notificacion` en vez
-      // de mandar el mail acá mismo — nunca dentro del request.
-      console.log(`[auth] recuperar contraseña para ${user.email}: ${url}`);
+      // Nunca se manda un mail dentro del request (diseño §6.5): esto
+      // encola, el worker de notificaciones lo toma. import() dinámico
+      // por el mismo motivo que el resto de este archivo — evitar que
+      // el build de Docker evalúe módulos que necesitan env vars o la
+      // base antes de que existan.
+      const { encolarNotificacion } =
+        await import("@/modules/notificaciones/api");
+      const [personaVinculada] = await db
+        .select({ id: persona.id })
+        .from(persona)
+        .where(eq(persona.usuarioId, user.id))
+        .limit(1);
+
+      if (!personaVinculada) {
+        // No debería pasar: invitarPersona vincula usuarioId antes de
+        // pedir el reset. Si pasa igual (reset a mano contra un
+        // usuario sin persona), no hay a quién notificar — se loguea
+        // y listo, no hay forma de encolar sin destinatario.
+        console.error(
+          `[auth] recuperar contraseña para ${user.email}: no hay persona vinculada, no se pudo avisar`,
+        );
+        return;
+      }
+
+      await encolarNotificacion({
+        destinatarioPersonaId: personaVinculada.id,
+        plantilla: "auth.recuperar-password",
+        datos: { url },
+      });
     },
   },
   databaseHooks: {

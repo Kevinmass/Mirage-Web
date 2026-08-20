@@ -111,6 +111,7 @@ export interface ContactoDeCliente {
   telefono: string | null;
   cargo: string | null;
   esPrincipal: boolean;
+  usuarioId: string | null;
 }
 
 export async function listarContactosDeCliente(
@@ -126,10 +127,28 @@ export async function listarContactosDeCliente(
       telefono: persona.telefono,
       cargo: clientesContacto.cargo,
       esPrincipal: clientesContacto.esPrincipal,
+      usuarioId: persona.usuarioId,
     })
     .from(clientesContacto)
     .innerJoin(persona, eq(persona.id, clientesContacto.personaId))
     .where(eq(clientesContacto.clienteId, clienteId));
+}
+
+// La pieza de la que depende el aislamiento del portal (diseño §8,
+// PR 7.1): dado el personaId de una sesión de contacto_cliente, a qué
+// cliente pertenece. null si esa persona no es contacto de ningún
+// cliente (no debería tener sesión de portal en ese caso, pero esta
+// función no asume eso — solo responde la pregunta). Nunca hay
+// ambigüedad: clientes_contacto_persona_unica garantiza como mucho una
+// fila.
+export async function obtenerClienteDeContacto(
+  personaId: number,
+): Promise<number | null> {
+  const [fila] = await db
+    .select({ clienteId: clientesContacto.clienteId })
+    .from(clientesContacto)
+    .where(eq(clientesContacto.personaId, personaId));
+  return fila?.clienteId ?? null;
 }
 
 export interface DatosContacto {
