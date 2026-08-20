@@ -43,6 +43,20 @@
       "when": 1787231480716,
       "tag": "0005_green_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787234134568,
+      "tag": "0006_rich_red_wolf",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787234636801,
+      "tag": "0007_youthful_gravity",
+      "breakpoints": true
     }
   ]
 }

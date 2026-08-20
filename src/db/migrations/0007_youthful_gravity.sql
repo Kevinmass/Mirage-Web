@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "clientes_contacto_cliente_persona_unico" ON "clientes_contacto" USING btree ("cliente_id","persona_id");

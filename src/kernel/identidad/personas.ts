@@ -37,6 +37,17 @@ export async function obtenerPersona(id: number) {
   return fila;
 }
 
+// A diferencia de obtenerPersona, no tira si no existe — la usa quien
+// necesita el patrón "reusar si ya existe, si no crear" (p.ej. alta de
+// contacto de cliente, PR 4.3).
+export async function obtenerPersonaPorEmail(email: string) {
+  const [fila] = await db
+    .select()
+    .from(persona)
+    .where(eq(persona.email, email));
+  return fila;
+}
+
 export async function crearPersona(datos: DatosPersona) {
   validarDatosPersona(datos);
 
