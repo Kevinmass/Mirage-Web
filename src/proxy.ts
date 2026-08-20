@@ -4,7 +4,7 @@ import { DOMINIO_CANONICO, DOMINIO_STORE } from "@/lib/dominio";
 import { decidirAcceso } from "@/kernel/identidad/reglas-acceso";
 import { obtenerSesion } from "@/kernel/identidad/sesion";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const host = request.headers.get("host")?.split(":")[0];
 
   if (host === DOMINIO_STORE || host === `www.${DOMINIO_STORE}`) {

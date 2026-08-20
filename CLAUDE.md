@@ -118,7 +118,7 @@ src/
 - **Multi-dominio por host, no por variable de entorno.** Un solo deploy
   sirve `miragesoftware.com.ar` (canónico), `.online` (staging) y `.store`
   (solo redirige). `src/lib/dominio.ts` + `robots.ts` (noindex si el host
-  no es el canónico) + `middleware.ts` (301 desde `.store`) deciden según
+  no es el canónico) + `proxy.ts` (301 desde `.store`) deciden según
   el header `Host` de cada request, no un env var por deploy — así hace
   falta un solo servicio de Render con los tres dominios apuntados.
 - **Mails nunca dentro del request** — se escribe la fila en `notificacion` y
@@ -136,13 +136,25 @@ src/
   `db/schema.ts` con las tablas). El registro real corre en
   `instrumentation.ts` (`register()` de Next, una vez al arrancar el
   server node) — si falla, se loguea y el server arranca igual.
-- **Sesión: hoy es un stub.** `kernel/identidad/sesion.ts` existe desde el
-  PR 2.4 pero `obtenerSesion()` siempre devuelve `null` — no hay login
-  hasta el PR 3.1 (better-auth). El middleware ya aplica las reglas de
-  superficie contra esa sesión (siempre ausente por ahora), así que hoy
-  `/app` y `/portal` dan 404 para cualquiera. `reglas-acceso.ts` es la
-  función pura que decide; el PR 3.1 solo tiene que reemplazar
-  `obtenerSesion`, no tocar la regla.
+- **Sesión: real desde el PR 3.1.** `obtenerSesion()` lee la sesión de
+  better-auth (`auth.api.getSession`) y la resuelve a la `persona`
+  vinculada por `usuario_id`; sin persona vinculada, `null` — un usuario
+  de better-auth sin persona no es nadie para el resto del sistema.
+  `proxy.ts` corre esto en cada request; funciona porque el "proxy" de
+  Next 16 (antes "middleware") corre en runtime node, no edge — con edge
+  no se podría tocar la base acá. `reglas-acceso.ts` sigue siendo la
+  función pura que decide permitir/no-encontrado; no cambió.
+- **better-auth: tablas en español, campos en inglés (default de la
+  librería).** El diseño pide `usuario`/`sesion`/`cuenta` como nombres de
+  tabla literales (backticks en el doc) — se cumple vía `modelName` en la
+  config. Los CAMPOS (`name`, `email`, `emailVerified`...) se dejan sin
+  traducir a propósito: better-auth los referencia por esa clave exacta
+  cuando se le pasa un schema propio, y traducirlos es superficie para un
+  mapeo mal hecho sin beneficio real (no son texto que vea un usuario).
+  Verificado contra el paquete instalado (`getAuthTables` de
+  `better-auth/db`), no contra la documentación pública — para esto
+  puntualmente la doc en `better-auth.com` dio información contradictoria
+  sobre la forma del adapter de Drizzle.
 - **Aislamiento del portal:** toda consulta de `/portal` se filtra por
   `cliente_id` derivado de la sesión, nunca de un parámetro de URL. Es la
   superficie de mayor riesgo del sistema; tiene tests dedicados que se
@@ -186,7 +198,9 @@ de ese pipeline, no una revisión manual aparte.
 
 ## Variables de entorno
 
-`DATABASE_URL`, secreto de sesión (better-auth), `GITHUB_TOKEN` (fino,
+`DATABASE_URL`, `BETTER_AUTH_SECRET` (32+ caracteres — `openssl rand -base64
+32`; sin ella better-auth arranca con un secreto default inseguro y lo
+loguea fuerte, no rompe el build), `BETTER_AUTH_URL`, `GITHUB_TOKEN` (fino,
 solo lectura, org), `RESEND_API_KEY`, `TZ=America/Argentina/Buenos_Aires`.
 
 ## Ramas

@@ -9,7 +9,7 @@
 # Un solo servicio sirve los tres dominios del diseño §3 (miragesoftware.
 # com.ar, .online, .store) — lo que cambia el comportamiento (indexar o
 # no, redirigir) es el host de cada request, no una variable de entorno
-# por deploy (ver src/lib/dominio.ts, robots.ts, middleware.ts). Falta
+# por deploy (ver src/lib/dominio.ts, robots.ts, proxy.ts). Falta
 # agregar los tres dominios como Custom Domain en la configuración del
 # servicio en Render y apuntar su DNS ahí — eso no es parte de este
 # archivo, lo hace quien tenga acceso a la cuenta.
@@ -35,3 +35,7 @@ services:
           property: connectionString
       - key: TZ
         value: America/Argentina/Buenos_Aires
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_URL
+        value: https://miragesoftware.com.ar
