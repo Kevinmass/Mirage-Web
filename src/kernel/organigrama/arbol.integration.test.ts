@@ -290,4 +290,15 @@ describe("kernel/organigrama — api del árbol", () => {
 
     expect(await arbol.contarNodosDeLaPersona(p.id)).toBe(3);
   });
+
+  it("listarNodosDeLaPersona devuelve los ids de los nodos vigentes", async () => {
+    const { a, b } = await armarCadena();
+    const p = await crearPersonaDePrueba("asig7@mirage.test");
+
+    await arbol.asignarPersona(p.id, a.id, false);
+    const asignacionB = await arbol.asignarPersona(p.id, b.id, false);
+    await arbol.finalizarAsignacion(asignacionB.id);
+
+    expect(await arbol.listarNodosDeLaPersona(p.id)).toEqual([a.id]);
+  });
 });

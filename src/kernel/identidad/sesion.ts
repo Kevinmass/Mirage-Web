@@ -44,3 +44,14 @@ export async function obtenerSesion(request: Request): Promise<Sesion | null> {
     // directo de un cliente vincula persona a cliente_id.
   };
 }
+
+// Para Server Components, que no reciben un Request como proxy.ts —
+// arma uno con los headers de la request actual (next/headers) y
+// delega en obtenerSesion. Primer uso: el tablero de tareas (PR 5.3)
+// necesita saber quién está mirando la pantalla para "mis tareas".
+export async function obtenerSesionActual(): Promise<Sesion | null> {
+  const { headers } = await import("next/headers");
+  return obtenerSesion(
+    new Request("http://localhost", { headers: await headers() }),
+  );
+}
