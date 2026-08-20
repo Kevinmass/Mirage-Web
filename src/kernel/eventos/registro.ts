@@ -10,5 +10,6 @@ import "@/modules/clientes/events";
 import "@/modules/contenido/events";
 import "@/modules/notificaciones/events";
 import "@/modules/proyectos/events";
+import "@/modules/solicitudes/events";
 
 export {};

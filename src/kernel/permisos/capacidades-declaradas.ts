@@ -7,6 +7,7 @@ import { capacidades as capacidadesClientes } from "@/modules/clientes/permissio
 import { capacidades as capacidadesContenido } from "@/modules/contenido/permissions";
 import { capacidades as capacidadesNotificaciones } from "@/modules/notificaciones/permissions";
 import { capacidades as capacidadesProyectos } from "@/modules/proyectos/permissions";
+import { capacidades as capacidadesSolicitudes } from "@/modules/solicitudes/permissions";
 import type { CapacidadDeclarada } from "./registro";
 
 export const capacidadesDeclaradas: readonly CapacidadDeclarada[] = [
@@ -14,4 +15,5 @@ export const capacidadesDeclaradas: readonly CapacidadDeclarada[] = [
   ...capacidadesContenido,
   ...capacidadesNotificaciones,
   ...capacidadesProyectos,
+  ...capacidadesSolicitudes,
 ];
