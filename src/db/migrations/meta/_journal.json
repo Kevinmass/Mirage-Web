@@ -71,6 +71,13 @@
       "when": 1787236650193,
       "tag": "0009_tense_night_thrasher",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787238771457,
+      "tag": "0010_rare_marvex",
+      "breakpoints": true
     }
   ]
 }

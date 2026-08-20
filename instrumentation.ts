@@ -38,4 +38,21 @@ export async function register() {
   };
   correrSyncDeRepositorios();
   setInterval(correrSyncDeRepositorios, TREINTA_MINUTOS);
+
+  // Worker de notificaciones (diseño §6.5): nunca se manda un mail
+  // dentro del request. Corre cada minuto — es el paso más chico del
+  // backoff (1/2/4/8/16 min), así una notificación recién encolada
+  // (0 intentos) sale casi al toque en vez de esperar hasta 30
+  // minutos como el sync de GitHub. procesarPendientes ya atrapa sus
+  // propios errores de envío (quedan en notificacion.error); este
+  // catch es solo para lo inesperado.
+  const UN_MINUTO = 60 * 1000;
+  const { procesarPendientes } = await import("@/modules/notificaciones/api");
+  const correrWorkerDeNotificaciones = () => {
+    procesarPendientes().catch((error) => {
+      console.error("[notificaciones] worker falló", error);
+    });
+  };
+  correrWorkerDeNotificaciones();
+  setInterval(correrWorkerDeNotificaciones, UN_MINUTO);
 }

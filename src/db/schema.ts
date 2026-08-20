@@ -7,4 +7,5 @@ export * from "../kernel/organigrama/schema";
 export * from "../kernel/permisos/schema";
 export * from "../modules/clientes/schema";
 export * from "../modules/contenido/schema";
+export * from "../modules/notificaciones/schema";
 export * from "../modules/proyectos/schema";
