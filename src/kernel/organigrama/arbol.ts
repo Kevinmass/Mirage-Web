@@ -1,6 +1,7 @@
 import { eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
+import { persona } from "@/kernel/identidad/schema";
 import { asignacion, nodo } from "./schema";
 
 export interface DatosNodo {
@@ -145,4 +146,77 @@ export async function archivarNodo(id: number) {
 
 export async function listarRaices() {
   return db.select().from(nodo).where(isNull(nodo.padreId));
+}
+
+export interface OcupanteNodo {
+  personaId: number;
+  nombre: string;
+  apellido: string;
+  esTitular: boolean;
+}
+
+export interface NodoConDetalle {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  padreId: number | null;
+  raiz: "interno" | "externo" | null;
+  orden: number;
+  anillo: number;
+  ocupantes: OcupanteNodo[];
+}
+
+// Todo el árbol activo de una vez, con el anillo de cada nodo ya
+// calculado y quién lo ocupa — lo que necesita el dibujo (PR 3.5): con
+// 30-100 nodos no vale la pena resolverlo nodo por nodo.
+export async function obtenerArbolCompleto(): Promise<NodoConDetalle[]> {
+  const nodos = await db.select().from(nodo).where(eq(nodo.activo, true));
+
+  const anillos = await db.execute<{ id: number; profundidad: number }>(sql`
+    WITH RECURSIVE arbol AS (
+      SELECT id, 0 AS profundidad FROM nodo WHERE padre_id IS NULL AND activo
+      UNION ALL
+      SELECT n.id, a.profundidad + 1
+      FROM nodo n
+      INNER JOIN arbol a ON n.padre_id = a.id
+      WHERE n.activo
+    )
+    SELECT id, profundidad FROM arbol
+  `);
+  const anilloPorId = new Map(anillos.map((f) => [f.id, f.profundidad]));
+
+  const ocupantesFilas = await db
+    .select({
+      nodoId: asignacion.nodoId,
+      personaId: persona.id,
+      nombre: persona.nombre,
+      apellido: persona.apellido,
+      esTitular: asignacion.esTitular,
+    })
+    .from(asignacion)
+    .innerJoin(persona, eq(persona.id, asignacion.personaId))
+    .where(isNull(asignacion.hasta));
+
+  const ocupantesPorNodo = new Map<number, OcupanteNodo[]>();
+  for (const fila of ocupantesFilas) {
+    const lista = ocupantesPorNodo.get(fila.nodoId) ?? [];
+    lista.push({
+      personaId: fila.personaId,
+      nombre: fila.nombre,
+      apellido: fila.apellido,
+      esTitular: fila.esTitular,
+    });
+    ocupantesPorNodo.set(fila.nodoId, lista);
+  }
+
+  return nodos.map((n) => ({
+    id: n.id,
+    nombre: n.nombre,
+    descripcion: n.descripcion,
+    padreId: n.padreId,
+    raiz: n.raiz,
+    orden: n.orden,
+    anillo: anilloPorId.get(n.id) ?? 0,
+    ocupantes: ocupantesPorNodo.get(n.id) ?? [],
+  }));
 }

@@ -164,4 +164,46 @@ describe("kernel/organigrama — api del árbol", () => {
     // con b ya archivada, a no tiene hijos activos.
     await expect(arbol.archivarNodo(a.id)).resolves.toBeUndefined();
   });
+
+  it("obtenerArbolCompleto trae el anillo y los ocupantes de cada nodo", async () => {
+    const { raiz, a, b } = await armarCadena();
+    const [titular] = await db
+      .insert(persona)
+      .values({
+        nombre: "Titular",
+        apellido: "Uno",
+        email: "titular@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+    await db
+      .insert(asignacion)
+      .values({ personaId: titular!.id, nodoId: a.id, esTitular: true });
+
+    const completo = await arbol.obtenerArbolCompleto();
+    const filaRaiz = completo.find((n) => n.id === raiz.id)!;
+    const filaA = completo.find((n) => n.id === a.id)!;
+    const filaB = completo.find((n) => n.id === b.id)!;
+
+    expect(filaRaiz.anillo).toBe(0);
+    expect(filaA.anillo).toBe(1);
+    expect(filaB.anillo).toBe(2);
+    expect(filaA.ocupantes).toEqual([
+      {
+        personaId: titular!.id,
+        nombre: "Titular",
+        apellido: "Uno",
+        esTitular: true,
+      },
+    ]);
+    expect(filaB.ocupantes).toEqual([]);
+  });
+
+  it("obtenerArbolCompleto no trae nodos archivados", async () => {
+    const { c } = await armarCadena();
+    await arbol.archivarNodo(c.id);
+
+    const completo = await arbol.obtenerArbolCompleto();
+    expect(completo.some((n) => n.id === c.id)).toBe(false);
+  });
 });
