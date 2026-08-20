@@ -168,6 +168,36 @@ describe("modules/solicitudes api", () => {
     expect(deBeta.map((s) => s.titulo)).toEqual(["De Beta"]);
   });
 
+  // Contrato de aislamiento del portal (PR 7.1, ítem 2 de
+  // aislamiento-portal.contrato.test.ts): un contacto no puede leer
+  // una solicitud de otro cliente pidiéndola por id — ni con el id
+  // exacto. El mismo NoEncontrado para "no existe" y para "es de otro
+  // cliente": la ficha de /portal/solicitudes/[id] nunca puede
+  // distinguir uno de otro (mismo criterio que 404-no-403 entre /app
+  // y /portal).
+  it("obtenerSolicitudDeCliente tira NoEncontrado si la solicitud es de otro cliente", async () => {
+    const a = await armarClienteYContacto();
+    const b = await clientesApi.crearCliente({
+      nombre: "Beta",
+      cuit: "30-33333333-3",
+      nodoResponsableId: a.nodo.id,
+      contactoDirectoId: a.personaContactoId,
+    });
+
+    const deA = await api.crearSolicitud(a.cliente.id, a.personaContactoId, {
+      titulo: "De Acme",
+      descripcion: "...",
+      tipo: "consulta",
+    });
+
+    await expect(
+      api.obtenerSolicitudDeCliente(b.id, deA.id),
+    ).rejects.toThrow(NoEncontrado);
+
+    const propia = await api.obtenerSolicitudDeCliente(a.cliente.id, deA.id);
+    expect(propia.id).toBe(deA.id);
+  });
+
   it("marcarEnEvaluacion solo funciona desde recibida", async () => {
     const { cliente, personaContactoId } = await armarClienteYContacto();
     const creada = await api.crearSolicitud(cliente.id, personaContactoId, {

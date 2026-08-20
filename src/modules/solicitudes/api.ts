@@ -85,6 +85,24 @@ export async function listarSolicitudesDeCliente(clienteId: number) {
     .orderBy(desc(solicitudesSolicitud.creadoEn));
 }
 
+// La única función para pedir UNA solicitud por id que el portal puede
+// llamar: si existe pero es de otro cliente, tira el mismo NoEncontrado
+// que si no existiera — un id que no es de tu cliente no puede
+// distinguirse de un id que no existe (mismo criterio que "404, no
+// 403" entre /app y /portal, pero acá aplicado adentro de un mismo
+// módulo). La ficha de /portal/solicitudes/[id] llama a esta función,
+// nunca a obtenerSolicitud directo.
+export async function obtenerSolicitudDeCliente(
+  clienteId: number,
+  id: number,
+) {
+  const solicitud = await obtenerSolicitud(id);
+  if (solicitud.clienteId !== clienteId) {
+    throw new NoEncontrado(`No existe la solicitud ${id}`);
+  }
+  return solicitud;
+}
+
 const ESTADOS_EVALUABLES: readonly EstadoSolicitud[] = [
   "recibida",
   "en_evaluacion",

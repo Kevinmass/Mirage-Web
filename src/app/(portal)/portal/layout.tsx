@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cerrarSesionAction } from "@/lib/cerrar-sesion-action";
 import { obtenerSesionPortal } from "@/lib/sesion-portal";
@@ -25,10 +26,26 @@ export default async function LayoutPortal({
     <div className="min-h-full bg-muted/30">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-8 py-6">
-          <div>
-            <p className="text-lg font-semibold">Mirage</p>
-            {cliente && (
-              <p className="text-sm text-muted-foreground">{cliente.nombre}</p>
+          <div className="flex items-center gap-8">
+            <div>
+              <Link href="/portal" className="text-lg font-semibold">
+                Mirage
+              </Link>
+              {cliente && (
+                <p className="text-sm text-muted-foreground">
+                  {cliente.nombre}
+                </p>
+              )}
+            </div>
+            {sesion && (
+              <nav>
+                <Link
+                  href="/portal/solicitudes"
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Solicitudes
+                </Link>
+              </nav>
             )}
           </div>
           {sesion && (

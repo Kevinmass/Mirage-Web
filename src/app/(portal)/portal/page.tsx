@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { obtenerSesionPortal } from "@/lib/sesion-portal";
 import { obtenerCliente } from "@/modules/clientes/api";
 
@@ -25,6 +27,10 @@ export default async function PaginaPortal() {
       <p className="text-lg text-muted-foreground">
         Acá vas a poder cargar solicitudes y ver el progreso de tus proyectos.
       </p>
+      <Button
+        render={<Link href="/portal/solicitudes">Ver tus solicitudes</Link>}
+        className="self-start"
+      />
     </main>
   );
 }

@@ -11,23 +11,29 @@ import { describe, it } from "vitest";
 // La pieza que SÍ existe desde este PR — de la que depende todo lo de
 // acá abajo — está probada de verdad en sesion-portal.integration.test.ts:
 // obtenerClienteDeContacto nunca resuelve al cliente equivocado.
+//
+// PR 7.5 convirtió en tests reales (Postgres real, dos clientes) los
+// cuatro ítems de solicitudes de esta lista — viven en
+// modules/solicitudes/api.integration.test.ts, no acá, mismo criterio
+// que sesion-portal.integration.test.ts arriba: no duplicar el setup
+// de dos-clientes-dos-contactos en dos archivos.
+//   - listarSolicitudesDeCliente nunca devuelve solicitudes de otro
+//     cliente ("listarSolicitudesDeCliente nunca devuelve...")
+//   - obtenerSolicitudDeCliente tira NoEncontrado si la solicitud es
+//     de otro cliente ("obtenerSolicitudDeCliente tira NoEncontrado...")
+//   - listarMensajesVisiblesParaCliente nunca incluye mensajes internos
+//     ("agregarMensaje: listarMensajesDeSolicitud ve todo,
+//     listarMensajesVisiblesParaCliente solo lo visible")
+//   - crearSolicitud toma clienteId/creadaPorPersonaId como parámetros
+//     explícitos, no de un formulario — portal/solicitudes/actions.ts
+//     los saca siempre de obtenerSesionPortal(), nunca de un campo;
+//     no hay una ruta de datos por la que un valor de formulario
+//     pueda llegar a esos parámetros.
 describe("aislamiento del portal — contrato pendiente", () => {
-  it.todo(
-    "un contacto del cliente A no ve solicitudes del cliente B en /portal (PR 7.5)",
-  );
-  it.todo(
-    "un contacto del cliente A no puede leer una solicitud de B pidiéndola por id (PR 7.5)",
-  );
-  it.todo(
-    "el hilo de una solicitud, visto desde /portal, nunca trae mensajes con visible_para_cliente = false — ni en el HTML, no solo escondidos en el render (PR 7.5)",
-  );
   it.todo(
     "un contacto del cliente A no ve proyectos del cliente B en /portal (PR 7.7)",
   );
   it.todo(
     "la ficha de un proyecto en /portal solo trae el porcentaje de progreso — nunca commits, PRs, contribuyentes, tareas individuales, nodos ni asignaciones (PR 7.7)",
-  );
-  it.todo(
-    "crear una solicitud en /portal la asocia siempre al cliente de la sesión, nunca a uno pasado por parámetro (PR 7.5)",
   );
 });
