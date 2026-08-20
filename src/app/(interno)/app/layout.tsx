@@ -27,6 +27,9 @@ export default function LayoutInterno({
             <Link href="/app/organigrama" className="hover:text-foreground">
               Organigrama
             </Link>
+            <Link href="/app/clientes" className="hover:text-foreground">
+              Clientes
+            </Link>
           </nav>
         </div>
       </header>
