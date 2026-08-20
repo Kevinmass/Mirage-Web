@@ -8,7 +8,11 @@ import {
   listarInteraccionesDeCliente,
   obtenerCliente,
 } from "@/modules/clientes/api";
-import { actualizarClienteAction, archivarClienteAction } from "../actions";
+import {
+  actualizarClienteAction,
+  archivarClienteAction,
+  invitarContactoAction,
+} from "../actions";
 import {
   FormularioContacto,
   FormularioInteraccion,
@@ -103,10 +107,29 @@ export default async function PaginaCliente({
           ) : (
             <ul className="flex flex-col gap-1">
               {contactos.map((c) => (
-                <li key={c.id}>
-                  {c.nombre} {c.apellido}
-                  {c.cargo ? ` — ${c.cargo}` : ""}
-                  {c.esPrincipal ? " (principal)" : ""}
+                <li key={c.id} className="flex items-center gap-2">
+                  <span>
+                    {c.nombre} {c.apellido}
+                    {c.cargo ? ` — ${c.cargo}` : ""}
+                    {c.esPrincipal ? " (principal)" : ""}
+                  </span>
+                  {c.usuarioId ? (
+                    <span className="text-xs text-muted-foreground">
+                      Ya tiene acceso al portal
+                    </span>
+                  ) : (
+                    <form
+                      action={invitarContactoAction.bind(
+                        null,
+                        cliente.id,
+                        c.personaId,
+                      )}
+                    >
+                      <Button type="submit" size="sm" variant="ghost">
+                        Invitar al portal
+                      </Button>
+                    </form>
+                  )}
                 </li>
               ))}
             </ul>

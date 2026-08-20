@@ -67,11 +67,29 @@ function tareaAsignada(datos: unknown): PlantillaRenderizada {
   };
 }
 
+// No es un evento del bus — la dispara better-auth directo
+// (kernel/identidad/auth.ts, sendResetPassword) tanto para invitar a
+// alguien nuevo como para "olvidé mi contraseña": las dos usan el
+// mismo mecanismo de better-auth y no hay forma de distinguirlas
+// desde acá, así que la plantilla es neutra y sirve para ambas.
+interface DatosRecuperarPassword {
+  url: string;
+}
+
+function authRecuperarPassword(datos: unknown): PlantillaRenderizada {
+  const d = datos as DatosRecuperarPassword;
+  return {
+    asunto: "Acceso a Mirage",
+    html: `<p>Usá este link para poner tu contraseña de acceso a Mirage:</p><p><a href="${d.url}">${d.url}</a></p><p>Si no lo pediste vos, ignorá este mail.</p>`,
+  };
+}
+
 const PLANTILLAS: Record<string, Renderizador> = {
   "cliente.creado": clienteCreado,
   "proyecto.creado": proyectoCreado,
   "proyecto.estado_cambiado": proyectoEstadoCambiado,
   "tarea.asignada": tareaAsignada,
+  "auth.recuperar-password": authRecuperarPassword,
 };
 
 function generica(plantilla: string, datos: unknown): PlantillaRenderizada {

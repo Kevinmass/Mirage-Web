@@ -1,7 +1,8 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 
 describe("kernel/identidad — personas", () => {
@@ -100,9 +101,7 @@ describe("kernel/identidad — personas", () => {
     expect(releida.activo).toBe(false);
   });
 
-  it("invitarPersona crea el usuario, lo vincula y dispara el reset de contraseña", async () => {
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-
+  it("invitarPersona crea el usuario, lo vincula y encola el mail de acceso", async () => {
     const creada = await personas.crearPersona({
       nombre: "Fede",
       apellido: "Molina",
@@ -114,17 +113,22 @@ describe("kernel/identidad — personas", () => {
 
     const releida = await personas.obtenerPersona(creada.id);
     expect(releida.usuarioId).not.toBeNull();
-    expect(
-      logSpy.mock.calls.some((args) =>
-        String(args[0]).includes("recuperar contraseña"),
-      ),
-    ).toBe(true);
-
-    logSpy.mockRestore();
+    // sendResetPassword (auth.ts, PR 7.2) encola vía notificaciones —
+    // ya está vinculada en este punto (invitarPersona vincula antes de
+    // pedir el reset), así que tiene a quién encolarle.
+    const [notificacion] = await db.execute<{
+      destinatario_persona_id: number;
+      plantilla: string;
+    }>(
+      sql`select destinatario_persona_id, plantilla from notificaciones_notificacion where destinatario_persona_id = ${creada.id}`,
+    );
+    expect(notificacion).toMatchObject({
+      destinatario_persona_id: creada.id,
+      plantilla: "auth.recuperar-password",
+    });
   });
 
   it("invitarPersona rechaza si la persona ya tiene acceso", async () => {
-    vi.spyOn(console, "log").mockImplementation(() => undefined);
     const creada = await personas.crearPersona({
       nombre: "Gaby",
       apellido: "Torres",
@@ -134,6 +138,5 @@ describe("kernel/identidad — personas", () => {
     await personas.invitarPersona(creada.id);
 
     await expect(personas.invitarPersona(creada.id)).rejects.toThrow(Conflicto);
-    vi.restoreAllMocks();
   });
 });

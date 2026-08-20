@@ -111,6 +111,7 @@ export interface ContactoDeCliente {
   telefono: string | null;
   cargo: string | null;
   esPrincipal: boolean;
+  usuarioId: string | null;
 }
 
 export async function listarContactosDeCliente(
@@ -126,6 +127,7 @@ export async function listarContactosDeCliente(
       telefono: persona.telefono,
       cargo: clientesContacto.cargo,
       esPrincipal: clientesContacto.esPrincipal,
+      usuarioId: persona.usuarioId,
     })
     .from(clientesContacto)
     .innerJoin(persona, eq(persona.id, clientesContacto.personaId))

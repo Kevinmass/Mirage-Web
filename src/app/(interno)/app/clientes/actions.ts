@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
+import { invitarPersona } from "@/kernel/identidad/personas";
 import * as clientes from "@/modules/clientes/api";
 
 export interface EstadoFormulario {
@@ -98,6 +99,17 @@ export async function crearContactoAction(
 
   revalidatePath(`/app/clientes/${clienteId}`);
   return {};
+}
+
+// Invitar a un contacto a tener acceso al portal es el mismo mecanismo
+// que invitar a un empleado a /app (kernel/identidad/personas —
+// invitarPersona no distingue tipo de persona). Vive acá, no en
+// clientes/api.ts, porque es una acción de UI (redirige la Server
+// Action del lado de personas), no una operación del dominio de
+// clientes.
+export async function invitarContactoAction(clienteId: number, id: number) {
+  await invitarPersona(id);
+  revalidatePath(`/app/clientes/${clienteId}`);
 }
 
 export async function registrarInteraccionAction(
