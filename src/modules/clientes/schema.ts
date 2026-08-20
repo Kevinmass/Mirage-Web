@@ -5,6 +5,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { persona } from "@/kernel/identidad/schema";
 import { nodo } from "@/kernel/organigrama/schema";
@@ -33,17 +34,28 @@ export const clientesCliente = pgTable("clientes_cliente", {
     .defaultNow(),
 });
 
-export const clientesContacto = pgTable("clientes_contacto", {
-  id: serial("id").primaryKey(),
-  clienteId: integer("cliente_id")
-    .notNull()
-    .references(() => clientesCliente.id),
-  personaId: integer("persona_id")
-    .notNull()
-    .references(() => persona.id),
-  cargo: text("cargo"),
-  esPrincipal: boolean("es_principal").notNull().default(false),
-});
+export const clientesContacto = pgTable(
+  "clientes_contacto",
+  {
+    id: serial("id").primaryKey(),
+    clienteId: integer("cliente_id")
+      .notNull()
+      .references(() => clientesCliente.id),
+    personaId: integer("persona_id")
+      .notNull()
+      .references(() => persona.id),
+    cargo: text("cargo"),
+    esPrincipal: boolean("es_principal").notNull().default(false),
+  },
+  (t) => [
+    // La misma persona no se agrega dos veces como contacto del mismo
+    // cliente.
+    uniqueIndex("clientes_contacto_cliente_persona_unico").on(
+      t.clienteId,
+      t.personaId,
+    ),
+  ],
+);
 
 export const clientesInteraccion = pgTable("clientes_interaccion", {
   id: serial("id").primaryKey(),

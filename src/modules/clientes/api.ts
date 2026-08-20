@@ -3,7 +3,11 @@ import { db } from "@/db/client";
 import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { publicar } from "@/kernel/eventos/bus";
 import { Conflicto, NoEncontrado } from "@/kernel/errores";
-import { obtenerPersona } from "@/kernel/identidad/personas";
+import {
+  crearPersona,
+  obtenerPersona,
+  obtenerPersonaPorEmail,
+} from "@/kernel/identidad/personas";
 import { persona } from "@/kernel/identidad/schema";
 import { obtenerNodo } from "@/kernel/organigrama/arbol";
 import {
@@ -119,6 +123,79 @@ export async function listarContactosDeCliente(
     .from(clientesContacto)
     .innerJoin(persona, eq(persona.id, clientesContacto.personaId))
     .where(eq(clientesContacto.clienteId, clienteId));
+}
+
+export interface DatosContacto {
+  email: string;
+  nombre: string;
+  apellido: string;
+  telefono?: string;
+  cargo?: string;
+  esPrincipal?: boolean;
+}
+
+// Alta de contacto (diseño, PR 4.3): reusa la persona si ya existe por
+// email, si no la crea de tipo contacto_cliente. Un contacto se crea
+// sin usuario_id — sin acceso al portal; invitarlo es una acción
+// aparte, de la fase 7.
+export async function crearContacto(clienteId: number, datos: DatosContacto) {
+  await obtenerCliente(clienteId);
+
+  const existente = await obtenerPersonaPorEmail(datos.email);
+  if (existente && existente.tipo !== "contacto_cliente") {
+    throw new Conflicto(
+      `La persona con email "${datos.email}" ya existe como empleado, no puede agregarse como contacto de cliente`,
+    );
+  }
+  const personaDelContacto =
+    existente ??
+    (await crearPersona({
+      nombre: datos.nombre,
+      apellido: datos.apellido,
+      email: datos.email,
+      telefono: datos.telefono,
+      tipo: "contacto_cliente",
+    }));
+
+  try {
+    const [creado] = await db
+      .insert(clientesContacto)
+      .values({
+        clienteId,
+        personaId: personaDelContacto.id,
+        cargo: datos.cargo,
+        esPrincipal: datos.esPrincipal ?? false,
+      })
+      .returning();
+    return creado!;
+  } catch (error) {
+    if (esViolacionDeUnicidad(error)) {
+      throw new Conflicto(
+        `${personaDelContacto.nombre} ${personaDelContacto.apellido} ya es contacto de este cliente`,
+      );
+    }
+    throw error;
+  }
+}
+
+export interface DatosInteraccion {
+  personaId: number;
+  tipo: "llamada" | "mail" | "reunion" | "otro";
+  resumen: string;
+}
+
+export async function registrarInteraccion(
+  clienteId: number,
+  datos: DatosInteraccion,
+) {
+  await obtenerCliente(clienteId);
+  await obtenerPersona(datos.personaId);
+
+  const [creada] = await db
+    .insert(clientesInteraccion)
+    .values({ clienteId, ...datos })
+    .returning();
+  return creada!;
 }
 
 export interface InteraccionDeCliente {

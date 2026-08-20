@@ -1,9 +1,9 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { NoEncontrado } from "@/kernel/errores";
+import { Conflicto, NoEncontrado } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
 import { nodo } from "@/kernel/organigrama/schema";
 import { clientesContacto, clientesInteraccion } from "./schema";
@@ -190,5 +190,127 @@ describe("modules/clientes api", () => {
     const interacciones = await api.listarInteraccionesDeCliente(creado.id);
 
     expect(interacciones.map((i) => i.resumen)).toEqual(["Segunda", "Primera"]);
+  });
+
+  it("crearContacto crea la persona contacto_cliente si no existe", async () => {
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const creado = await api.crearCliente({
+      nombre: "Acme",
+      cuit: "30-11111111-1",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+
+    await api.crearContacto(creado.id, {
+      email: "nuevo@acme.test",
+      nombre: "Nuevo",
+      apellido: "Contacto",
+      cargo: "Compras",
+    });
+
+    const contactos = await api.listarContactosDeCliente(creado.id);
+    expect(contactos).toMatchObject([
+      { nombre: "Nuevo", apellido: "Contacto", cargo: "Compras" },
+    ]);
+    const [personaCreada] = await db
+      .select()
+      .from(persona)
+      .where(eq(persona.email, "nuevo@acme.test"));
+    expect(personaCreada?.tipo).toBe("contacto_cliente");
+    expect(personaCreada?.usuarioId).toBeNull();
+  });
+
+  it("crearContacto reusa la persona si ya existe con ese email", async () => {
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const creado = await api.crearCliente({
+      nombre: "Acme",
+      cuit: "30-11111111-1",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+    const [existente] = await db
+      .insert(persona)
+      .values({
+        nombre: "Ya",
+        apellido: "Existe",
+        email: "yaexiste@acme.test",
+        tipo: "contacto_cliente",
+      })
+      .returning();
+
+    await api.crearContacto(creado.id, {
+      email: "yaexiste@acme.test",
+      nombre: "Ignorado",
+      apellido: "Ignorado",
+    });
+
+    const totalPersonas = await db.select().from(persona);
+    expect(
+      totalPersonas.filter((x) => x.email === "yaexiste@acme.test"),
+    ).toHaveLength(1);
+    const contactos = await api.listarContactosDeCliente(creado.id);
+    expect(contactos[0]?.personaId).toBe(existente!.id);
+  });
+
+  it("crearContacto rechaza si el email ya es de un empleado", async () => {
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const creado = await api.crearCliente({
+      nombre: "Acme",
+      cuit: "30-11111111-1",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+
+    await expect(
+      api.crearContacto(creado.id, {
+        email: p.email,
+        nombre: "X",
+        apellido: "X",
+      }),
+    ).rejects.toThrow(Conflicto);
+  });
+
+  it("crearContacto rechaza agregar dos veces la misma persona al mismo cliente", async () => {
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const creado = await api.crearCliente({
+      nombre: "Acme",
+      cuit: "30-11111111-1",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+    await api.crearContacto(creado.id, {
+      email: "dup@acme.test",
+      nombre: "Dup",
+      apellido: "Licado",
+    });
+
+    await expect(
+      api.crearContacto(creado.id, {
+        email: "dup@acme.test",
+        nombre: "Dup",
+        apellido: "Licado",
+      }),
+    ).rejects.toThrow(Conflicto);
+  });
+
+  it("registrarInteraccion crea la fila con la persona y el cliente", async () => {
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const creado = await api.crearCliente({
+      nombre: "Acme",
+      cuit: "30-11111111-1",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+
+    await api.registrarInteraccion(creado.id, {
+      personaId: p.id,
+      tipo: "llamada",
+      resumen: "Charla de seguimiento",
+    });
+
+    const interacciones = await api.listarInteraccionesDeCliente(creado.id);
+    expect(interacciones).toMatchObject([
+      { tipo: "llamada", resumen: "Charla de seguimiento" },
+    ]);
   });
 });

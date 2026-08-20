@@ -9,6 +9,10 @@ import {
   obtenerCliente,
 } from "@/modules/clientes/api";
 import { actualizarClienteAction, archivarClienteAction } from "../actions";
+import {
+  FormularioContacto,
+  FormularioInteraccion,
+} from "../clientes-formularios";
 import { FormularioCliente } from "../formulario-cliente";
 
 const ETIQUETA_TIPO: Record<string, string> = {
@@ -52,6 +56,22 @@ export default async function PaginaCliente({
     listarPersonas(),
   ]);
   const empleados = personas.filter((p) => p.tipo === "empleado" && p.activo);
+  // Con quién puede haber una interacción: el contacto directo más los
+  // contactos cargados, sin duplicar si ya coinciden.
+  const personasParaInteraccion = [
+    {
+      id: contactoDirecto.id,
+      nombre: contactoDirecto.nombre,
+      apellido: contactoDirecto.apellido,
+    },
+    ...contactos
+      .filter((c) => c.personaId !== contactoDirecto.id)
+      .map((c) => ({
+        id: c.personaId,
+        nombre: c.nombre,
+        apellido: c.apellido,
+      })),
+  ];
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -91,6 +111,7 @@ export default async function PaginaCliente({
               ))}
             </ul>
           )}
+          <FormularioContacto clienteId={cliente.id} />
         </section>
 
         <section className="flex flex-col gap-2 text-sm">
@@ -110,6 +131,10 @@ export default async function PaginaCliente({
               ))}
             </ul>
           )}
+          <FormularioInteraccion
+            clienteId={cliente.id}
+            personas={personasParaInteraccion}
+          />
         </section>
       </div>
 
