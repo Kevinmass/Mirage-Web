@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db/client";
 import { publicar } from "@/kernel/eventos/bus";
 import { NoEncontrado } from "@/kernel/errores";
@@ -197,4 +197,78 @@ export async function obtenerProgresoDeProyecto(proyectoId: number) {
   const tareas = await listarTareasDeProyecto(proyectoId);
   const hechas = tareas.filter((t) => t.estado === "hecha").length;
   return { hechas, totales: tareas.length };
+}
+
+export interface TareaConProyecto {
+  id: number;
+  titulo: string;
+  estado: EstadoTarea;
+  nodoResponsableId: number;
+  personaAsignadaId: number | null;
+  venceEn: Date | null;
+  proyectoId: number;
+  proyectoNombre: string;
+}
+
+export interface FiltroTareas {
+  nodoResponsableId?: number;
+  personaAsignadaId?: number;
+  // Para "mis tareas" (PR 5.3): tareas cuyo nodo responsable es uno de
+  // los que ocupa la persona que mira la pantalla.
+  nodoResponsableIdEntre?: number[];
+  excluirHechas?: boolean;
+}
+
+// Tablero de tareas (PR 5.3): todas las tareas de todos los proyectos,
+// con el nombre del proyecto al lado — a diferencia de
+// listarTareasDeProyecto, que ya sabe en qué proyecto está parada la
+// pantalla.
+export async function listarTareas(
+  filtro: FiltroTareas = {},
+): Promise<TareaConProyecto[]> {
+  const condiciones = [];
+  if (filtro.nodoResponsableId !== undefined) {
+    condiciones.push(
+      eq(proyectosTarea.nodoResponsableId, filtro.nodoResponsableId),
+    );
+  }
+  if (filtro.personaAsignadaId !== undefined) {
+    condiciones.push(
+      eq(proyectosTarea.personaAsignadaId, filtro.personaAsignadaId),
+    );
+  }
+  if (filtro.nodoResponsableIdEntre !== undefined) {
+    condiciones.push(
+      filtro.nodoResponsableIdEntre.length > 0
+        ? inArray(
+            proyectosTarea.nodoResponsableId,
+            filtro.nodoResponsableIdEntre,
+          )
+        : // Lista vacía = la persona no ocupa ningún nodo: ninguna
+          // tarea puede matchear, no "todas" (inArray con [] no filtra
+          // nada en drizzle).
+          eq(proyectosTarea.id, -1),
+    );
+  }
+  if (filtro.excluirHechas) {
+    condiciones.push(ne(proyectosTarea.estado, "hecha"));
+  }
+
+  return db
+    .select({
+      id: proyectosTarea.id,
+      titulo: proyectosTarea.titulo,
+      estado: proyectosTarea.estado,
+      nodoResponsableId: proyectosTarea.nodoResponsableId,
+      personaAsignadaId: proyectosTarea.personaAsignadaId,
+      venceEn: proyectosTarea.venceEn,
+      proyectoId: proyectosTarea.proyectoId,
+      proyectoNombre: proyectosProyecto.nombre,
+    })
+    .from(proyectosTarea)
+    .innerJoin(
+      proyectosProyecto,
+      eq(proyectosProyecto.id, proyectosTarea.proyectoId),
+    )
+    .where(condiciones.length > 0 ? and(...condiciones) : undefined);
 }

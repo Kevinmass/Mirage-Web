@@ -281,15 +281,24 @@ export async function finalizarAsignacion(asignacionId: number) {
     .where(eq(asignacion.id, asignacionId));
 }
 
-// Cuántos nodos ocupa una persona hoy (asignaciones vigentes). La
-// pantalla de una persona lo muestra — ver alguien con cuatro es señal
-// de sobrecarga (diseño, PR 3.6).
+// Los nodos que ocupa una persona hoy (asignaciones vigentes) — "todo
+// lo pendiente de los nodos que ocupa" (tablero de tareas, PR 5.3) sale
+// de cruzar esto con tarea.nodo_responsable_id.
+export async function listarNodosDeLaPersona(
+  personaId: number,
+): Promise<number[]> {
+  const filas = await db
+    .select({ nodoId: asignacion.nodoId })
+    .from(asignacion)
+    .where(and(eq(asignacion.personaId, personaId), isNull(asignacion.hasta)));
+  return filas.map((f) => f.nodoId);
+}
+
+// Cuántos nodos ocupa una persona hoy. La pantalla de una persona lo
+// muestra — ver alguien con cuatro es señal de sobrecarga (diseño,
+// PR 3.6).
 export async function contarNodosDeLaPersona(
   personaId: number,
 ): Promise<number> {
-  const filas = await db
-    .select({ id: asignacion.id })
-    .from(asignacion)
-    .where(and(eq(asignacion.personaId, personaId), isNull(asignacion.hasta)));
-  return filas.length;
+  return (await listarNodosDeLaPersona(personaId)).length;
 }

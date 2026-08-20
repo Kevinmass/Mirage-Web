@@ -228,4 +228,67 @@ describe("modules/proyectos api", () => {
 
     expect(progreso).toEqual({ hechas: 1, totales: 3 });
   });
+
+  it("listarTareas filtra por nodo, por persona y por lista de nodos, y excluye hechas", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const [otroNodo] = await db
+      .insert(nodo)
+      .values({ nombre: "Ventas", padreId: n.id })
+      .returning();
+    const [empleado] = await db
+      .insert(persona)
+      .values({
+        nombre: "Dev",
+        apellido: "Uno",
+        email: "dev@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const enDesarrollo = await api.crearTarea(proyecto.id, {
+      titulo: "En desarrollo",
+      nodoResponsableId: n.id,
+    });
+    await api.crearTarea(proyecto.id, {
+      titulo: "En ventas",
+      nodoResponsableId: otroNodo!.id,
+    });
+    await api.asignarPersonaATarea(enDesarrollo.id, empleado!.id);
+    await api.cambiarEstadoTarea(enDesarrollo.id, "hecha");
+
+    expect(
+      (await api.listarTareas({ nodoResponsableId: n.id })).map(
+        (t) => t.titulo,
+      ),
+    ).toEqual(["En desarrollo"]);
+
+    expect(
+      (await api.listarTareas({ personaAsignadaId: empleado!.id })).map(
+        (t) => t.titulo,
+      ),
+    ).toEqual(["En desarrollo"]);
+
+    expect(
+      (
+        await api.listarTareas({
+          nodoResponsableIdEntre: [n.id, otroNodo!.id],
+        })
+      ).map((t) => t.titulo),
+    ).toHaveLength(2);
+
+    expect(
+      (
+        await api.listarTareas({
+          nodoResponsableIdEntre: [n.id, otroNodo!.id],
+          excluirHechas: true,
+        })
+      ).map((t) => t.titulo),
+    ).toEqual(["En ventas"]);
+
+    expect(await api.listarTareas({ nodoResponsableIdEntre: [] })).toEqual([]);
+  });
 });
