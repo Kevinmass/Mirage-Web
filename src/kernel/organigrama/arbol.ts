@@ -1,5 +1,6 @@
-import { eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
+import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
 import { asignacion, nodo } from "./schema";
@@ -34,6 +35,27 @@ export async function crearNodo(datos: DatosNodo) {
     })
     .returning();
   return creado!;
+}
+
+export interface DatosActualizacionNodo {
+  nombre?: string;
+  descripcion?: string;
+  orden?: number;
+}
+
+// Renombrar / cambiar descripción u orden — no toca padre_id (eso es
+// moverNodo, valida el ciclo).
+export async function actualizarNodo(
+  id: number,
+  datos: DatosActualizacionNodo,
+) {
+  await obtenerNodo(id);
+  const [actualizado] = await db
+    .update(nodo)
+    .set(datos)
+    .where(eq(nodo.id, id))
+    .returning();
+  return actualizado!;
 }
 
 // Todos los descendientes de un nodo (sin incluirlo a él).
@@ -149,6 +171,7 @@ export async function listarRaices() {
 }
 
 export interface OcupanteNodo {
+  asignacionId: number;
   personaId: number;
   nombre: string;
   apellido: string;
@@ -187,6 +210,7 @@ export async function obtenerArbolCompleto(): Promise<NodoConDetalle[]> {
 
   const ocupantesFilas = await db
     .select({
+      asignacionId: asignacion.id,
       nodoId: asignacion.nodoId,
       personaId: persona.id,
       nombre: persona.nombre,
@@ -201,6 +225,7 @@ export async function obtenerArbolCompleto(): Promise<NodoConDetalle[]> {
   for (const fila of ocupantesFilas) {
     const lista = ocupantesPorNodo.get(fila.nodoId) ?? [];
     lista.push({
+      asignacionId: fila.asignacionId,
       personaId: fila.personaId,
       nombre: fila.nombre,
       apellido: fila.apellido,
@@ -219,4 +244,52 @@ export async function obtenerArbolCompleto(): Promise<NodoConDetalle[]> {
     anillo: anilloPorId.get(n.id) ?? 0,
     ocupantes: ocupantesPorNodo.get(n.id) ?? [],
   }));
+}
+
+// Asignar una persona a un nodo, con vigencia (desde/hasta — diseño
+// §4.2). Marcar titular es un caso más de esto, no una operación
+// aparte: la invariante de "un titular vigente por nodo" (schema.ts) es
+// la que decide si se puede.
+export async function asignarPersona(
+  personaId: number,
+  nodoId: number,
+  esTitular: boolean,
+) {
+  await obtenerNodo(nodoId);
+
+  try {
+    const [creada] = await db
+      .insert(asignacion)
+      .values({ personaId, nodoId, esTitular })
+      .returning();
+    return creada!;
+  } catch (error) {
+    if (esViolacionDeUnicidad(error)) {
+      throw new Conflicto(`El nodo ${nodoId} ya tiene un titular vigente`);
+    }
+    throw error;
+  }
+}
+
+// Termina la vigencia de una asignación (hasta = ahora). No se borra:
+// es historial — el criterio de aceptación del PR 3.6 pide
+// explícitamente que sobreviva a la reorganización del árbol.
+export async function finalizarAsignacion(asignacionId: number) {
+  await db
+    .update(asignacion)
+    .set({ hasta: new Date() })
+    .where(eq(asignacion.id, asignacionId));
+}
+
+// Cuántos nodos ocupa una persona hoy (asignaciones vigentes). La
+// pantalla de una persona lo muestra — ver alguien con cuatro es señal
+// de sobrecarga (diseño, PR 3.6).
+export async function contarNodosDeLaPersona(
+  personaId: number,
+): Promise<number> {
+  const filas = await db
+    .select({ id: asignacion.id })
+    .from(asignacion)
+    .where(and(eq(asignacion.personaId, personaId), isNull(asignacion.hasta)));
+  return filas.length;
 }

@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
+import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 import { esTelefonoE164Valido } from "./telefono";
 import { persona } from "./schema";
@@ -111,19 +112,4 @@ export async function invitarPersona(id: number) {
   await auth.api.requestPasswordReset({
     body: { email: personaAInvitar.email },
   });
-}
-
-function esViolacionDeUnicidad(error: unknown): boolean {
-  // drizzle-orm envuelve el error del driver en DrizzleQueryError; el
-  // código de Postgres (23505 = unique_violation) queda en `.cause`, no
-  // en el error de arriba.
-  if (typeof error !== "object" || error === null) return false;
-  const codigo = (error as { code?: string }).code;
-  if (codigo === "23505") return true;
-  const causa = (error as { cause?: unknown }).cause;
-  return (
-    typeof causa === "object" &&
-    causa !== null &&
-    (causa as { code?: string }).code === "23505"
-  );
 }

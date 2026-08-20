@@ -1,7 +1,7 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
@@ -188,7 +188,7 @@ describe("kernel/organigrama — api del árbol", () => {
     expect(filaRaiz.anillo).toBe(0);
     expect(filaA.anillo).toBe(1);
     expect(filaB.anillo).toBe(2);
-    expect(filaA.ocupantes).toEqual([
+    expect(filaA.ocupantes).toMatchObject([
       {
         personaId: titular!.id,
         nombre: "Titular",
@@ -205,5 +205,89 @@ describe("kernel/organigrama — api del árbol", () => {
 
     const completo = await arbol.obtenerArbolCompleto();
     expect(completo.some((n) => n.id === c.id)).toBe(false);
+  });
+
+  it("actualizarNodo renombra sin tocar el padre", async () => {
+    const { a } = await armarCadena();
+
+    const actualizado = await arbol.actualizarNodo(a.id, {
+      nombre: "A renombrado",
+    });
+
+    expect(actualizado.nombre).toBe("A renombrado");
+    expect(actualizado.padreId).toBe(a.padreId);
+  });
+
+  async function crearPersonaDePrueba(email: string) {
+    const [creada] = await db
+      .insert(persona)
+      .values({ nombre: "P", apellido: "P", email, tipo: "empleado" })
+      .returning();
+    return creada!;
+  }
+
+  it("asignarPersona crea la asignación vigente", async () => {
+    const { a } = await armarCadena();
+    const p = await crearPersonaDePrueba("asig1@mirage.test");
+
+    const creada = await arbol.asignarPersona(p.id, a.id, false);
+
+    expect(creada.hasta).toBeNull();
+    expect(await arbol.contarNodosDeLaPersona(p.id)).toBe(1);
+  });
+
+  it("asignarPersona rechaza un segundo titular vigente con Conflicto", async () => {
+    const { a } = await armarCadena();
+    const p1 = await crearPersonaDePrueba("asig2@mirage.test");
+    const p2 = await crearPersonaDePrueba("asig3@mirage.test");
+
+    await arbol.asignarPersona(p1.id, a.id, true);
+
+    await expect(arbol.asignarPersona(p2.id, a.id, true)).rejects.toThrow(
+      Conflicto,
+    );
+  });
+
+  it("finalizarAsignacion termina la vigencia sin borrar la fila (historial)", async () => {
+    const { a } = await armarCadena();
+    const p = await crearPersonaDePrueba("asig4@mirage.test");
+    const creada = await arbol.asignarPersona(p.id, a.id, true);
+
+    await arbol.finalizarAsignacion(creada.id);
+
+    expect(await arbol.contarNodosDeLaPersona(p.id)).toBe(0);
+    const [fila] = await db
+      .select()
+      .from(asignacion)
+      .where(eq(asignacion.id, creada.id));
+    expect(fila).toBeDefined();
+    expect(fila!.hasta).not.toBeNull();
+  });
+
+  it("el historial de asignaciones sobrevive a mover el nodo", async () => {
+    const { a, raiz } = await armarCadena();
+    const p = await crearPersonaDePrueba("asig5@mirage.test");
+    const creada = await arbol.asignarPersona(p.id, a.id, true);
+
+    await arbol.moverNodo(a.id, raiz.id);
+
+    const [fila] = await db
+      .select()
+      .from(asignacion)
+      .where(eq(asignacion.id, creada.id));
+    expect(fila).toBeDefined();
+    expect(fila!.hasta).toBeNull();
+    expect(await arbol.contarNodosDeLaPersona(p.id)).toBe(1);
+  });
+
+  it("contarNodosDeLaPersona cuenta varios nodos y avisa sobrecarga potencial", async () => {
+    const { a, b, c } = await armarCadena();
+    const p = await crearPersonaDePrueba("asig6@mirage.test");
+
+    await arbol.asignarPersona(p.id, a.id, false);
+    await arbol.asignarPersona(p.id, b.id, false);
+    await arbol.asignarPersona(p.id, c.id, false);
+
+    expect(await arbol.contarNodosDeLaPersona(p.id)).toBe(3);
   });
 });

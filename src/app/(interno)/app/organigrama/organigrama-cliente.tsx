@@ -3,16 +3,31 @@
 import { useMemo, useState } from "react";
 import type { NodoConDetalle } from "@/kernel/organigrama/arbol";
 import { calcularLayoutRadial } from "@/kernel/organigrama/layout-radial";
+import {
+  BotonArchivarNodo,
+  BotonFinalizarAsignacion,
+  FormularioAsignarPersona,
+  FormularioCrearNodo,
+  FormularioEditarNodo,
+  FormularioMoverNodo,
+} from "./organigrama-formularios";
+
+interface PersonaResumen {
+  id: number;
+  nombre: string;
+  apellido: string;
+}
 
 interface Props {
   nodos: NodoConDetalle[];
+  personas: PersonaResumen[];
 }
 
 // Diseño (PR 3.5): dibujo por anillos concéntricos en desktop; en
 // móvil (< 768px, breakpoint md de Tailwind) un organigrama radial no
 // se lee en 390px de ancho, así que en su lugar hay una lista
 // jerárquica — no es la misma vista encogida, es una vista distinta.
-export function OrganigramaCliente({ nodos }: Props) {
+export function OrganigramaCliente({ nodos, personas }: Props) {
   const [seleccionadoId, setSeleccionadoId] = useState<number | null>(null);
 
   const layout = useMemo(
@@ -143,6 +158,8 @@ export function OrganigramaCliente({ nodos }: Props) {
           <DetalleNodo
             nodo={seleccionado}
             hijos={hijosDe.get(seleccionado.id) ?? []}
+            todosLosNodos={nodos}
+            personas={personas}
             onSeleccionarHijo={setSeleccionadoId}
           />
         ) : (
@@ -158,10 +175,14 @@ export function OrganigramaCliente({ nodos }: Props) {
 function DetalleNodo({
   nodo,
   hijos,
+  todosLosNodos,
+  personas,
   onSeleccionarHijo,
 }: {
   nodo: NodoConDetalle;
   hijos: NodoConDetalle[];
+  todosLosNodos: NodoConDetalle[];
+  personas: PersonaResumen[];
   onSeleccionarHijo: (id: number) => void;
 }) {
   const titular = nodo.ocupantes.find((o) => o.esTitular);
@@ -189,15 +210,21 @@ function DetalleNodo({
         {nodo.ocupantes.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nadie asignado</p>
         ) : (
-          <ul className="text-sm">
+          <ul className="flex flex-col gap-1 text-sm">
             {nodo.ocupantes.map((o) => (
-              <li key={o.personaId}>
-                {o.nombre} {o.apellido}
-                {o.esTitular ? " (titular)" : ""}
+              <li key={o.personaId} className="flex items-center gap-2">
+                <span>
+                  {o.nombre} {o.apellido}
+                  {o.esTitular ? " (titular)" : ""}
+                </span>
+                <BotonFinalizarAsignacion asignacionId={o.asignacionId} />
               </li>
             ))}
           </ul>
         )}
+        <div className="mt-2">
+          <FormularioAsignarPersona nodoId={nodo.id} personas={personas} />
+        </div>
       </div>
 
       <div>
@@ -219,6 +246,27 @@ function DetalleNodo({
             ))}
           </ul>
         )}
+        <div className="mt-2">
+          <FormularioCrearNodo padreId={nodo.id} />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 border-t pt-3">
+        <div>
+          <h3 className="mb-1 text-sm font-medium">Editar</h3>
+          <FormularioEditarNodo nodo={nodo} />
+        </div>
+
+        {nodo.padreId !== null && (
+          <div>
+            <h3 className="mb-1 text-sm font-medium">Mover</h3>
+            <FormularioMoverNodo nodo={nodo} candidatos={todosLosNodos} />
+          </div>
+        )}
+
+        <div>
+          <BotonArchivarNodo nodoId={nodo.id} />
+        </div>
       </div>
     </div>
   );
