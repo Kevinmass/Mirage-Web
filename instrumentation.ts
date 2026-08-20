@@ -22,6 +22,14 @@ export async function register() {
     );
   }
 
+  // Las suscripciones a eventos (diseño §6.5/§7) NO se registran acá.
+  // Este archivo corre en un chunk de servidor separado del que
+  // ejecuta las Server Actions que publican eventos — cualquier
+  // suscripción hecha desde acá quedaría en una copia del bus que el
+  // publicar() real nunca ve. Ver el comentario de
+  // asegurarSuscripciones() en kernel/eventos/bus.ts: el propio bus se
+  // encarga, solo, en el chunk correcto.
+
   // Job de sync de repositorios (diseño §6.3): cada 30 minutos, en
   // proceso, nunca dentro de un request. sincronizarRepositorio ya
   // atrapa sus propios errores de red/GitHub y los deja en

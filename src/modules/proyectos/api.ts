@@ -3,7 +3,7 @@ import { db } from "@/db/client";
 import { publicar } from "@/kernel/eventos/bus";
 import { NoEncontrado } from "@/kernel/errores";
 import { obtenerPersona } from "@/kernel/identidad/personas";
-import { obtenerNodo } from "@/kernel/organigrama/arbol";
+import { obtenerNodo, obtenerTitularDeNodo } from "@/kernel/organigrama/arbol";
 import { obtenerCliente } from "@/modules/clientes/api";
 import { obtenerDatosDeRepositorio } from "./internal/github";
 import {
@@ -48,9 +48,14 @@ export async function crearProyecto(datos: DatosProyecto) {
   await obtenerNodo(datos.nodoResponsableId);
 
   const [creado] = await db.insert(proyectosProyecto).values(datos).returning();
+  const destinatarioPersonaId = await obtenerTitularDeNodo(
+    datos.nodoResponsableId,
+  );
   await publicar("proyecto.creado", {
     proyectoId: creado!.id,
     clienteId: creado!.clienteId,
+    nombre: creado!.nombre,
+    destinatarioPersonaId,
   });
   return creado!;
 }
@@ -98,10 +103,15 @@ export async function cambiarEstadoProyecto(
     .set({ estado: nuevoEstado })
     .where(eq(proyectosProyecto.id, id))
     .returning();
+  const destinatarioPersonaId = await obtenerTitularDeNodo(
+    proyecto.nodoResponsableId,
+  );
   await publicar("proyecto.estado_cambiado", {
     proyectoId: id,
+    nombre: proyecto.nombre,
     estadoAnterior: proyecto.estado,
     estadoNuevo: nuevoEstado,
+    destinatarioPersonaId,
   });
   return actualizado!;
 }
@@ -179,7 +189,7 @@ export async function asignarPersonaATarea(
   id: number,
   personaId: number | null,
 ) {
-  await obtenerTarea(id);
+  const tarea = await obtenerTarea(id);
   if (personaId !== null) {
     await obtenerPersona(personaId);
   }
@@ -191,7 +201,11 @@ export async function asignarPersonaATarea(
     .returning();
 
   if (personaId !== null) {
-    await publicar("tarea.asignada", { tareaId: id, personaId });
+    await publicar("tarea.asignada", {
+      tareaId: id,
+      personaId,
+      titulo: tarea.titulo,
+    });
   }
   return actualizada!;
 }

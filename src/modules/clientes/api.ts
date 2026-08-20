@@ -9,7 +9,7 @@ import {
   obtenerPersonaPorEmail,
 } from "@/kernel/identidad/personas";
 import { persona } from "@/kernel/identidad/schema";
-import { obtenerNodo } from "@/kernel/organigrama/arbol";
+import { obtenerNodo, obtenerTitularDeNodo } from "@/kernel/organigrama/arbol";
 import {
   clientesCliente,
   clientesContacto,
@@ -48,7 +48,14 @@ export async function crearCliente(datos: DatosCliente) {
 
   try {
     const [creado] = await db.insert(clientesCliente).values(datos).returning();
-    await publicar("cliente.creado", { clienteId: creado!.id });
+    const destinatarioPersonaId = await obtenerTitularDeNodo(
+      datos.nodoResponsableId,
+    );
+    await publicar("cliente.creado", {
+      clienteId: creado!.id,
+      nombre: creado!.nombre,
+      destinatarioPersonaId,
+    });
     return creado!;
   } catch (error) {
     if (esViolacionDeUnicidad(error)) {

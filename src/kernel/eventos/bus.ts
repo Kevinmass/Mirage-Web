@@ -10,10 +10,6 @@
 //       "cliente.creado": { clienteId: number };
 //     }
 //   }
-//
-// Nadie lo extiende todavía (no hay módulos con eventos reales); el mapa
-// arranca vacío y `publicar`/`suscribir` siguen aceptando cualquier
-// nombre de evento, sin autocompletado hasta que algo lo registre.
 export interface EventosRegistrados {
   [nombre: string]: unknown;
 }
@@ -41,6 +37,22 @@ export function suscribir<N extends NombreEvento>(
   });
 }
 
+// Next.js empaqueta el código de instrumentation.ts en un chunk de
+// servidor separado del que corre cada ruta o Server Action — algo
+// que se suscribió una sola vez al arrancar, ahí, nunca llega al
+// chunk que termina llamando a publicar(): cada chunk se lleva su
+// propia copia de este módulo, con su propio `suscripciones` vacío.
+// Por eso publicar() se asegura, la primera vez que corre EN CADA
+// chunk, de que las suscripciones de ESE chunk existan — importando
+// el agregador (kernel/eventos/registro.ts), que a su vez importa el
+// events.ts de cada módulo por su efecto de import. memoizado con una
+// promesa para que llamadas concurrentes no lo disparen dos veces.
+let inicializacion: Promise<unknown> | null = null;
+function asegurarSuscripciones(): Promise<unknown> {
+  inicializacion ??= import("./registro");
+  return inicializacion;
+}
+
 // La regla que sostiene esto (diseño §4.5): si un suscriptor falla, el
 // publicador no se entera. Se registra el error y se sigue con el resto
 // de los suscriptores. Si la falla de un suscriptor debería invalidar la
@@ -49,8 +61,9 @@ export async function publicar<N extends NombreEvento>(
   nombre: N,
   payload: PayloadDe<N>,
 ): Promise<void> {
-  const interesados = suscripciones.filter((s) => s.nombre === nombre);
+  await asegurarSuscripciones();
 
+  const interesados = suscripciones.filter((s) => s.nombre === nombre);
   for (const suscripcion of interesados) {
     try {
       await suscripcion.manejador(payload);
@@ -61,6 +74,9 @@ export async function publicar<N extends NombreEvento>(
 }
 
 // Solo para tests: vuelve el bus a su estado inicial entre pruebas.
+// No resetea `inicializacion` — volver a importar el agregador no
+// hace nada nuevo (los módulos ya están cargados), así que no hace
+// falta y evitarlo mantiene esto rápido entre tests.
 export function _reiniciarParaTests(): void {
   suscripciones.length = 0;
 }

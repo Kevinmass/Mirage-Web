@@ -126,6 +126,22 @@ src/
 - **Bus de eventos: si un suscriptor falla, el publicador no se entera** — se
   registra el error y sigue. Si la falla del suscriptor debería invalidar la
   operación del publicador, no es un evento: es una llamada a `api.ts`.
+- **Bus de eventos: `suscribir()` en `instrumentation.ts` no funciona.**
+  Next.js empaqueta ese archivo en un chunk de servidor separado del que
+  corre cada Server Action — un módulo que se suscribe ahí, una sola vez al
+  arrancar, no comparte estado con la copia de `kernel/eventos/bus.ts` que
+  termina llamando a `publicar()` de verdad (cada chunk se lleva su propia
+  copia del array de suscripciones). Encontrado en producción real (PR 6.2):
+  las notificaciones no salían y no había ningún error, porque el bus
+  publicaba contra un array vacío en silencio. El arreglo es que `bus.ts` se
+  auto-inicializa solo, la primera vez que `publicar()` corre en cada chunk,
+  importando `kernel/eventos/registro.ts` (agregador de los `events.ts` de
+  cada módulo, mismo patrón que `capacidades-declaradas.ts`) — así cada
+  chunk termina con sus propias suscripciones completas, sin depender de que
+  algo externo las haya cargado antes. `destinatarioPersonaId` en los
+  payloads de `cliente.creado` / `proyecto.*` se resuelve en el módulo que
+  publica (vía `kernel/organigrama/arbol.obtenerTitularDeNodo`), no en
+  notificaciones — que no puede importar `modules/<otro>` ni para esto.
 - **Auditoría append-only por trigger, no por rol.** `REVOKE UPDATE, DELETE
   ... FROM CURRENT_USER` es un no-op: Postgres no aplica el ACL al dueño de
   la tabla, y acá migración y app comparten un solo rol. Lo hace un trigger

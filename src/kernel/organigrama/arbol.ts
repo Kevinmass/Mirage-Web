@@ -302,3 +302,25 @@ export async function contarNodosDeLaPersona(
 ): Promise<number> {
   return (await listarNodosDeLaPersona(personaId)).length;
 }
+
+// El titular vigente de un nodo, si lo hay — null si el nodo está
+// vacante (ocupado por no-titulares, o sin nadie). Lo usan los
+// módulos que publican eventos (PR 6.2) para resolver a quién
+// notificar sin tener que exponer eso como una llamada cruzada entre
+// módulos: cada uno resuelve su propio destinatario contra el kernel
+// antes de publicar.
+export async function obtenerTitularDeNodo(
+  nodoId: number,
+): Promise<number | null> {
+  const [fila] = await db
+    .select({ personaId: asignacion.personaId })
+    .from(asignacion)
+    .where(
+      and(
+        eq(asignacion.nodoId, nodoId),
+        eq(asignacion.esTitular, true),
+        isNull(asignacion.hasta),
+      ),
+    );
+  return fila?.personaId ?? null;
+}
