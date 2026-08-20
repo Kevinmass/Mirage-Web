@@ -54,3 +54,39 @@ export const proyectosTarea = pgTable("proyectos_tarea", {
     .defaultNow(),
   completadaEn: timestamp("completada_en", { withTimezone: true }),
 });
+
+export const proyectosRepositorio = pgTable("proyectos_repositorio", {
+  id: serial("id").primaryKey(),
+  proyectoId: integer("proyecto_id")
+    .notNull()
+    .references(() => proyectosProyecto.id),
+  owner: text("owner").notNull(),
+  repo: text("repo").notNull(),
+  agregadoEn: timestamp("agregado_en", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// Una fila por repositorio, que el job de sync (cada 30 min, nunca en
+// el request — diseño §6.3) sobreescribe. Los campos de datos quedan
+// nullable: la primera sincronización puede fallar antes de escribir
+// nada. actualizadoEn se pisa siempre, haya éxito o error — es la
+// fecha del último intento, no del último éxito; error se limpia en
+// éxito y se llena en falla, sin tocar los números viejos.
+export const proyectosRepositorioSnapshot = pgTable(
+  "proyectos_repositorio_snapshot",
+  {
+    repositorioId: integer("repositorio_id")
+      .primaryKey()
+      .references(() => proyectosRepositorio.id),
+    commitsTotal: integer("commits_total"),
+    prsAbiertas: integer("prs_abiertas"),
+    prsCerradas: integer("prs_cerradas"),
+    contribuyentes: integer("contribuyentes"),
+    ultimoCommitEn: timestamp("ultimo_commit_en", { withTimezone: true }),
+    actualizadoEn: timestamp("actualizado_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    error: text("error"),
+  },
+);

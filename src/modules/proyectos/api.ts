@@ -5,7 +5,13 @@ import { NoEncontrado } from "@/kernel/errores";
 import { obtenerPersona } from "@/kernel/identidad/personas";
 import { obtenerNodo } from "@/kernel/organigrama/arbol";
 import { obtenerCliente } from "@/modules/clientes/api";
-import { proyectosProyecto, proyectosTarea } from "./schema";
+import { obtenerDatosDeRepositorio } from "./internal/github";
+import {
+  proyectosProyecto,
+  proyectosRepositorio,
+  proyectosRepositorioSnapshot,
+  proyectosTarea,
+} from "./schema";
 
 export type EstadoProyecto =
   "propuesto" | "activo" | "pausado" | "terminado" | "cancelado";
@@ -271,4 +277,125 @@ export async function listarTareas(
       eq(proyectosProyecto.id, proyectosTarea.proyectoId),
     )
     .where(condiciones.length > 0 ? and(...condiciones) : undefined);
+}
+
+export async function agregarRepositorio(
+  proyectoId: number,
+  owner: string,
+  repo: string,
+) {
+  await obtenerProyecto(proyectoId);
+
+  const [creado] = await db
+    .insert(proyectosRepositorio)
+    .values({ proyectoId, owner, repo })
+    .returning();
+  return creado!;
+}
+
+export interface RepositorioConSnapshot {
+  id: number;
+  owner: string;
+  repo: string;
+  commitsTotal: number | null;
+  prsAbiertas: number | null;
+  prsCerradas: number | null;
+  contribuyentes: number | null;
+  ultimoCommitEn: Date | null;
+  actualizadoEn: Date | null;
+  error: string | null;
+}
+
+export async function listarRepositoriosDeProyecto(
+  proyectoId: number,
+): Promise<RepositorioConSnapshot[]> {
+  return db
+    .select({
+      id: proyectosRepositorio.id,
+      owner: proyectosRepositorio.owner,
+      repo: proyectosRepositorio.repo,
+      commitsTotal: proyectosRepositorioSnapshot.commitsTotal,
+      prsAbiertas: proyectosRepositorioSnapshot.prsAbiertas,
+      prsCerradas: proyectosRepositorioSnapshot.prsCerradas,
+      contribuyentes: proyectosRepositorioSnapshot.contribuyentes,
+      ultimoCommitEn: proyectosRepositorioSnapshot.ultimoCommitEn,
+      actualizadoEn: proyectosRepositorioSnapshot.actualizadoEn,
+      error: proyectosRepositorioSnapshot.error,
+    })
+    .from(proyectosRepositorio)
+    .leftJoin(
+      proyectosRepositorioSnapshot,
+      eq(proyectosRepositorioSnapshot.repositorioId, proyectosRepositorio.id),
+    )
+    .where(eq(proyectosRepositorio.proyectoId, proyectoId));
+}
+
+// Nunca tira: si GitHub falla, el error queda en la fila y los números
+// viejos se mantienen — la pantalla muestra eso más la fecha del
+// intento, nunca una pantalla en blanco (criterio de aceptación,
+// diseño §6.3). El caller (el job de 30 minutos) no necesita try/catch
+// propio.
+export async function sincronizarRepositorio(
+  repositorioId: number,
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const [repositorio] = await db
+    .select()
+    .from(proyectosRepositorio)
+    .where(eq(proyectosRepositorio.id, repositorioId));
+  if (!repositorio) {
+    throw new NoEncontrado(`No existe el repositorio ${repositorioId}`);
+  }
+
+  try {
+    const datos = await obtenerDatosDeRepositorio(
+      repositorio.owner,
+      repositorio.repo,
+      fetchImpl,
+    );
+    await db
+      .insert(proyectosRepositorioSnapshot)
+      .values({
+        repositorioId,
+        commitsTotal: datos.commitsTotal,
+        prsAbiertas: datos.prsAbiertas,
+        prsCerradas: datos.prsCerradas,
+        contribuyentes: datos.contribuyentes,
+        ultimoCommitEn: datos.ultimoCommitEn,
+        actualizadoEn: new Date(),
+        error: null,
+      })
+      .onConflictDoUpdate({
+        target: proyectosRepositorioSnapshot.repositorioId,
+        set: {
+          commitsTotal: datos.commitsTotal,
+          prsAbiertas: datos.prsAbiertas,
+          prsCerradas: datos.prsCerradas,
+          contribuyentes: datos.contribuyentes,
+          ultimoCommitEn: datos.ultimoCommitEn,
+          actualizadoEn: new Date(),
+          error: null,
+        },
+      });
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : String(error);
+    await db
+      .insert(proyectosRepositorioSnapshot)
+      .values({ repositorioId, actualizadoEn: new Date(), error: mensaje })
+      .onConflictDoUpdate({
+        target: proyectosRepositorioSnapshot.repositorioId,
+        set: { actualizadoEn: new Date(), error: mensaje },
+      });
+  }
+}
+
+// El job cada 30 minutos (instrumentation.ts) llama esto — nunca
+// dentro de un request (diseño §6.3).
+export async function sincronizarTodosLosRepositorios(
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const repositorios = await db.select().from(proyectosRepositorio);
+  for (const repositorio of repositorios) {
+    await sincronizarRepositorio(repositorio.id, fetchImpl);
+  }
 }

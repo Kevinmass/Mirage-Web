@@ -5,12 +5,17 @@ import { listarPersonas } from "@/kernel/identidad/personas";
 import { obtenerArbolCompleto, obtenerNodo } from "@/kernel/organigrama/arbol";
 import { obtenerCliente } from "@/modules/clientes/api";
 import {
+  listarRepositoriosDeProyecto,
   listarTareasDeProyecto,
   obtenerProgresoDeProyecto,
   obtenerProyecto,
   type EstadoProyecto,
 } from "@/modules/proyectos/api";
-import { cambiarEstadoProyectoAction } from "../actions";
+import {
+  cambiarEstadoProyectoAction,
+  sincronizarRepositorioAction,
+} from "../actions";
+import { FormularioAgregarRepositorio } from "../repositorios-formulario";
 import { FilaTarea, FormularioCrearTarea } from "../tareas-formularios";
 
 const ORDEN_ESTADOS: { value: EstadoProyecto; etiqueta: string }[] = [
@@ -39,15 +44,23 @@ export default async function PaginaProyecto({
     throw error;
   });
 
-  const [cliente, nodoResponsable, tareas, progreso, nodos, personas] =
-    await Promise.all([
-      obtenerCliente(proyecto.clienteId),
-      obtenerNodo(proyecto.nodoResponsableId),
-      listarTareasDeProyecto(proyecto.id),
-      obtenerProgresoDeProyecto(proyecto.id),
-      obtenerArbolCompleto(),
-      listarPersonas(),
-    ]);
+  const [
+    cliente,
+    nodoResponsable,
+    tareas,
+    progreso,
+    nodos,
+    personas,
+    repositorios,
+  ] = await Promise.all([
+    obtenerCliente(proyecto.clienteId),
+    obtenerNodo(proyecto.nodoResponsableId),
+    listarTareasDeProyecto(proyecto.id),
+    obtenerProgresoDeProyecto(proyecto.id),
+    obtenerArbolCompleto(),
+    listarPersonas(),
+    listarRepositoriosDeProyecto(proyecto.id),
+  ]);
   const empleados = personas.filter((p) => p.tipo === "empleado" && p.activo);
   const porcentaje =
     progreso.totales === 0
@@ -113,6 +126,63 @@ export default async function PaginaProyecto({
         </ul>
         <div className="mt-4">
           <FormularioCrearTarea proyectoId={proyecto.id} nodos={nodos} />
+        </div>
+      </div>
+
+      {/* Actividad, no progreso — diseño §6.3: nunca se mezcla con la
+          barra de arriba, ni visual ni en el cálculo (eso lo hace
+          obtenerProgresoDeProyecto, que ni sabe que esto existe). */}
+      <div className="mt-10 border-t pt-6">
+        <h2 className="text-lg font-semibold">Actividad (GitHub)</h2>
+        <p className="text-xs text-muted-foreground">
+          Se sincroniza sola cada 30 minutos. Nunca se usa para calcular
+          progreso.
+        </p>
+
+        <ul className="mt-3 flex flex-col gap-3">
+          {repositorios.map((r) => (
+            <li key={r.id} className="rounded-md border p-3 text-sm">
+              <p className="font-medium">
+                {r.owner}/{r.repo}
+              </p>
+              {r.error ? (
+                <p className="text-destructive">Error: {r.error}</p>
+              ) : (
+                <p className="text-muted-foreground">
+                  {r.commitsTotal ?? "—"} commits · {r.prsAbiertas ?? "—"} PRs
+                  abiertas · {r.prsCerradas ?? "—"} cerradas ·{" "}
+                  {r.contribuyentes ?? "—"} contribuyentes
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Actualizado:{" "}
+                {r.actualizadoEn
+                  ? new Date(r.actualizadoEn).toLocaleString("es-AR")
+                  : "todavía no"}
+              </p>
+              <form
+                action={sincronizarRepositorioAction.bind(
+                  null,
+                  proyecto.id,
+                  r.id,
+                )}
+                className="mt-1"
+              >
+                <Button type="submit" size="sm" variant="ghost">
+                  Sincronizar ahora
+                </Button>
+              </form>
+            </li>
+          ))}
+          {repositorios.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Todavía no hay repositorios agregados.
+            </p>
+          )}
+        </ul>
+
+        <div className="mt-4">
+          <FormularioAgregarRepositorio proyectoId={proyecto.id} />
         </div>
       </div>
     </main>

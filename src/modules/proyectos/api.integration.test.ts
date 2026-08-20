@@ -33,6 +33,7 @@ describe("modules/proyectos api", () => {
   beforeEach(async () => {
     await db.execute(sql`
       truncate table
+        proyectos_repositorio_snapshot, proyectos_repositorio,
         proyectos_tarea, proyectos_proyecto, clientes_cliente,
         asignacion, nodo, persona
       restart identity cascade
@@ -290,5 +291,95 @@ describe("modules/proyectos api", () => {
     ).toEqual(["En ventas"]);
 
     expect(await api.listarTareas({ nodoResponsableIdEntre: [] })).toEqual([]);
+  });
+
+  function fetchFalsoExitoso(): typeof fetch {
+    return (async (url: string | URL) => {
+      const u = url.toString();
+      if (u.includes("/commits")) {
+        return new Response(
+          JSON.stringify([
+            { commit: { author: { date: "2026-08-01T00:00:00Z" } } },
+          ]),
+        );
+      }
+      if (u.includes("state:open")) {
+        return new Response(JSON.stringify({ total_count: 2 }));
+      }
+      if (u.includes("state:closed")) {
+        return new Response(JSON.stringify({ total_count: 8 }));
+      }
+      return new Response(JSON.stringify([{}]));
+    }) as unknown as typeof fetch;
+  }
+
+  function fetchFalsoQueFalla(): typeof fetch {
+    return (async () =>
+      new Response("no encontrado", {
+        status: 404,
+      })) as unknown as typeof fetch;
+  }
+
+  it("agregarRepositorio exige un proyecto existente", async () => {
+    await expect(
+      api.agregarRepositorio(999_999, "org", "repo"),
+    ).rejects.toThrow(NoEncontrado);
+  });
+
+  it("sincronizarRepositorio guarda los datos en éxito", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const repo = await api.agregarRepositorio(proyecto.id, "org", "repo");
+
+    await api.sincronizarRepositorio(repo.id, fetchFalsoExitoso());
+
+    const [snapshot] = await api.listarRepositoriosDeProyecto(proyecto.id);
+    expect(snapshot).toMatchObject({
+      commitsTotal: 1,
+      prsAbiertas: 2,
+      prsCerradas: 8,
+      contribuyentes: 1,
+      error: null,
+    });
+  });
+
+  it("sincronizarRepositorio deja el error en la fila y no pierde los datos viejos", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const repo = await api.agregarRepositorio(proyecto.id, "org", "repo");
+
+    await api.sincronizarRepositorio(repo.id, fetchFalsoExitoso());
+    await api.sincronizarRepositorio(repo.id, fetchFalsoQueFalla());
+
+    const [snapshot] = await api.listarRepositoriosDeProyecto(proyecto.id);
+    expect(snapshot?.error).toMatch(/404/);
+    // Los números de la sincronización exitosa anterior siguen ahí —
+    // la pantalla no queda en blanco (criterio de aceptación).
+    expect(snapshot?.commitsTotal).toBe(1);
+  });
+
+  it("sincronizarTodosLosRepositorios sincroniza cada repo de cada proyecto", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const repo1 = await api.agregarRepositorio(proyecto.id, "org", "repo1");
+    const repo2 = await api.agregarRepositorio(proyecto.id, "org", "repo2");
+
+    await api.sincronizarTodosLosRepositorios(fetchFalsoExitoso());
+
+    const repos = await api.listarRepositoriosDeProyecto(proyecto.id);
+    expect(repos.find((r) => r.id === repo1.id)?.error).toBeNull();
+    expect(repos.find((r) => r.id === repo2.id)?.error).toBeNull();
   });
 });

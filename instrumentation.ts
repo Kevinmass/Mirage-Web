@@ -21,4 +21,21 @@ export async function register() {
       error,
     );
   }
+
+  // Job de sync de repositorios (diseño §6.3): cada 30 minutos, en
+  // proceso, nunca dentro de un request. sincronizarRepositorio ya
+  // atrapa sus propios errores de red/GitHub y los deja en
+  // repositorio_snapshot.error — este catch es solo para lo
+  // inesperado (p.ej. la base caída), para que el setInterval no se
+  // corte silenciosamente.
+  const TREINTA_MINUTOS = 30 * 60 * 1000;
+  const { sincronizarTodosLosRepositorios } =
+    await import("@/modules/proyectos/api");
+  const correrSyncDeRepositorios = () => {
+    sincronizarTodosLosRepositorios().catch((error) => {
+      console.error("[proyectos] sync de repositorios falló", error);
+    });
+  };
+  correrSyncDeRepositorios();
+  setInterval(correrSyncDeRepositorios, TREINTA_MINUTOS);
 }

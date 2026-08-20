@@ -101,3 +101,32 @@ export async function asignarPersonaATareaAction(
   await proyectos.asignarPersonaATarea(tareaId, valor ? Number(valor) : null);
   revalidatePath(`/app/proyectos/${proyectoId}`);
 }
+
+export async function agregarRepositorioAction(
+  proyectoId: number,
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  try {
+    await proyectos.agregarRepositorio(
+      proyectoId,
+      String(formData.get("owner") ?? "").trim(),
+      String(formData.get("repo") ?? "").trim(),
+    );
+  } catch (error) {
+    return manejarError(error);
+  }
+
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+  return {};
+}
+
+// Sincronizar a demanda, sin esperar el job de 30 minutos — útil para
+// verificar que un repo recién agregado anda antes de irse.
+export async function sincronizarRepositorioAction(
+  proyectoId: number,
+  repositorioId: number,
+) {
+  await proyectos.sincronizarRepositorio(repositorioId);
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+}
