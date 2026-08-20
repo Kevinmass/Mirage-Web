@@ -230,6 +230,27 @@ describe("modules/proyectos api", () => {
     expect(progreso).toEqual({ hechas: 1, totales: 3 });
   });
 
+  // PR 5.5, criterio de aceptación: "ningún dato de repositorio entra
+  // en el cálculo de progreso — se verifica leyendo el código, no la
+  // pantalla". Este test es esa verificación hecha regresión: un
+  // repositorio con muchísima actividad de GitHub y CERO tareas no
+  // puede mover la aguja del progreso.
+  it("obtenerProgresoDeProyecto ignora por completo la actividad de GitHub", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const repo = await api.agregarRepositorio(proyecto.id, "org", "repo");
+    await api.sincronizarRepositorio(repo.id, fetchFalsoExitoso());
+
+    expect(await api.obtenerProgresoDeProyecto(proyecto.id)).toEqual({
+      hechas: 0,
+      totales: 0,
+    });
+  });
+
   it("listarTareas filtra por nodo, por persona y por lista de nodos, y excluye hechas", async () => {
     const { nodo: n, cliente } = await armarClienteYNodo();
     const [otroNodo] = await db
