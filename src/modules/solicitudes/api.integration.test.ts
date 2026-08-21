@@ -86,7 +86,11 @@ describe("modules/solicitudes api", () => {
   });
 
   it("crearSolicitud hereda el nodo responsable del cliente y arranca en recibida", async () => {
-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
+    const {
+      nodo: n,
+      cliente,
+      personaContactoId,
+    } = await armarClienteYContacto();
 
     const creada = await api.crearSolicitud(cliente.id, personaContactoId, {
       titulo: "Necesitamos un formulario nuevo",
@@ -101,7 +105,11 @@ describe("modules/solicitudes api", () => {
 
   it("crearSolicitud publica solicitud.creada con el titular del nodo como destinatario", async () => {
     const bus = await import("@/kernel/eventos/bus");
-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
+    const {
+      nodo: n,
+      cliente,
+      personaContactoId,
+    } = await armarClienteYContacto();
     const { asignarPersona } = await import("@/kernel/organigrama/arbol");
     const [titular] = await db
       .insert(persona)
@@ -190,9 +198,9 @@ describe("modules/solicitudes api", () => {
       tipo: "consulta",
     });
 
-    await expect(
-      api.obtenerSolicitudDeCliente(b.id, deA.id),
-    ).rejects.toThrow(NoEncontrado);
+    await expect(api.obtenerSolicitudDeCliente(b.id, deA.id)).rejects.toThrow(
+      NoEncontrado,
+    );
 
     const propia = await api.obtenerSolicitudDeCliente(a.cliente.id, deA.id);
     expect(propia.id).toBe(deA.id);
@@ -227,7 +235,11 @@ describe("modules/solicitudes api", () => {
 
   it("aceptarSolicitud marca resueltoEn y publica solicitud.aceptada con el creador como destinatario", async () => {
     const bus = await import("@/kernel/eventos/bus");
-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
+    const {
+      nodo: n,
+      cliente,
+      personaContactoId,
+    } = await armarClienteYContacto();
     const creada = await api.crearSolicitud(cliente.id, personaContactoId, {
       titulo: "Título",
       descripcion: "Descripción",

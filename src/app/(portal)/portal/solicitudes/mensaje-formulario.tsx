@@ -9,10 +9,10 @@ export function FormularioMensajePortal({
 }: {
   solicitudId: number;
 }) {
-  const [estado, accion, enviando] = useActionState<
-    EstadoFormulario,
-    FormData
-  >(agregarMensajeAction.bind(null, solicitudId), {});
+  const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
+    agregarMensajeAction.bind(null, solicitudId),
+    {},
+  );
 
   return (
     <form

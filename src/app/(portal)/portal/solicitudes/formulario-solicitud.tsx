@@ -12,10 +12,10 @@ const TIPOS = [
 ];
 
 export function FormularioSolicitud() {
-  const [estado, accion, enviando] = useActionState<
-    EstadoFormulario,
-    FormData
-  >(crearSolicitudAction, {});
+  const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
+    crearSolicitudAction,
+    {},
+  );
 
   return (
     <form

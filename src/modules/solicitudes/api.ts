@@ -9,8 +9,7 @@ import { solicitudesMensaje, solicitudesSolicitud } from "./schema";
 
 export type EstadoSolicitud =
   "recibida" | "en_evaluacion" | "aceptada" | "rechazada";
-export type TipoSolicitud =
-  "funcionalidad_nueva" | "bug" | "consulta" | "otro";
+export type TipoSolicitud = "funcionalidad_nueva" | "bug" | "consulta" | "otro";
 
 export interface DatosSolicitud {
   titulo: string;
@@ -69,7 +68,11 @@ export async function listarSolicitudes(filtro?: { estado?: EstadoSolicitud }) {
   return db
     .select()
     .from(solicitudesSolicitud)
-    .where(filtro?.estado ? eq(solicitudesSolicitud.estado, filtro.estado) : undefined)
+    .where(
+      filtro?.estado
+        ? eq(solicitudesSolicitud.estado, filtro.estado)
+        : undefined,
+    )
     .orderBy(desc(solicitudesSolicitud.creadoEn));
 }
 
@@ -92,10 +95,7 @@ export async function listarSolicitudesDeCliente(clienteId: number) {
 // 403" entre /app y /portal, pero acá aplicado adentro de un mismo
 // módulo). La ficha de /portal/solicitudes/[id] llama a esta función,
 // nunca a obtenerSolicitud directo.
-export async function obtenerSolicitudDeCliente(
-  clienteId: number,
-  id: number,
-) {
+export async function obtenerSolicitudDeCliente(clienteId: number, id: number) {
   const solicitud = await obtenerSolicitud(id);
   if (solicitud.clienteId !== clienteId) {
     throw new NoEncontrado(`No existe la solicitud ${id}`);

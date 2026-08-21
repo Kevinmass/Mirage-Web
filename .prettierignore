@@ -4,3 +4,7 @@ pnpm-lock.yaml
 
 # documentos de diseño y plan: prosa aprobada, no se reformatea con Prettier
 *.md
+
+# metadatos que genera drizzle-kit: los reescribe él en cada `db:generate`,
+# formatearlos a mano solo produce diffs que vuelven en la migración siguiente
+src/db/migrations/meta/

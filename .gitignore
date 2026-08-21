@@ -35,5 +35,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# workspaces de git aislados por rama
+# workspaces de git aislados por rama (los de Claude Code también: uno
+# se coló como gitlink y rompía `git status` en la raíz)
 .worktrees/
+.claude/worktrees/

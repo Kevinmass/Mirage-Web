@@ -10,10 +10,10 @@ import { agregarMensajeAction, type EstadoFormulario } from "./actions";
 // (ámbar = interno, no solo el checkbox) y hay un texto explícito al
 // lado, no solo el estado del control.
 export function FormularioMensaje({ solicitudId }: { solicitudId: number }) {
-  const [estado, accion, enviando] = useActionState<
-    EstadoFormulario,
-    FormData
-  >(agregarMensajeAction.bind(null, solicitudId), {});
+  const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
+    agregarMensajeAction.bind(null, solicitudId),
+    {},
+  );
   const [visibleParaCliente, setVisibleParaCliente] = useState(true);
 
   return (

@@ -85,7 +85,11 @@ describe("kernel/eventos — flujo solicitud.aceptada → proyecto.creado", () =
   }
 
   it("aceptar una solicitud crea el proyecto real y lo linkea de vuelta, sin ningún suscriptor de prueba", async () => {
-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
+    const {
+      nodo: n,
+      cliente,
+      personaContactoId,
+    } = await armarClienteYContacto();
     const solicitud = await solicitudesApi.crearSolicitud(
       cliente.id,
       personaContactoId,

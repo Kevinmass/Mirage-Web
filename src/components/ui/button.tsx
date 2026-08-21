@@ -49,6 +49,13 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
+      // Base UI asume un <button> nativo. Cuando se pasa `render` (el
+      // caso de "Nueva persona", que en realidad es un <Link>) eso deja
+      // de ser cierto y la librería avisa en consola en cada pantalla
+      // con un botón de alta. Se resuelve acá una vez, no en cada
+      // llamada: si hay render, no es nativo. Un caller que sepa lo
+      // contrario lo pisa con su propio prop, porque el spread va después.
+      nativeButton={props.render === undefined}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

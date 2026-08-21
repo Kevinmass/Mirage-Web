@@ -36,9 +36,7 @@ export async function crearSolicitudAction(
 
   const titulo = String(formData.get("titulo") ?? "").trim();
   const descripcion = String(formData.get("descripcion") ?? "").trim();
-  const tipo = String(
-    formData.get("tipo") ?? "",
-  ) as solicitudes.TipoSolicitud;
+  const tipo = String(formData.get("tipo") ?? "") as solicitudes.TipoSolicitud;
   if (!titulo || !descripcion) {
     return { error: "Completá el título y la descripción." };
   }
