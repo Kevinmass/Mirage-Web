@@ -4,9 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del repo
 
-En implementación siguiendo el plan (Fase 0 completa, Fase 1 en curso).
-Next.js + TypeScript + Drizzle + Postgres ya están andando — ver
-`package.json` antes de asumir que un comando no existe.
+Las 8 fases del plan están implementadas y integradas en `main`.
+Next.js + TypeScript + Drizzle + Postgres andando — ver `package.json`
+antes de asumir que un comando no existe.
+
+Lo que el plan dejó pendiente y no está hecho: el panel de edición de
+contenido (la web pública se sirve del seed) y los chequeos de permisos
+de todos los módulos salvo `clientes` — `proyectos.*`, `solicitudes.*`,
+`notificaciones.*` y `contenido.editar` están declarados en su
+`permissions.ts` pero ningún `api.ts` los verifica todavía.
+
+Las ramas `fase-*` fueron el vehículo de implementación (encadenadas
+entre sí, mergeadas a `staging` y de ahí a `main`). Ya están integradas:
+no buscar trabajo pendiente ahí.
 
 Comandos:
 
@@ -17,6 +27,10 @@ pnpm db:generate         # genera una migración a partir de src/db/schema.ts
 pnpm db:migrate          # la aplica (drizzle-kit, requiere DATABASE_URL)
 pnpm db:migrate:deploy   # variante para producción (Docker), sin drizzle-kit
 pnpm db:seed             # carga contenido/datos base (tsx src/db/seed.ts)
+pnpm db:bootstrap <email> <password> [nombre] [apellido]
+                         # primer empleado — obligatorio en una base nueva:
+                         # sin él no hay forma de entrar a /app (no hay
+                         # registro público y el ABM de personas está adentro)
 docker compose up -d     # Postgres local — copiar .env.example a .env primero
 ```
 
