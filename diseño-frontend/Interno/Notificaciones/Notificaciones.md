@@ -1,0 +1,1 @@
+Esta debe ser una seccion dinamica y los mensajes deben redirigir a sus correspondientes secciones

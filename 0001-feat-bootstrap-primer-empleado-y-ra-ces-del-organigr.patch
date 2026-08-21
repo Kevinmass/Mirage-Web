@@ -1,0 +1,381 @@
+From 79107c10bee1618d33cc81116bd931099ff26730 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 21 Aug 2026 13:03:12 +0000
+Subject: [PATCH 1/2] =?UTF-8?q?feat(bootstrap):=20primer=20empleado=20y=20?=
+ =?UTF-8?q?ra=C3=ADces=20del=20organigrama?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Una base recién migrada no tenía forma de arrancar. No hay registro
+público (a propósito: el alta de personas vive en /app), y /app exige
+`persona.tipo = 'empleado'` — así que nadie podía entrar nunca. Además
+`persona` sin rol no pasa ningún `requiere()`, y las dos raíces del
+organigrama, que el diseño §4.2 llama "un dato fijo", no las insertaba
+nadie: `crearNodo` siempre exige `padreId`.
+
+Sin raíz no hay nodo, sin nodo no se puede crear un cliente
+(`crearCliente` valida `nodoResponsableId`), sin cliente no hay
+contactos y sin contactos no hay portal. Toda la cadena colgaba de un
+eslabón que no existía.
+
+`pnpm db:bootstrap <email> <password> [nombre] [apellido]` crea, en
+orden: las capacidades declaradas, un rol con todas ellas, la persona
+empleado, su usuario en better-auth (vía signUpEmail, para que el hash
+sea el que valida el login), la asignación del rol, y las dos raíces con
+la persona como titular de la interna.
+
+Es idempotente: reusa lo que ya exista y no pisa la contraseña.
+
+Verificado sobre una base en cero: migrate → seed → bootstrap → dev, y
+después login de empleado (200 en las 8 pantallas de /app, 404 en
+/portal) y de contacto de cliente (200 en /portal, 404 en /app).
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019CcWn1PSjwutbCR8F76rmg
+---
+ CLAUDE.md           |  20 ++++-
+ README.md           |  67 +++++++++++++---
+ package.json        |   3 +-
+ src/db/bootstrap.ts | 187 ++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 264 insertions(+), 13 deletions(-)
+ create mode 100644 src/db/bootstrap.ts
+
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 5c75fc9..7d55137 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -4,9 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
+ 
+ ## Estado del repo
+ 
+-En implementación siguiendo el plan (Fase 0 completa, Fase 1 en curso).
+-Next.js + TypeScript + Drizzle + Postgres ya están andando — ver
+-`package.json` antes de asumir que un comando no existe.
++Las 8 fases del plan están implementadas y integradas en `main`.
++Next.js + TypeScript + Drizzle + Postgres andando — ver `package.json`
++antes de asumir que un comando no existe.
++
++Lo que el plan dejó pendiente y no está hecho: el panel de edición de
++contenido (la web pública se sirve del seed) y los chequeos de permisos
++de todos los módulos salvo `clientes` — `proyectos.*`, `solicitudes.*`,
++`notificaciones.*` y `contenido.editar` están declarados en su
++`permissions.ts` pero ningún `api.ts` los verifica todavía.
++
++Las ramas `fase-*` fueron el vehículo de implementación (encadenadas
++entre sí, mergeadas a `staging` y de ahí a `main`). Ya están integradas:
++no buscar trabajo pendiente ahí.
+ 
+ Comandos:
+ 
+@@ -17,6 +27,10 @@ pnpm db:generate         # genera una migración a partir de src/db/schema.ts
+ pnpm db:migrate          # la aplica (drizzle-kit, requiere DATABASE_URL)
+ pnpm db:migrate:deploy   # variante para producción (Docker), sin drizzle-kit
+ pnpm db:seed             # carga contenido/datos base (tsx src/db/seed.ts)
++pnpm db:bootstrap <email> <password> [nombre] [apellido]
++                         # primer empleado — obligatorio en una base nueva:
++                         # sin él no hay forma de entrar a /app (no hay
++                         # registro público y el ABM de personas está adentro)
+ docker compose up -d     # Postgres local — copiar .env.example a .env primero
+ ```
+ 
+diff --git a/README.md b/README.md
+index d28b7de..d7a9bf1 100644
+--- a/README.md
++++ b/README.md
+@@ -2,23 +2,70 @@
+ 
+ Web pública + sistema interno + portal de clientes, en un monolito modular.
+ 
+-> **Estado: en diseño.** Todavía no hay código. El diseño se está definiendo y
+-> quedará en `docs/specs/` antes de escribir la primera línea.
++> **Estado: v1 implementada.** Las 8 fases del plan están en `main`. Falta el
++> panel de edición de contenido (la web pública se sirve del seed) y ajustar
++> permisos: hoy solo `clientes.*` se verifica de verdad.
+ 
+-## Qué va a ser
+-
+-| Superficie | Ruta | Para quién |
++| Superficie | Ruta | Acceso |
+ |---|---|---|
+-| Web pública | `/` | Cualquiera que quiera conocer Mirage |
+-| Sistema interno | `/app` | Empleados de Mirage |
+-| Portal de clientes | `/portal` | Clientes de Mirage |
++| Web pública | `/` | Sin sesión |
++| Sistema interno | `/app` | Sesión + `persona.tipo = 'empleado'` |
++| Portal de clientes | `/portal` | Sesión + `tipo = 'contacto_cliente'`, restringido a su cliente |
+ 
+ Las tres comparten base de datos, sesión y kernel. Cada una tiene su layout, su
+ navegación y sus reglas de acceso.
+ 
++## Arrancar en local
++
++Requiere Node 20+, pnpm 10 y Docker (solo para el Postgres).
++
++```bash
++pnpm install
++cp .env.example .env          # editá BETTER_AUTH_SECRET: openssl rand -base64 32
++docker compose up -d          # Postgres en localhost:5432
++
++pnpm db:migrate:deploy        # crea las tablas
++pnpm db:seed                  # contenido de la web pública
++pnpm db:bootstrap tu@email.com "una-password-larga" Nombre Apellido
++
++pnpm dev                      # http://localhost:3000
++```
++
++**`db:bootstrap` no es opcional en una base nueva.** No hay registro público —
++el alta de personas vive dentro de `/app`, y `/app` exige ser un empleado que ya
++existe. Sin ese primer empleado la base recién migrada es un callejón sin
++salida: la web pública anda, pero a `/app` y `/portal` no entra nadie nunca. El
++script crea la persona, su usuario, y un rol con todas las capacidades. Es
++idempotente; correrlo dos veces no duplica nada ni pisa la contraseña.
++
++Después de eso, entrá por `/ingresar`. Los contactos de cliente **no** se crean
++con este script: se dan de alta desde `/app/clientes` y se los invita por mail.
++
++## Comandos
++
++```
++pnpm dev / build / start
++pnpm lint / typecheck / test / format:check
++pnpm db:generate          # genera una migración desde src/db/schema.ts
++pnpm db:migrate           # la aplica (drizzle-kit, necesita DATABASE_URL)
++pnpm db:migrate:deploy    # variante para producción (Docker), sin drizzle-kit
++pnpm db:seed              # contenido de la web pública
++pnpm db:bootstrap         # primer empleado (ver arriba)
++```
++
++Los tests de integración (`*.integration.test.ts`) levantan su propio Postgres
++efímero con testcontainers — no usan el `docker compose` de arriba.
++
++## Ramas
++
++`main` es el código vigente. `staging` es la rama de pre-producción y hoy
++apunta al mismo commit. Las ramas `fase-*` fueron el vehículo de implementación
++(una por fase del plan, encadenadas) y ya están integradas: no queda nada
++pendiente de mergear en ellas.
++
+ ## Stack
+ 
+-Next.js (App Router) · TypeScript · Drizzle · PostgreSQL · npm/pnpm · Render
++Next.js 16 (App Router) · TypeScript · Drizzle · PostgreSQL · pnpm · Render
+ 
+ **Sin Bun.** Ver `../mirage-empresa/04-tecnologia/stack.md`.
+ 
+@@ -36,3 +83,5 @@ Las decisiones de negocio y arquitectura, con su justificación, están en
+ 
+ - `02-estructura/organigrama.md` — el modelo organizacional que la app implementa
+ - `03-decisiones/registro-de-decisiones.md` — qué se decidió y qué se descartó
++
++El diseño y el plan de implementación viven en [`docs/`](docs/).
+diff --git a/package.json b/package.json
+index 369e10d..f6ec20a 100644
+--- a/package.json
++++ b/package.json
+@@ -14,7 +14,8 @@
+     "db:generate": "drizzle-kit generate",
+     "db:migrate": "drizzle-kit migrate",
+     "db:migrate:deploy": "node scripts/migrate.mjs",
+-    "db:seed": "tsx src/db/seed.ts"
++    "db:seed": "tsx src/db/seed.ts",
++    "db:bootstrap": "tsx src/db/bootstrap.ts"
+   },
+   "dependencies": {
+     "@base-ui/react": "^1.7.0",
+diff --git a/src/db/bootstrap.ts b/src/db/bootstrap.ts
+new file mode 100644
+index 0000000..636501d
+--- /dev/null
++++ b/src/db/bootstrap.ts
+@@ -0,0 +1,187 @@
++// Arranque en frío: crea el primer empleado con acceso a /app.
++//
++// Sin esto la base recién migrada es un callejón sin salida: no hay
++// registro público (a propósito — el alta de personas vive en /app), y
++// el ABM que crea empleados está detrás de /app. Alguien tiene que
++// existir antes. Este script es ese alguien, y corre una sola vez:
++//
++//   pnpm db:bootstrap tu@email.com "tu-password" Nombre Apellido
++//
++// Es idempotente: si la persona o el rol ya existen, los reusa en vez
++// de duplicarlos. Correrlo dos veces no rompe nada.
++import "dotenv/config";
++import { eq, isNull } from "drizzle-orm";
++import { db } from "./client";
++import { auth } from "@/kernel/identidad/auth";
++import { persona } from "@/kernel/identidad/schema";
++import { asignarPersona } from "@/kernel/organigrama/arbol";
++import { nodo } from "@/kernel/organigrama/schema";
++import { capacidadesDeclaradas } from "@/kernel/permisos/capacidades-declaradas";
++import { registrarCapacidades } from "@/kernel/permisos/registro";
++import { personaRol, rol, rolCapacidad } from "@/kernel/permisos/schema";
++
++const ROL_INICIAL = "Dirección";
++
++// Las dos raíces del organigrama. El diseño (§4.2) las describe como "un
++// dato fijo, dos filas con padre_id null" y crearNodo las excluye a
++// propósito (siempre exige padreId) — pero nada las insertaba, así que
++// una base recién migrada no tenía árbol y no había forma de empezarlo
++// desde la UI. Los nombres salen de mirage-empresa/02-estructura: son
++// responsabilidades, no personas (regla 1). Se pueden renombrar después
++// desde /app/organigrama.
++const RAICES = [
++  { raiz: "interno" as const, nombre: "Actividades internas" },
++  { raiz: "externo" as const, nombre: "Actividades externas" },
++];
++
++function leerArgumentos() {
++  const [email, password, nombre, apellido] = process.argv.slice(2);
++
++  if (!email || !password) {
++    console.error(
++      "Uso: pnpm db:bootstrap <email> <password> [nombre] [apellido]\n" +
++        'Ej:  pnpm db:bootstrap kevin@miragesoftware.store "una-password-larga" Kevin Massaccesi',
++    );
++    process.exit(1);
++  }
++
++  if (password.length < 8) {
++    console.error("La contraseña tiene que tener al menos 8 caracteres.");
++    process.exit(1);
++  }
++
++  return {
++    email: email.trim().toLowerCase(),
++    password,
++    nombre: nombre ?? "Primer",
++    apellido: apellido ?? "Empleado",
++  };
++}
++
++async function main() {
++  const { email, password, nombre, apellido } = leerArgumentos();
++
++  // 1. Las capacidades normalmente se registran al arrancar el server
++  //    (instrumentation.ts). Acá se registran igual para no depender de
++  //    que el server haya corrido antes: sin filas en `capacidad` el rol
++  //    de abajo no tiene nada que asignar.
++  await registrarCapacidades(capacidadesDeclaradas);
++  console.log(`Capacidades registradas: ${capacidadesDeclaradas.length}`);
++
++  // 2. Rol inicial con todas las capacidades. Es deliberadamente el rol
++  //    más ancho posible — es el único que puede existir antes de que
++  //    haya alguien que cree roles más finos. Recortarlo (o crear roles
++  //    por área) es trabajo de /app una vez que estés adentro.
++  let [rolInicial] = await db
++    .select()
++    .from(rol)
++    .where(eq(rol.nombre, ROL_INICIAL));
++
++  if (!rolInicial) {
++    [rolInicial] = await db
++      .insert(rol)
++      .values({
++        nombre: ROL_INICIAL,
++        descripcion: "Rol de arranque: todas las capacidades declaradas.",
++      })
++      .returning();
++    console.log(`Rol "${ROL_INICIAL}" creado.`);
++  } else {
++    console.log(`Rol "${ROL_INICIAL}" ya existía, se reusa.`);
++  }
++
++  await db
++    .insert(rolCapacidad)
++    .values(
++      capacidadesDeclaradas.map((c) => ({
++        rolId: rolInicial!.id,
++        capacidadClave: c.clave,
++      })),
++    )
++    .onConflictDoNothing();
++
++  // 3. La persona. Puede existir ya (creada a mano en la base) sin
++  //    usuario vinculado — ese caso se completa en vez de fallar.
++  let [personaInicial] = await db
++    .select()
++    .from(persona)
++    .where(eq(persona.email, email));
++
++  if (!personaInicial) {
++    [personaInicial] = await db
++      .insert(persona)
++      .values({ nombre, apellido, email, tipo: "empleado" })
++      .returning();
++    console.log(`Persona creada: ${nombre} ${apellido} <${email}>`);
++  } else if (personaInicial.tipo !== "empleado") {
++    console.error(
++      `Ya existe una persona con ese email y es "${personaInicial.tipo}", no empleado. ` +
++        "Usá otro email: el portal y el sistema interno no comparten cuenta.",
++    );
++    process.exit(1);
++  } else {
++    console.log(`Persona ya existía: ${email}`);
++  }
++
++  // 4. El usuario de better-auth. signUpEmail hashea la contraseña con
++  //    el mismo algoritmo que valida el login — por eso se crea así y no
++  //    con un INSERT a mano.
++  if (personaInicial!.usuarioId) {
++    console.log("Esa persona ya tenía acceso; no se toca la contraseña.");
++  } else {
++    const { user } = await auth.api.signUpEmail({
++      body: { email, password, name: `${nombre} ${apellido}` },
++    });
++    await db
++      .update(persona)
++      .set({ usuarioId: user.id })
++      .where(eq(persona.id, personaInicial!.id));
++    console.log("Usuario creado y vinculado a la persona.");
++  }
++
++  // 5. El rol: sin esto entra a /app pero no puede hacer nada
++  //    (tienePermiso mira persona_rol → rol_capacidad).
++  await db
++    .insert(personaRol)
++    .values({ personaId: personaInicial!.id, rolId: rolInicial!.id })
++    .onConflictDoNothing();
++
++  // 6. Las dos raíces del organigrama, y la persona como titular de la
++  //    interna. Sin raíces no hay árbol donde colgar nada, y sin nodo no
++  //    se puede crear un cliente (crearCliente exige nodoResponsableId),
++  //    y sin cliente no hay contactos ni portal. Es el primer eslabón de
++  //    toda esa cadena.
++  const raicesExistentes = await db
++    .select({ raiz: nodo.raiz, id: nodo.id })
++    .from(nodo)
++    .where(isNull(nodo.padreId));
++
++  for (const { raiz, nombre } of RAICES) {
++    if (raicesExistentes.some((r) => r.raiz === raiz)) {
++      continue;
++    }
++    const [creada] = await db
++      .insert(nodo)
++      .values({ nombre, raiz, padreId: null })
++      .returning();
++    console.log(`Raíz "${nombre}" (${raiz}) creada.`);
++
++    if (raiz === "interno") {
++      await asignarPersona(personaInicial!.id, creada!.id, true).catch(() => {
++        // Ya hay un titular vigente — no es un error para un script que
++        // se puede correr dos veces.
++      });
++    }
++  }
++
++  console.log(
++    `\nListo. Entrá en http://localhost:3000/ingresar con ${email} y te lleva a /app.`,
++  );
++}
++
++main()
++  .then(() => process.exit(0))
++  .catch((err) => {
++    console.error(err);
++    process.exit(1);
++  });
+-- 
+2.43.0
+

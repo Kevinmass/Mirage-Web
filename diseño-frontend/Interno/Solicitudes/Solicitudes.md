@@ -1,0 +1,1 @@
+Solicitudes va a ser basicamente una ticketera de issues y cambios entre los clientes y los usuarios internos. Solamente le deberian aparecer los tickets a los usuarios que esten anotados en el proyecto que el cliente este vinculado.
