@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 const PASOS = [
   {
     titulo: "Relevamiento",
-    descripcion: "Entendemos el proceso real antes de escribir una línea de código.",
+    descripcion:
+      "Entendemos el proceso real antes de escribir una línea de código.",
   },
   {
     titulo: "Diseño",
-    descripcion: "Arquitectura y alcance definidos antes de empezar a construir.",
+    descripcion:
+      "Arquitectura y alcance definidos antes de empezar a construir.",
   },
   {
     titulo: "Desarrollo",
@@ -49,7 +51,10 @@ export function ComoTrabajamos() {
 
   return (
     <div ref={ref} className="relative">
-      <div className="absolute top-5 left-0 hidden h-px w-full bg-border sm:block" aria-hidden>
+      <div
+        className="absolute top-5 left-0 hidden h-px w-full bg-border sm:block"
+        aria-hidden
+      >
         <div
           className={cn(
             "h-full bg-primary transition-[width] duration-1000 ease-(--ease-suave) motion-reduce:transition-none",

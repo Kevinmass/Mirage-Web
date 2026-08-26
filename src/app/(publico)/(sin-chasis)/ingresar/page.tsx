@@ -14,9 +14,7 @@ export default function PaginaIngresar() {
         <Link href="/" className="font-heading text-xl font-bold">
           Mirage
         </Link>
-        <p className="text-sm text-muted-foreground">
-          Ingresá con tu cuenta.
-        </p>
+        <p className="text-sm text-muted-foreground">Ingresá con tu cuenta.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <SelectorIngreso />

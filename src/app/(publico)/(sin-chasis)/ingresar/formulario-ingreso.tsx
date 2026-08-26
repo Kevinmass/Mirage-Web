@@ -21,12 +21,7 @@ export function FormularioIngreso() {
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor="ingreso-password">Contraseña</Label>
-        <Input
-          id="ingreso-password"
-          name="password"
-          type="password"
-          required
-        />
+        <Input id="ingreso-password" name="password" type="password" required />
       </div>
 
       {estado.error && (

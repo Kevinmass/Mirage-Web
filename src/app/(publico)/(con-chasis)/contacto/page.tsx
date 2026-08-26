@@ -1,20 +1,32 @@
 import type { Metadata } from "next";
-import { ContenidoMarkdown } from "@/components/contenido-markdown";
-import { obtenerPaginaPorSlug } from "@/modules/contenido/api";
+import { FormularioContacto } from "./formulario-contacto";
+import { MetodosDirectos } from "./metodos-directos";
 
-export const revalidate = 3600;
 export const metadata: Metadata = { title: "Contacto" };
 
-export default async function PaginaContacto() {
-  const pagina = await obtenerPaginaPorSlug("contacto").catch(() => undefined);
+// Dos columnas en desktop, apiladas en móvil (§8.4). ?asunto= precarga
+// el tipo de consulta — es lo que usan las páginas de servicio (PR 4) y
+// el recomendador (PR 5) para pasar contexto.
+export default async function PaginaContacto({
+  searchParams,
+}: {
+  searchParams: Promise<{ asunto?: string }>;
+}) {
+  const { asunto } = await searchParams;
 
   return (
-    <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
-      {pagina ? (
-        <ContenidoMarkdown>{pagina.cuerpo}</ContenidoMarkdown>
-      ) : (
-        <h1 className="text-3xl font-bold tracking-tight">Contacto</h1>
-      )}
+    <main className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
+      <h1 className="text-display font-heading font-bold tracking-[-0.025em]">
+        Contacto
+      </h1>
+      <p className="mt-3 max-w-[60ch] text-lead text-muted-foreground">
+        Contanos qué necesitás y te contestamos por el mismo medio.
+      </p>
+
+      <div className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2">
+        <MetodosDirectos />
+        <FormularioContacto asuntoInicial={asunto} />
+      </div>
     </main>
   );
 }

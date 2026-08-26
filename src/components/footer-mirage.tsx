@@ -15,7 +15,10 @@ const COLUMNAS = [
   {
     titulo: "Contacto",
     enlaces: [
-      { href: "mailto:mirage.software.ar@gmail.com", etiqueta: "mirage.software.ar@gmail.com" },
+      {
+        href: "mailto:mirage.software.ar@gmail.com",
+        etiqueta: "mirage.software.ar@gmail.com",
+      },
       { href: "/contacto", etiqueta: "Formulario de contacto" },
     ],
   },
@@ -35,9 +38,7 @@ export function FooterMirage() {
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-4">
           <div className="flex flex-col gap-2 sm:col-span-1">
             <span className="font-heading text-lg font-bold">Mirage</span>
-            <p className="text-sm text-muted-foreground">
-              Software a medida.
-            </p>
+            <p className="text-sm text-muted-foreground">Software a medida.</p>
           </div>
           {COLUMNAS.map((columna) => (
             <div key={columna.titulo} className="flex flex-col gap-2">

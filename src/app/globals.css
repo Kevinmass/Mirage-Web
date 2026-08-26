@@ -164,6 +164,20 @@
   }
 }
 
+/* "click-spark" de React Bits, reteñido (§6.1, §8.4): una chispa que
+   sale disparada y se apaga. Cada instancia rota la línea a un ángulo
+   distinto vía --spark-angulo. */
+@keyframes click-spark {
+  from {
+    opacity: 1;
+    transform: rotate(var(--spark-angulo)) translateY(0) scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--spark-angulo)) translateY(-28px) scaleY(0.4);
+  }
+}
+
 :root {
   /* Arena — la superficie del mundo claro. */
   --arena-50: oklch(0.989 0.006 84.6);
