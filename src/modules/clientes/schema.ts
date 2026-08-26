@@ -67,8 +67,11 @@ export const clientesInteraccion = pgTable("clientes_interaccion", {
   personaId: integer("persona_id")
     .notNull()
     .references(() => persona.id),
+  // "whatsapp" separado de "otro" (PR 9 del rediseño de frontend): es el
+  // canal real que más se termina consultando, y antes cualquier
+  // interacción por WhatsApp se perdía dentro de "otro".
   tipo: text("tipo", {
-    enum: ["llamada", "mail", "reunion", "otro"],
+    enum: ["llamada", "mail", "reunion", "whatsapp", "otro"],
   }).notNull(),
   fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
   resumen: text("resumen").notNull(),

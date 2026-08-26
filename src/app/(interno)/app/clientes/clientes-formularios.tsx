@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { EstadoFormulario } from "./actions";
 import { crearContactoAction, registrarInteraccionAction } from "./actions";
 
@@ -17,40 +19,16 @@ export function FormularioContacto({ clienteId }: { clienteId: number }) {
   );
 
   return (
-    <form action={accion} className="flex max-w-sm flex-col gap-2 text-sm">
-      <input
-        name="nombre"
-        placeholder="Nombre"
-        required
-        className="rounded-md border px-2 py-1"
-      />
-      <input
-        name="apellido"
-        placeholder="Apellido"
-        required
-        className="rounded-md border px-2 py-1"
-      />
-      <input
-        name="email"
-        type="email"
-        placeholder="Email"
-        required
-        className="rounded-md border px-2 py-1"
-      />
-      <input
-        name="telefono"
-        placeholder="Teléfono (E.164, opcional)"
-        className="rounded-md border px-2 py-1"
-      />
-      <input
-        name="cargo"
-        placeholder="Cargo (opcional)"
-        className="rounded-md border px-2 py-1"
-      />
-      <label className="flex items-center gap-2">
+    <form action={accion} className="flex flex-col gap-2">
+      <Input name="nombre" placeholder="Nombre" required />
+      <Input name="apellido" placeholder="Apellido" required />
+      <Input name="email" type="email" placeholder="Email" required />
+      <Input name="telefono" placeholder="Teléfono (E.164, opcional)" />
+      <Input name="cargo" placeholder="Cargo (opcional)" />
+      <Label className="font-normal">
         <input type="checkbox" name="esPrincipal" />
         Es el contacto principal
-      </label>
+      </Label>
       <ErrorAccion estado={estado} />
       <Button type="submit" size="sm" variant="secondary" disabled={enviando}>
         Agregar contacto
@@ -59,10 +37,15 @@ export function FormularioContacto({ clienteId }: { clienteId: number }) {
   );
 }
 
-const TIPOS_INTERACCION = [
+// El diseño no fija un enum de tipos de interacción (no es una
+// restricción normativa, a diferencia de `estado`) — esta lista incluye
+// "whatsapp" desde este PR porque es el canal real que más se consulta
+// (§ del plan, PR 9); antes caía en "otro" y se perdía la información.
+export const TIPOS_INTERACCION = [
   { value: "llamada", etiqueta: "Llamada" },
   { value: "mail", etiqueta: "Mail" },
   { value: "reunion", etiqueta: "Reunión" },
+  { value: "whatsapp", etiqueta: "WhatsApp" },
   { value: "otro", etiqueta: "Otro" },
 ] as const;
 
@@ -85,27 +68,38 @@ export function FormularioInteraccion({
   );
 
   return (
-    <form action={accion} className="flex max-w-sm flex-col gap-2 text-sm">
-      <select name="personaId" required className="rounded-md border px-2 py-1">
-        <option value="">Con quién…</option>
-        {personas.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.nombre} {p.apellido}
-          </option>
-        ))}
-      </select>
-      <select name="tipo" required className="rounded-md border px-2 py-1">
-        {TIPOS_INTERACCION.map((t) => (
-          <option key={t.value} value={t.value}>
-            {t.etiqueta}
-          </option>
-        ))}
-      </select>
+    <form action={accion} className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <select
+          name="personaId"
+          required
+          className="h-11 rounded-md border border-input bg-card px-3 text-sm"
+        >
+          <option value="">Con quién…</option>
+          {personas.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre} {p.apellido}
+            </option>
+          ))}
+        </select>
+        <select
+          name="tipo"
+          required
+          className="h-11 rounded-md border border-input bg-card px-3 text-sm"
+        >
+          {TIPOS_INTERACCION.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.etiqueta}
+            </option>
+          ))}
+        </select>
+      </div>
       <textarea
         name="resumen"
-        placeholder="Resumen"
+        placeholder="¿Qué se habló?"
         required
-        className="rounded-md border px-2 py-1"
+        rows={2}
+        className="rounded-md border border-input bg-card px-3 py-2 text-sm"
       />
       <ErrorAccion estado={estado} />
       <Button type="submit" size="sm" variant="secondary" disabled={enviando}>
