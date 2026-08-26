@@ -21,6 +21,12 @@ const SCRIPT = `
 
 export function ScriptTema() {
   return (
+    // La regla de ESLint que marca esto asume Pages Router (pages/_document.js).
+    // Con App Router, `app/layout.tsx` es el lugar correcto y documentado
+    // para un beforeInteractive de todo el sitio — ver
+    // node_modules/next/dist/docs/01-app/03-api-reference/02-components/script.md,
+    // que muestra exactamente este patrón dentro de app/layout.tsx.
+    // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
     <Script
       id="script-tema"
       strategy="beforeInteractive"

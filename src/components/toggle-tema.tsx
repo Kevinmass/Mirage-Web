@@ -1,20 +1,19 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
-import { aplicarTema, leerTema, type Tema } from "@/lib/tema";
+import { useSyncExternalStore } from "react";
+import { aplicarTema, leerTema, suscribirseATema, type Tema } from "@/lib/tema";
 import { cn } from "@/lib/utils";
 
 // El control real y accesible del tema (§6.2): <button> con aria-label,
 // funciona con teclado, persiste en localStorage. Cualquier adorno sobre
 // el tema (el lanyard del PR 2 en la landing) lo acompaña, nunca lo
-// reemplaza.
+// reemplaza. useSyncExternalStore evita el useState+useEffect que hacía
+// falta antes solo para leer localStorage una vez sin parpadeo de
+// hidratación (el html ya llega con .dark correcto por el script
+// inline; esto es nada más enterarse de qué ícono mostrar).
 export function ToggleTema({ className }: { className?: string }) {
-  const [tema, setTema] = useState<Tema | null>(null);
-
-  useEffect(() => {
-    setTema(leerTema());
-  }, []);
+  const tema = useSyncExternalStore(suscribirseATema, leerTema, () => null);
 
   if (tema === null) {
     // Evita el parpadeo de hidratación: el script inline ya decidió la
@@ -32,7 +31,6 @@ export function ToggleTema({ className }: { className?: string }) {
       onClick={() => {
         const nuevo: Tema = esOscuro ? "claro" : "oscuro";
         aplicarTema(nuevo);
-        setTema(nuevo);
       }}
       className={cn(
         "inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-(--dur-rapida) hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",

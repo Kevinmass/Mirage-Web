@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { cn } from "@/lib/utils";
 
 const CLAVE = "mirage-ingreso-tab";
@@ -12,20 +12,31 @@ const PESTANAS: { valor: Pestana; etiqueta: string }[] = [
   { valor: "clientes", etiqueta: "Clientes" },
 ];
 
+function leerPestanaGuardada(): Pestana {
+  return window.localStorage.getItem(CLAVE) === "clientes"
+    ? "clientes"
+    : "equipo";
+}
+
+function noSuscribirse() {
+  return () => {};
+}
+
 // Selector de dos pestañas (§8.5): no cambia qué campos pide el
 // formulario — a dónde entra cada quien ya lo decide el servidor según
 // el tipo de persona (kernel/identidad/reglas-acceso.ts). Es una
 // orientación para quien está por escribir su contraseña, con la
-// preferencia recordada entre visitas.
+// preferencia recordada entre visitas. useSyncExternalStore lee
+// localStorage una sola vez sin desincronizar la hidratación (el server
+// siempre arranca en "equipo"); el click después es estado local común.
 export function SelectorIngreso() {
-  const [activa, setActiva] = useState<Pestana>("equipo");
-
-  useEffect(() => {
-    const guardada = window.localStorage.getItem(CLAVE);
-    if (guardada === "equipo" || guardada === "clientes") {
-      setActiva(guardada);
-    }
-  }, []);
+  const guardada = useSyncExternalStore(
+    noSuscribirse,
+    leerPestanaGuardada,
+    () => "equipo" as Pestana,
+  );
+  const [elegida, setElegida] = useState<Pestana | null>(null);
+  const activa = elegida ?? guardada;
 
   return (
     <div className="flex flex-col gap-4">
@@ -41,7 +52,7 @@ export function SelectorIngreso() {
             role="tab"
             aria-selected={activa === pestana.valor}
             onClick={() => {
-              setActiva(pestana.valor);
+              setElegida(pestana.valor);
               window.localStorage.setItem(CLAVE, pestana.valor);
             }}
             className={cn(

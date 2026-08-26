@@ -7,6 +7,8 @@ export const CLAVE_TEMA = "mirage-tema";
 
 export type Tema = "claro" | "oscuro";
 
+const escuchas = new Set<() => void>();
+
 export function leerTema(): Tema {
   if (typeof window === "undefined") return "claro";
   const guardado = window.localStorage.getItem(CLAVE_TEMA);
@@ -19,4 +21,13 @@ export function leerTema(): Tema {
 export function aplicarTema(tema: Tema) {
   document.documentElement.classList.toggle("dark", tema === "oscuro");
   window.localStorage.setItem(CLAVE_TEMA, tema);
+  escuchas.forEach((escucha) => escucha());
+}
+
+// Para useSyncExternalStore en <ToggleTema> — no hay otro consumidor
+// hoy, pero es lo que hace que aplicarTema() dispare un re-render sin
+// que el componente tenga que guardar su propio useState duplicado.
+export function suscribirseATema(escucha: () => void) {
+  escuchas.add(escucha);
+  return () => escuchas.delete(escucha);
 }
