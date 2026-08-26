@@ -9,23 +9,30 @@ integradas en `main`. Next.js + TypeScript + Drizzle + Postgres andando —
 ver `package.json` antes de asumir que un comando no existe.
 
 Lo que el plan v1 dejó pendiente y no está hecho: los chequeos de permisos
-de todos los módulos salvo `clientes` — `proyectos.*`, `solicitudes.*`,
-`notificaciones.*` y `contenido.editar` están declarados en su
-`permissions.ts` pero ningún `api.ts` los verifica todavía.
+de casi todos los módulos — `proyectos.*`, `solicitudes.*` y
+`notificaciones.*` están declarados en su `permissions.ts` pero ningún
+`api.ts` los verifica todavía. **`clientes` tampoco los verifica** pese a lo
+que decía antes esta misma línea — se revisó en el PR 4 del rediseño de
+frontend (buscando un ejemplo a imitar para `contenido.editar`) y ningún
+`api.ts`, ni siquiera el de `clientes`, llamaba nunca a
+`kernel/permisos/evaluar.requiere()`. `contenido.editar` es, desde ese PR,
+el primer caso real: `crearServicio`/`actualizarServicio` lo verifican y
+`/app/contenido` oculta sus controles de alta/edición sin él.
 
-**El trabajo vigente es el rediseño de frontend** (`docs/plan/2026-08-21-plan-frontend.md`,
-estado "propuesto", ningún PR arrancado todavía). Hoy toda la UI está
-pintada con shadcn por defecto ("en gris"); el plan reemplaza eso por el
-sistema visual "Espejismo cálido" en 12 PRs, orden tokens → landing →
-interno. El panel de edición de contenido (`/app/contenido`) es parte de
-ese plan (PR 4), no un pendiente aparte. Ver la sección
-[Rediseño de frontend](#rediseño-de-frontend-plan-vigente) más abajo antes
-de tocar cualquier pantalla.
+**El trabajo vigente es el rediseño de frontend** (`docs/plan/2026-08-21-plan-frontend.md`).
+PRs 1 a 4 están hechos (tokens, chasis público, hero y portada, servicios +
+panel de contenido) — el 4 recién se abrió como PR, todavía sin mergear.
+El plan reemplaza el shadcn por defecto ("en gris") por el sistema visual
+"Espejismo cálido" en 12 PRs, orden tokens → landing → interno. Ver la
+sección [Rediseño de frontend](#rediseño-de-frontend-plan-vigente) más abajo
+antes de tocar cualquier pantalla — y `gh pr list` para el estado real de
+cada PR en vez de asumir por esta nota, que se desactualiza rápido.
 
 Las ramas `fase-*` fueron el vehículo del plan v1 (encadenadas entre sí,
 mergeadas a `staging` y de ahí a `main`). Ya están integradas: no buscar
-trabajo pendiente ahí. Los 12 PRs del plan de frontend son el próximo
-vehículo y todavía no tienen rama creada.
+trabajo pendiente ahí. Los PRs del plan de frontend son `fase-frontend-0N-*`,
+cada uno apilado sobre el anterior hasta que se mergea a `staging` (no
+`main` directo — ver "Ramas" más abajo).
 
 Comandos:
 
