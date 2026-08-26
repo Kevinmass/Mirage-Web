@@ -1,0 +1,1 @@
+ALTER TABLE "proyectos_proyecto" ALTER COLUMN "cliente_id" DROP NOT NULL;

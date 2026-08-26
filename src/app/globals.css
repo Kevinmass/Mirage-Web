@@ -178,6 +178,38 @@
   }
 }
 
+/* "border-glow" de React Bits (§6.4/§6.8): un solo uso en toda la
+   plataforma — marcar la card del proyecto en el que el usuario está
+   inscripto. Pulso lento en --primary vía box-shadow (no cambia el
+   layout); se congela en reduced motion, no desaparece, porque sigue
+   siendo información ("este es tuyo"), no solo adorno. */
+@keyframes border-glow-pulsar {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 12px 0 color-mix(in oklch, var(--primary), transparent 55%);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 20px 2px color-mix(in oklch, var(--primary), transparent 35%);
+  }
+}
+
+.border-glow {
+  animation: border-glow-pulsar var(--dur-ambiente) var(--ease-suave) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .border-glow {
+    animation: none;
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 12px 0 color-mix(in oklch, var(--primary), transparent 55%);
+  }
+}
+
 :root {
   /* Arena — la superficie del mundo claro. */
   --arena-50: oklch(0.989 0.006 84.6);

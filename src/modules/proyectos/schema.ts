@@ -1,4 +1,12 @@
-import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  integer,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { persona } from "@/kernel/identidad/schema";
 import { nodo } from "@/kernel/organigrama/schema";
 
@@ -8,7 +16,9 @@ import { nodo } from "@/kernel/organigrama/schema";
 // modules/clientes/api.
 export const proyectosProyecto = pgTable("proyectos_proyecto", {
   id: serial("id").primaryKey(),
-  clienteId: integer("cliente_id").notNull(),
+  // Nullable (diseño §8.10, PR 10): un proyecto interno — R&D, tooling
+  // propio — es normal sin cliente, no un dato faltante.
+  clienteId: integer("cliente_id"),
   nombre: text("nombre").notNull(),
   descripcion: text("descripcion"),
   estado: text("estado", {
@@ -21,10 +31,51 @@ export const proyectosProyecto = pgTable("proyectos_proyecto", {
     .references(() => nodo.id),
   fechaInicio: timestamp("fecha_inicio", { withTimezone: true }),
   fechaFinEstimada: timestamp("fecha_fin_estimada", { withTimezone: true }),
+  // null = sin límite (diseño §1.1, PR 10). El líder lo cambia cuando
+  // quiere — api.ts exige que quien cambia sea el líder inscripto, no
+  // un permiso de kernel/permisos.
+  cupo: integer("cupo"),
+  color: text("color"),
+  imagenUrl: text("imagen_url"),
   creadoEn: timestamp("creado_en", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+// Quién está haciendo el proyecto hoy — distinto de nodoResponsableId,
+// que es qué responsabilidad es dueña del trabajo (diseño §1.1: las dos
+// preguntas hacen falta, no se reemplazan). "Mis proyectos" sale de
+// acá, nunca de los nodos.
+export const proyectosInscripcion = pgTable(
+  "proyectos_inscripcion",
+  {
+    id: serial("id").primaryKey(),
+    proyectoId: integer("proyecto_id")
+      .notNull()
+      .references(() => proyectosProyecto.id),
+    personaId: integer("persona_id")
+      .notNull()
+      .references(() => persona.id),
+    rol: text("rol", { enum: ["lider", "miembro"] })
+      .notNull()
+      .default("miembro"),
+    inscriptoEn: timestamp("inscripto_en", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    // Nadie se anota dos veces al mismo proyecto.
+    uniqueIndex("proyectos_inscripcion_persona_unica").on(
+      t.proyectoId,
+      t.personaId,
+    ),
+    // Un proyecto tiene como máximo un líder — mismo patrón que
+    // asignacion_titular_vigente_unico en el organigrama.
+    uniqueIndex("proyectos_inscripcion_lider_unico")
+      .on(t.proyectoId)
+      .where(sql`${t.rol} = 'lider'`),
+  ],
+);
 
 // Por qué nodo obligatorio y persona opcional (diseño §6.3): el nodo
 // dice qué responsabilidad es dueña del trabajo; la persona, quién lo

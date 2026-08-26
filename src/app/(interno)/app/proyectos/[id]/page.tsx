@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NoEncontrado } from "@/kernel/errores";
 import { listarPersonas } from "@/kernel/identidad/personas";
+import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import { obtenerArbolCompleto, obtenerNodo } from "@/kernel/organigrama/arbol";
 import { obtenerCliente } from "@/modules/clientes/api";
 import {
+  listarInscriptos,
   listarRepositoriosDeProyecto,
   listarTareasDeProyecto,
   obtenerProgresoDeProyecto,
@@ -15,8 +18,18 @@ import {
   cambiarEstadoProyectoAction,
   sincronizarRepositorioAction,
 } from "../actions";
+import {
+  BotonQuitarDelEquipo,
+  FormularioCupo,
+  FormularioEquipo,
+} from "../proyectos-formularios";
 import { FormularioAgregarRepositorio } from "../repositorios-formulario";
 import { FilaTarea, FormularioCrearTarea } from "../tareas-formularios";
+
+const ETIQUETA_ROL: Record<string, string> = {
+  lider: "Líder",
+  miembro: "Miembro",
+};
 
 const ORDEN_ESTADOS: { value: EstadoProyecto; etiqueta: string }[] = [
   { value: "propuesto", etiqueta: "Propuesto" },
@@ -52,20 +65,29 @@ export default async function PaginaProyecto({
     nodos,
     personas,
     repositorios,
+    inscriptos,
+    sesion,
   ] = await Promise.all([
-    obtenerCliente(proyecto.clienteId),
+    proyecto.clienteId !== null ? obtenerCliente(proyecto.clienteId) : null,
     obtenerNodo(proyecto.nodoResponsableId),
     listarTareasDeProyecto(proyecto.id),
     obtenerProgresoDeProyecto(proyecto.id),
     obtenerArbolCompleto(),
     listarPersonas(),
     listarRepositoriosDeProyecto(proyecto.id),
+    listarInscriptos(proyecto.id),
+    obtenerSesionActual(),
   ]);
   const empleados = personas.filter((p) => p.tipo === "empleado" && p.activo);
+  const empleadosSinInscribir = empleados.filter(
+    (p) => !inscriptos.some((i) => i.personaId === p.id),
+  );
   const porcentaje =
     progreso.totales === 0
       ? 0
       : Math.round((progreso.hechas / progreso.totales) * 100);
+  const lider = inscriptos.find((i) => i.rol === "lider");
+  const esLider = sesion !== null && lider?.personaId === sesion.personaId;
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -90,8 +112,17 @@ export default async function PaginaProyecto({
       </div>
 
       <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
-        <p>Cliente: {cliente.nombre}</p>
+        <p>Cliente: {cliente ? cliente.nombre : "Sin cliente (interno)"}</p>
         <p>Nodo responsable: {nodoResponsable.nombre}</p>
+        {(proyecto.fechaInicio ?? proyecto.fechaFinEstimada) && (
+          <p>
+            {proyecto.fechaInicio &&
+              `Inicio: ${new Date(proyecto.fechaInicio).toLocaleDateString("es-AR")}`}
+            {proyecto.fechaInicio && proyecto.fechaFinEstimada && " — "}
+            {proyecto.fechaFinEstimada &&
+              `Fin estimado: ${new Date(proyecto.fechaFinEstimada).toLocaleDateString("es-AR")}`}
+          </p>
+        )}
       </div>
 
       <div className="mt-6">
@@ -104,6 +135,59 @@ export default async function PaginaProyecto({
             className="h-2 rounded-full bg-primary"
             style={{ width: `${porcentaje}%` }}
           />
+        </div>
+      </div>
+
+      <div className="mt-8 border-t pt-6">
+        <h2 className="text-lg font-semibold">Equipo</h2>
+        {inscriptos.length === 0 ? (
+          <p className="py-2 text-sm text-muted-foreground">
+            Todavía nadie está inscripto.
+          </p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1 text-sm">
+            {inscriptos.map((i) => (
+              <li key={i.id} className="flex items-center gap-2">
+                <span>
+                  {i.nombre} {i.apellido}
+                </span>
+                <Badge variant={i.rol === "lider" ? "primary" : "outline"}>
+                  {ETIQUETA_ROL[i.rol]}
+                </Badge>
+                <BotonQuitarDelEquipo
+                  proyectoId={proyecto.id}
+                  personaId={i.personaId}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3">
+          <FormularioEquipo
+            proyectoId={proyecto.id}
+            personas={empleadosSinInscribir}
+          />
+        </div>
+
+        <div className="mt-6">
+          <h3 className="text-sm font-medium">
+            Cupo:{" "}
+            {proyecto.cupo === null
+              ? `${inscriptos.length} inscriptos, sin límite`
+              : `${inscriptos.length}/${proyecto.cupo} inscriptos`}
+          </h3>
+          {esLider ? (
+            <div className="mt-2">
+              <FormularioCupo
+                proyectoId={proyecto.id}
+                cupoActual={proyecto.cupo}
+              />
+            </div>
+          ) : (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Solo el líder del proyecto puede cambiar el cupo.
+            </p>
+          )}
         </div>
       </div>
 

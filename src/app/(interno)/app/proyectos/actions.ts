@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
+import {
+  Conflicto,
+  NoAutorizado,
+  NoEncontrado,
+  Validacion,
+} from "@/kernel/errores";
+import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import * as proyectos from "@/modules/proyectos/api";
 
 export interface EstadoFormulario {
@@ -13,7 +19,8 @@ function manejarError(error: unknown): EstadoFormulario {
   if (
     error instanceof Validacion ||
     error instanceof Conflicto ||
-    error instanceof NoEncontrado
+    error instanceof NoEncontrado ||
+    error instanceof NoAutorizado
   ) {
     return { error: error.message };
   }
@@ -28,11 +35,14 @@ export async function crearProyectoAction(
   const fechaFinEstimada = String(
     formData.get("fechaFinEstimada") ?? "",
   ).trim();
+  const cupo = String(formData.get("cupo") ?? "").trim();
+  const color = String(formData.get("color") ?? "").trim();
+  const clienteId = String(formData.get("clienteId") ?? "").trim();
 
   let creado: Awaited<ReturnType<typeof proyectos.crearProyecto>>;
   try {
     creado = await proyectos.crearProyecto({
-      clienteId: Number(formData.get("clienteId")),
+      clienteId: clienteId ? Number(clienteId) : null,
       nombre: String(formData.get("nombre") ?? "").trim(),
       descripcion:
         String(formData.get("descripcion") ?? "").trim() || undefined,
@@ -41,6 +51,8 @@ export async function crearProyectoAction(
       fechaFinEstimada: fechaFinEstimada
         ? new Date(fechaFinEstimada)
         : undefined,
+      cupo: cupo ? Number(cupo) : null,
+      color: color || undefined,
     });
   } catch (error) {
     return manejarError(error);
@@ -48,6 +60,95 @@ export async function crearProyectoAction(
 
   revalidatePath("/app/proyectos");
   redirect(`/app/proyectos/${creado.id}`);
+}
+
+// Anotarme/desanotarme: la persona que ejecuta la acción sale de la
+// sesión, nunca de un campo del formulario — no tendría sentido
+// anotar a otro por vos.
+export async function inscribirmeAction(
+  proyectoId: number,
+  _previo: EstadoFormulario,
+): Promise<EstadoFormulario> {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return { error: "Sin sesión" };
+
+  try {
+    await proyectos.inscribirPersona(proyectoId, sesion.personaId);
+  } catch (error) {
+    return manejarError(error);
+  }
+
+  revalidatePath("/app/proyectos");
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+  return {};
+}
+
+export async function desinscribirmeAction(proyectoId: number) {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return;
+
+  await proyectos.desinscribirPersona(proyectoId, sesion.personaId);
+  revalidatePath("/app/proyectos");
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+}
+
+export async function cambiarCupoAction(
+  proyectoId: number,
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return { error: "Sin sesión" };
+
+  const valor = String(formData.get("cupo") ?? "").trim();
+  try {
+    await proyectos.cambiarCupo(
+      proyectoId,
+      sesion.personaId,
+      valor ? Number(valor) : null,
+    );
+  } catch (error) {
+    return manejarError(error);
+  }
+
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+  return {};
+}
+
+// A diferencia de inscribirmeAction/desinscribirmeAction, estas dos
+// reciben la persona del formulario — son la gestión del equipo desde
+// la ficha (cualquiera con acceso a /app/proyectos puede armar el
+// equipo hoy, igual que agregar un contacto de cliente; no hay todavía
+// un permiso de kernel/permisos que lo distinga — nota vigente del
+// repo, ver CLAUDE.md).
+export async function agregarAlEquipoAction(
+  proyectoId: number,
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const rol = String(
+    formData.get("rol") ?? "miembro",
+  ) as proyectos.RolInscripcion;
+  try {
+    await proyectos.inscribirPersona(
+      proyectoId,
+      Number(formData.get("personaId")),
+      rol,
+    );
+  } catch (error) {
+    return manejarError(error);
+  }
+
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+  return {};
+}
+
+export async function quitarDelEquipoAction(
+  proyectoId: number,
+  personaId: number,
+) {
+  await proyectos.desinscribirPersona(proyectoId, personaId);
+  revalidatePath(`/app/proyectos/${proyectoId}`);
 }
 
 export async function cambiarEstadoProyectoAction(
