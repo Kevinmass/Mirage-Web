@@ -1,5 +1,14 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { EstadoVacio } from "@/components/ui/estado-vacio";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listarPersonas } from "@/kernel/identidad/personas";
 
 export default async function PaginaPersonas() {
@@ -14,45 +23,55 @@ export default async function PaginaPersonas() {
         />
       </div>
 
-      <table className="mt-6 w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-muted-foreground">
-            <th className="py-2">Nombre</th>
-            <th className="py-2">Email</th>
-            <th className="py-2">Tipo</th>
-            <th className="py-2">Acceso</th>
-            <th className="py-2">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map((p) => (
-            <tr key={p.id} className="border-b">
-              <td className="py-2">
-                <Link
-                  href={`/app/personas/${p.id}`}
-                  className="hover:underline"
-                >
-                  {p.nombre} {p.apellido}
-                </Link>
-              </td>
-              <td className="py-2">{p.email}</td>
-              <td className="py-2">{p.tipo}</td>
-              <td className="py-2">{p.usuarioId ? "Sí" : "No"}</td>
-              <td className="py-2">{p.activo ? "Activa" : "Archivada"}</td>
-            </tr>
-          ))}
-          {filas.length === 0 && (
-            <tr>
-              <td
-                colSpan={5}
-                className="py-6 text-center text-muted-foreground"
-              >
-                Todavía no hay personas cargadas.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="mt-6 overflow-hidden rounded-lg border border-border">
+        {filas.length === 0 ? (
+          <EstadoVacio
+            titulo="Todavía no hay personas cargadas."
+            accion={
+              <Button
+                size="sm"
+                render={<Link href="/app/personas/nueva">Nueva persona</Link>}
+              />
+            }
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+                <TableHead className="hidden sm:table-cell">Acceso</TableHead>
+                <TableHead>Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filas.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="max-w-32 truncate">
+                    <Link
+                      href={`/app/personas/${p.id}`}
+                      className="hover:underline"
+                    >
+                      {p.nombre} {p.apellido}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-32 truncate text-muted-foreground">
+                    {p.email}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {p.tipo}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {p.usuarioId ? "Sí" : "No"}
+                  </TableCell>
+                  <TableCell>{p.activo ? "Activa" : "Archivada"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </main>
   );
 }

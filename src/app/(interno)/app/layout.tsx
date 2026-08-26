@@ -1,6 +1,8 @@
-import Link from "next/link";
+import { BarraSuperiorMovil } from "@/components/sidebar-interna/barra-superior-movil";
+import { SidebarInterna } from "@/components/sidebar-interna/sidebar-interna";
 import { Button } from "@/components/ui/button";
 import { cerrarSesionAction } from "@/lib/cerrar-sesion-action";
+import { leerSidebarColapsada } from "@/lib/sidebar-interna-actions";
 
 // /app tiene sesión: todo lo que haya debajo muestra datos por
 // persona/por momento, nunca contenido cacheable entre visitantes. Sin
@@ -10,57 +12,41 @@ import { cerrarSesionAction } from "@/lib/cerrar-sesion-action";
 // nueva bajo /app sin tener que acordarse de repetirlo.
 export const dynamic = "force-dynamic";
 
-export default function LayoutInterno({
+// Reemplaza el <nav> horizontal de ocho enlaces (§6.2 del sistema
+// visual, PR 7): ya apretaba y no aguantaba el octavo cuando lo agregó
+// el PR 4. colapsada viene de la cookie, leída acá en el servidor, para
+// que el primer HTML ya tenga el ancho correcto — sin esto hay un salto
+// visual en cada recarga mientras el cliente decide.
+export default async function LayoutInterno({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const colapsada = await leerSidebarColapsada();
+  const botonCerrarSesion = (
+    <form action={cerrarSesionAction}>
+      <Button type="submit" variant="secondary" size="sm" className="w-full">
+        Cerrar sesión
+      </Button>
+    </form>
+  );
+
   return (
-    <>
-      <header className="border-b">
-        <div className="flex items-center justify-between gap-6 px-6 py-3">
-          <div className="flex items-center gap-6">
-            <Link href="/app" className="font-semibold">
-              Mirage — interno
-            </Link>
-            <nav className="flex gap-4 text-sm text-muted-foreground">
-              <Link href="/app/personas" className="hover:text-foreground">
-                Personas
-              </Link>
-              <Link href="/app/organigrama" className="hover:text-foreground">
-                Organigrama
-              </Link>
-              <Link href="/app/clientes" className="hover:text-foreground">
-                Clientes
-              </Link>
-              <Link href="/app/proyectos" className="hover:text-foreground">
-                Proyectos
-              </Link>
-              <Link href="/app/contenido" className="hover:text-foreground">
-                Contenido
-              </Link>
-              <Link href="/app/tareas" className="hover:text-foreground">
-                Tareas
-              </Link>
-              <Link href="/app/solicitudes" className="hover:text-foreground">
-                Solicitudes
-              </Link>
-              <Link
-                href="/app/notificaciones"
-                className="hover:text-foreground"
-              >
-                Notificaciones
-              </Link>
-            </nav>
-          </div>
-          <form action={cerrarSesionAction}>
-            <Button type="submit" variant="ghost" size="sm">
-              Cerrar sesión
-            </Button>
-          </form>
+    <div className="flex min-h-screen">
+      <SidebarInterna colapsada={colapsada} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <BarraSuperiorMovil cerrarSesion={botonCerrarSesion} />
+        <div className="hidden justify-end border-b border-border px-6 py-3 sm:flex">
+          {botonCerrarSesion}
         </div>
-      </header>
-      {children}
-    </>
+        {/* min-w-0: un item de flex-col hereda min-width:auto por
+            default, así que sin esto una tabla ancha adentro empuja
+            <main> más allá del viewport en vez de scrollear dentro de
+            su propio overflow-x-auto (encontrado a mano a 390px: el
+            <main> de /app/personas medía 614px con el viewport en 390,
+            porque nunca lo agarraba nada acá). */}
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
+    </div>
   );
 }

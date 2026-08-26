@@ -1,4 +1,13 @@
 import Link from "next/link";
+import { EstadoVacio } from "@/components/ui/estado-vacio";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listarClientes } from "@/modules/clientes/api";
 import {
   listarSolicitudes,
@@ -35,28 +44,38 @@ export default async function PaginaSolicitudes() {
               <h2 className="mb-2 text-sm font-medium text-muted-foreground">
                 {etiqueta} ({delEstado.length})
               </h2>
-              <ul className="flex flex-col gap-1 text-sm">
-                {delEstado.map((s) => (
-                  <li key={s.id}>
-                    <Link
-                      href={`/app/solicitudes/${s.id}`}
-                      className="hover:underline"
-                    >
-                      {s.titulo}
-                    </Link>{" "}
-                    <span className="text-muted-foreground">
-                      — {nombreDeCliente.get(s.clienteId) ?? "cliente"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-hidden rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Solicitud</TableHead>
+                      <TableHead>Cliente</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {delEstado.map((s) => (
+                      <TableRow key={s.id}>
+                        <TableCell>
+                          <Link
+                            href={`/app/solicitudes/${s.id}`}
+                            className="hover:underline"
+                          >
+                            {s.titulo}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {nombreDeCliente.get(s.clienteId) ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </section>
           );
         })}
         {solicitudes.length === 0 && (
-          <p className="text-muted-foreground">
-            Todavía no llegó ninguna solicitud.
-          </p>
+          <EstadoVacio titulo="Todavía no llegó ninguna solicitud." />
         )}
       </div>
     </main>
