@@ -46,6 +46,47 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  /* La rampa cruda, expuesta como utilidades de Tailwind (bg-turquesa-500,
+     text-crema-100, etc.) para los pocos lugares donde el propio sistema
+     visual pide un tono exacto en vez del semántico — la línea de marca
+     del footer, el header transparente sobre el hero, el foco de los
+     inputs. Seguir usando el token semántico para todo lo demás (§2.2):
+     esto no es una puerta para elegir colores sueltos en una pantalla de
+     negocio, es la paleta ya cerrada del §2.1. */
+  --color-arena-50: var(--arena-50);
+  --color-arena-100: var(--arena-100);
+  --color-arena-200: var(--arena-200);
+  --color-arena-300: var(--arena-300);
+  --color-arena-400: var(--arena-400);
+  --color-arena-500: var(--arena-500);
+  --color-tinta-900: var(--tinta-900);
+  --color-tinta-800: var(--tinta-800);
+  --color-tinta-700: var(--tinta-700);
+  --color-tinta-600: var(--tinta-600);
+  --color-tinta-400: var(--tinta-400);
+  --color-turquesa-700: var(--turquesa-700);
+  --color-turquesa-500: var(--turquesa-500);
+  --color-turquesa-400: var(--turquesa-400);
+  --color-turquesa-200: var(--turquesa-200);
+  --color-turquesa-50: var(--turquesa-50);
+  --color-ambar-600: var(--ambar-600);
+  --color-ambar-500: var(--ambar-500);
+  --color-ambar-300: var(--ambar-300);
+  --color-ambar-50: var(--ambar-50);
+  --color-coral-700: var(--coral-700);
+  --color-coral-500: var(--coral-500);
+  --color-coral-300: var(--coral-300);
+  --color-coral-50: var(--coral-50);
+  --color-cielo-500: var(--cielo-500);
+  --color-cielo-200: var(--cielo-200);
+  --color-noche-900: var(--noche-900);
+  --color-noche-800: var(--noche-800);
+  --color-noche-700: var(--noche-700);
+  --color-noche-600: var(--noche-600);
+  --color-noche-500: var(--noche-500);
+  --color-crema-100: var(--crema-100);
+  --color-crema-300: var(--crema-300);
+  --color-crema-500: var(--crema-500);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -98,6 +139,19 @@
   }
 }
 
+/* Entrada escalonada del menú móvil (§6.2) y de los revelados al
+   scrollear (§5.3) — mismo movimiento, dos usos. */
+@keyframes menu-movil-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 :root {
   /* Arena — la superficie del mundo claro. */
   --arena-50: oklch(0.989 0.006 84.6);
@@ -136,6 +190,19 @@
   /* Cielo — apoyo. Solo información neutra y gráficos. */
   --cielo-500: oklch(0.794 0.086 228.8);
   --cielo-200: oklch(0.915 0.034 228.3);
+
+  /* Noche y crema — el mundo oscuro. La noche es cálida, no azul. Son
+     rampa cruda como las demás (§2.1): fijas, no dependen del tema — el
+     header transparente de la landing usa crema-100 sobre el hero en
+     los dos temas, por ejemplo. */
+  --noche-900: oklch(0.18 0.004 48.5);
+  --noche-800: oklch(0.216 0.006 56);
+  --noche-700: oklch(0.259 0.008 59.3);
+  --noche-600: oklch(0.321 0.01 61.1);
+  --noche-500: oklch(0.554 0.018 67.4);
+  --crema-100: oklch(0.954 0.014 78.3);
+  --crema-300: oklch(0.855 0.019 78.2);
+  --crema-500: oklch(0.69 0.018 76.1);
 
   /* Tokens semánticos — nunca se usa la rampa cruda directamente fuera
      de este archivo (§2.2). */
@@ -186,16 +253,6 @@
 }
 
 .dark {
-  /* Noche y crema — el mundo oscuro. La noche es cálida, no azul. */
-  --noche-900: oklch(0.18 0.004 48.5);
-  --noche-800: oklch(0.216 0.006 56);
-  --noche-700: oklch(0.259 0.008 59.3);
-  --noche-600: oklch(0.321 0.01 61.1);
-  --noche-500: oklch(0.554 0.018 67.4);
-  --crema-100: oklch(0.954 0.014 78.3);
-  --crema-300: oklch(0.855 0.019 78.2);
-  --crema-500: oklch(0.69 0.018 76.1);
-
   --background: var(--noche-900);
   --foreground: var(--crema-100);
   --card: var(--noche-800);

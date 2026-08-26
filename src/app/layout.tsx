@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { CapaGrano } from "@/components/capa-grano";
+import { ScriptTema } from "@/components/script-tema";
 import { DOMINIO_CANONICO } from "@/lib/dominio";
 
 const inter = Inter({
@@ -46,8 +47,10 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${inter.variable} ${bricolage.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
+        <ScriptTema />
         <CapaGrano />
         {children}
       </body>

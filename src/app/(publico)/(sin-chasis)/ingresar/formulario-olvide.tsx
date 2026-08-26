@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { EstadoOlvide } from "./actions";
 import { olvidePasswordAction } from "./actions";
 
@@ -34,16 +36,11 @@ export function FormularioOlvide() {
   }
 
   return (
-    <form action={accion} className="flex max-w-sm flex-col gap-2">
-      <label className="flex flex-col gap-1 text-sm">
-        Email
-        <input
-          name="email"
-          type="email"
-          required
-          className="rounded-md border px-3 py-1.5"
-        />
-      </label>
+    <form action={accion} className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="olvide-email">Email</Label>
+        <Input id="olvide-email" name="email" type="email" required />
+      </div>
       <Button type="submit" variant="secondary" size="sm" disabled={enviando}>
         Mandar link
       </Button>
