@@ -21,8 +21,8 @@ export default async function PaginaRestablecerPassword({
       <CardContent>
         {error || !token ? (
           <p role="alert" className="text-sm text-destructive">
-            El link venció o no es válido. Pedí uno nuevo desde &quot;Olvidé
-            mi contraseña&quot; en la pantalla de ingreso.
+            El link venció o no es válido. Pedí uno nuevo desde &quot;Olvidé mi
+            contraseña&quot; en la pantalla de ingreso.
           </p>
         ) : (
           <FormularioRestablecer token={token} />

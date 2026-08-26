@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
 import { Revelado } from "@/components/revelado";
 import { listarCasosPublicados } from "@/modules/contenido/api";
 
@@ -46,7 +51,10 @@ export async function PruebaSocial() {
         ))}
       </div>
       <div className="self-center">
-        <Button render={<Link href="/casos">Ver todos los casos</Link>} variant="secondary" />
+        <Button
+          render={<Link href="/casos">Ver todos los casos</Link>}
+          variant="secondary"
+        />
       </div>
     </div>
   );

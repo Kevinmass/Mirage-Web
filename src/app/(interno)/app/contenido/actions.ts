@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Conflicto, NoAutorizado, NoEncontrado, Validacion } from "@/kernel/errores";
+import {
+  Conflicto,
+  NoAutorizado,
+  NoEncontrado,
+  Validacion,
+} from "@/kernel/errores";
 import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import * as contenido from "@/modules/contenido/api";
 import { slugify } from "@/lib/slugify";

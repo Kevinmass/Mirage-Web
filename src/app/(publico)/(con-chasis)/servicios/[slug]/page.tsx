@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ContenidoMarkdown } from "@/components/contenido-markdown";
 import { Button } from "@/components/ui/button";
-import { listarServiciosActivos, obtenerServicioPorSlug } from "@/modules/contenido/api";
+import {
+  listarServiciosActivos,
+  obtenerServicioPorSlug,
+} from "@/modules/contenido/api";
 
 export const revalidate = 3600;
 
@@ -72,7 +75,9 @@ export default async function PaginaServicio({
       <div className="mt-10">
         <Button
           render={
-            <Link href={`/contacto?asunto=${encodeURIComponent(servicio.nombre)}`}>
+            <Link
+              href={`/contacto?asunto=${encodeURIComponent(servicio.nombre)}`}
+            >
               Consultar por {servicio.nombre}
             </Link>
           }

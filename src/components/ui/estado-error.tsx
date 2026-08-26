@@ -29,7 +29,12 @@ function EstadoError({
       <p className="font-medium text-foreground">{titulo}</p>
       <p className="max-w-sm text-sm text-muted-foreground">{descripcion}</p>
       {onReintentar ? (
-        <Button type="button" variant="secondary" size="sm" onClick={onReintentar}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onReintentar}
+        >
           Reintentar
         </Button>
       ) : null}

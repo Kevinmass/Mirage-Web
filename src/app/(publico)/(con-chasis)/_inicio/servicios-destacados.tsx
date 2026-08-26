@@ -45,7 +45,10 @@ export async function ServiciosDestacados() {
         </div>
       )}
       <div className="self-center">
-        <Button render={<Link href="/servicios">Ver todos los servicios</Link>} variant="secondary" />
+        <Button
+          render={<Link href="/servicios">Ver todos los servicios</Link>}
+          variant="secondary"
+        />
       </div>
     </div>
   );

@@ -74,7 +74,11 @@ export function FormularioContacto({
           className={CLASE_CAMPO}
         />
         {estado.erroresCampo?.nombre && (
-          <p id="contacto-nombre-error" role="alert" className="text-sm text-destructive">
+          <p
+            id="contacto-nombre-error"
+            role="alert"
+            className="text-sm text-destructive"
+          >
             {estado.erroresCampo.nombre}
           </p>
         )}
@@ -96,7 +100,11 @@ export function FormularioContacto({
           className={CLASE_CAMPO}
         />
         {estado.erroresCampo?.email && (
-          <p id="contacto-email-error" role="alert" className="text-sm text-destructive">
+          <p
+            id="contacto-email-error"
+            role="alert"
+            className="text-sm text-destructive"
+          >
             {estado.erroresCampo.email}
           </p>
         )}
@@ -113,12 +121,18 @@ export function FormularioContacto({
           defaultValue={valores?.tipoConsulta ?? asuntoInicial}
           aria-invalid={!!estado.erroresCampo?.tipoConsulta}
           aria-describedby={
-            estado.erroresCampo?.tipoConsulta ? "contacto-tipo-error" : undefined
+            estado.erroresCampo?.tipoConsulta
+              ? "contacto-tipo-error"
+              : undefined
           }
           className={CLASE_CAMPO}
         />
         {estado.erroresCampo?.tipoConsulta && (
-          <p id="contacto-tipo-error" role="alert" className="text-sm text-destructive">
+          <p
+            id="contacto-tipo-error"
+            role="alert"
+            className="text-sm text-destructive"
+          >
             {estado.erroresCampo.tipoConsulta}
           </p>
         )}
@@ -140,7 +154,11 @@ export function FormularioContacto({
           className={cn(CLASE_CAMPO, "h-auto rounded-2xl py-3")}
         />
         {estado.erroresCampo?.mensaje && (
-          <p id="contacto-mensaje-error" role="alert" className="text-sm text-destructive">
+          <p
+            id="contacto-mensaje-error"
+            role="alert"
+            className="text-sm text-destructive"
+          >
             {estado.erroresCampo.mensaje}
           </p>
         )}

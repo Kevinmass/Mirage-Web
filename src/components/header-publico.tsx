@@ -63,7 +63,9 @@ export function HeaderPublico() {
             href="/"
             className={cn(
               "font-heading text-lg font-bold tracking-tight transition-colors duration-(--dur-media)",
-              transparente ? "text-crema-100 drop-shadow-sm" : "text-foreground",
+              transparente
+                ? "text-crema-100 drop-shadow-sm"
+                : "text-foreground",
             )}
           >
             Mirage
@@ -81,7 +83,9 @@ export function HeaderPublico() {
                 href={item.href}
                 className={cn(
                   "transition-opacity hover:opacity-100",
-                  transparente ? "opacity-90" : "opacity-100 hover:text-foreground",
+                  transparente
+                    ? "opacity-90"
+                    : "opacity-100 hover:text-foreground",
                 )}
               >
                 {item.etiqueta}
@@ -91,9 +95,7 @@ export function HeaderPublico() {
 
           <div className="flex items-center gap-1">
             <ToggleTema
-              className={cn(
-                transparente && "text-crema-100 hover:bg-white/10",
-              )}
+              className={cn(transparente && "text-crema-100 hover:bg-white/10")}
             />
             <Link
               href="/ingresar"
@@ -113,7 +115,9 @@ export function HeaderPublico() {
               aria-label="Abrir menú"
               className={cn(
                 "inline-flex size-11 items-center justify-center rounded-full transition-colors md:hidden",
-                transparente ? "text-crema-100 hover:bg-white/10" : "hover:bg-secondary",
+                transparente
+                  ? "text-crema-100 hover:bg-white/10"
+                  : "hover:bg-secondary",
               )}
             >
               <Menu className="size-6" />

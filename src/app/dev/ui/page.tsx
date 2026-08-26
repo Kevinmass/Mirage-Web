@@ -27,7 +27,14 @@ import { AlternarTema } from "./alternar-tema";
 const RAMPAS = [
   {
     nombre: "Arena",
-    tonos: ["arena-50", "arena-100", "arena-200", "arena-300", "arena-400", "arena-500"],
+    tonos: [
+      "arena-50",
+      "arena-100",
+      "arena-200",
+      "arena-300",
+      "arena-400",
+      "arena-500",
+    ],
   },
   {
     nombre: "Tinta",
@@ -35,7 +42,13 @@ const RAMPAS = [
   },
   {
     nombre: "Turquesa",
-    tonos: ["turquesa-700", "turquesa-500", "turquesa-400", "turquesa-200", "turquesa-50"],
+    tonos: [
+      "turquesa-700",
+      "turquesa-500",
+      "turquesa-400",
+      "turquesa-200",
+      "turquesa-50",
+    ],
   },
   {
     nombre: "Ámbar",
@@ -83,7 +96,9 @@ export default function PaginaDevUi() {
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-display font-heading">Sistema visual — /dev/ui</h1>
+          <h1 className="text-display font-heading">
+            Sistema visual — /dev/ui
+          </h1>
           <p className="text-muted-foreground">
             Espejismo cálido. Rampas, tokens y primitivas de{" "}
             <code>docs/specs/2026-08-21-sistema-visual-mirage.md</code>.
@@ -105,12 +120,11 @@ export default function PaginaDevUi() {
         </p>
         <p className="text-h3 font-semibold">Subtítulo</p>
         <p className="text-lead text-foreground">
-          Bajada en Inter, la que se lee en dos frases del hero o de una
-          ficha.
+          Bajada en Inter, la que se lee en dos frases del hero o de una ficha.
         </p>
         <p className="text-body text-foreground">
-          Cuerpo normal — el texto largo nunca pasa de 68ch de ancho de
-          línea en pantallas de negocio.
+          Cuerpo normal — el texto largo nunca pasa de 68ch de ancho de línea en
+          pantallas de negocio.
         </p>
         <p className="font-mono text-sm tabular-nums text-muted-foreground">
           Geist Mono 0/8 — CUIT 30-71234567-4 — 2026-08-26
@@ -225,9 +239,7 @@ export default function PaginaDevUi() {
         <div className="flex max-w-sm flex-col gap-1">
           <Label htmlFor="dev-ui-error">Con error</Label>
           <Input id="dev-ui-error" aria-invalid defaultValue="dato inválido" />
-          <p className="text-sm text-destructive">
-            Este campo es obligatorio.
-          </p>
+          <p className="text-sm text-destructive">Este campo es obligatorio.</p>
         </div>
       </section>
 

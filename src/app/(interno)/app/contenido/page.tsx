@@ -33,8 +33,8 @@ export default async function PaginaContenido() {
       {!puedeEditar && (
         <p className="mt-4 text-sm text-muted-foreground">
           Podés ver el contenido, pero no tenés el permiso{" "}
-          <code className="font-mono text-xs">contenido.editar</code> para
-          crear o modificar nada acá.
+          <code className="font-mono text-xs">contenido.editar</code> para crear
+          o modificar nada acá.
         </p>
       )}
 

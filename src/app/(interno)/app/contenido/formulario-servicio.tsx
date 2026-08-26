@@ -92,9 +92,7 @@ export function FormularioServicio({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label htmlFor="servicio-color">
-            Color (si no hay imagen)
-          </Label>
+          <Label htmlFor="servicio-color">Color (si no hay imagen)</Label>
           <Input
             id="servicio-color"
             name="color"

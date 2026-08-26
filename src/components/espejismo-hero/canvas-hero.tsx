@@ -117,7 +117,11 @@ export function CanvasHero({ activo }: { activo: boolean }) {
     const contenedor = contenedorRef.current;
     if (!contenedor) return;
 
-    const renderer = new Renderer({ alpha: false, antialias: false, dpr: Math.min(window.devicePixelRatio, 1.5) });
+    const renderer = new Renderer({
+      alpha: false,
+      antialias: false,
+      dpr: Math.min(window.devicePixelRatio, 1.5),
+    });
     const gl = renderer.gl;
     contenedor.appendChild(gl.canvas);
     gl.clearColor(1, 1, 1, 1);
@@ -166,7 +170,10 @@ export function CanvasHero({ activo }: { activo: boolean }) {
     // La distorsión se apaga al scrollear (§5.2): 0 = tope de la
     // sección, 1 = ya se scrolleó una pantalla completa.
     function alScrollear() {
-      const progreso = Math.min(Math.max(window.scrollY / window.innerHeight, 0), 1);
+      const progreso = Math.min(
+        Math.max(window.scrollY / window.innerHeight, 0),
+        1,
+      );
       program.uniforms.uDistorsion.value = 1 - progreso;
     }
     alScrollear();
