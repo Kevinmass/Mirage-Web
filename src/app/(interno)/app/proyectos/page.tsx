@@ -1,5 +1,14 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { EstadoVacio } from "@/components/ui/estado-vacio";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listarClientes } from "@/modules/clientes/api";
 import { listarProyectos, type EstadoProyecto } from "@/modules/proyectos/api";
 
@@ -36,28 +45,46 @@ export default async function PaginaProyectos() {
               <h2 className="mb-2 text-sm font-medium text-muted-foreground">
                 {etiqueta} ({delEstado.length})
               </h2>
-              <ul className="flex flex-col gap-1 text-sm">
-                {delEstado.map((p) => (
-                  <li key={p.id}>
-                    <Link
-                      href={`/app/proyectos/${p.id}`}
-                      className="hover:underline"
-                    >
-                      {p.nombre}
-                    </Link>{" "}
-                    <span className="text-muted-foreground">
-                      — {nombreDeCliente.get(p.clienteId) ?? "cliente"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-hidden rounded-lg border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Proyecto</TableHead>
+                      <TableHead>Cliente</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {delEstado.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <Link
+                            href={`/app/proyectos/${p.id}`}
+                            className="hover:underline"
+                          >
+                            {p.nombre}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {nombreDeCliente.get(p.clienteId) ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </section>
           );
         })}
         {proyectos.length === 0 && (
-          <p className="text-muted-foreground">
-            Todavía no hay proyectos cargados.
-          </p>
+          <EstadoVacio
+            titulo="Todavía no hay proyectos cargados."
+            accion={
+              <Button
+                size="sm"
+                render={<Link href="/app/proyectos/nuevo">Nuevo proyecto</Link>}
+              />
+            }
+          />
         )}
       </div>
     </main>

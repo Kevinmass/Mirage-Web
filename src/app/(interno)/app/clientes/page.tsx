@@ -1,5 +1,15 @@
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EstadoVacio } from "@/components/ui/estado-vacio";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { listarClientes } from "@/modules/clientes/api";
 
 export default async function PaginaClientes() {
@@ -14,43 +24,53 @@ export default async function PaginaClientes() {
         />
       </div>
 
-      <table className="mt-6 w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-muted-foreground">
-            <th className="py-2">Nombre</th>
-            <th className="py-2">CUIT</th>
-            <th className="py-2">Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map((c) => (
-            <tr key={c.id} className="border-b">
-              <td className="py-2">
-                <Link
-                  href={`/app/clientes/${c.id}`}
-                  className="hover:underline"
-                >
-                  {c.nombre}
-                </Link>
-              </td>
-              <td className="py-2">{c.cuit}</td>
-              <td className="py-2">
-                {c.estado === "activo" ? "Activo" : "Inactivo"}
-              </td>
-            </tr>
-          ))}
-          {filas.length === 0 && (
-            <tr>
-              <td
-                colSpan={3}
-                className="py-6 text-center text-muted-foreground"
-              >
-                Todavía no hay clientes cargados.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="mt-6 overflow-hidden rounded-lg border border-border">
+        {filas.length === 0 ? (
+          <EstadoVacio
+            titulo="Todavía no hay clientes cargados."
+            accion={
+              <Button
+                size="sm"
+                render={<Link href="/app/clientes/nuevo">Nuevo cliente</Link>}
+              />
+            }
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>CUIT</TableHead>
+                <TableHead>Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filas.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>
+                    <Link
+                      href={`/app/clientes/${c.id}`}
+                      className="hover:underline"
+                    >
+                      {c.nombre}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="font-mono tabular-nums">
+                    {c.cuit}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={c.estado === "activo" ? "primary" : "outline"}
+                    >
+                      {c.estado === "activo" ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </main>
   );
 }
