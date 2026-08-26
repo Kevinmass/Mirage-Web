@@ -12,7 +12,7 @@ declare module "@/kernel/eventos/bus" {
   interface EventosRegistrados {
     "proyecto.creado": {
       proyectoId: number;
-      clienteId: number;
+      clienteId: number | null;
       nombre: string;
       destinatarioPersonaId: number | null;
     };

@@ -1,12 +1,20 @@
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db/client";
+import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { publicar } from "@/kernel/eventos/bus";
-import { NoEncontrado } from "@/kernel/errores";
+import {
+  Conflicto,
+  NoAutorizado,
+  NoEncontrado,
+  Validacion,
+} from "@/kernel/errores";
 import { obtenerPersona } from "@/kernel/identidad/personas";
+import { persona } from "@/kernel/identidad/schema";
 import { obtenerNodo, obtenerTitularDeNodo } from "@/kernel/organigrama/arbol";
 import { obtenerCliente } from "@/modules/clientes/api";
 import { obtenerDatosDeRepositorio } from "./internal/github";
 import {
+  proyectosInscripcion,
   proyectosProyecto,
   proyectosRepositorio,
   proyectosRepositorioSnapshot,
@@ -17,12 +25,17 @@ export type EstadoProyecto =
   "propuesto" | "activo" | "pausado" | "terminado" | "cancelado";
 
 export interface DatosProyecto {
-  clienteId: number;
+  // null = proyecto interno (R&D, tooling propio) — diseño §8.10: es
+  // normal, no un dato faltante.
+  clienteId: number | null;
   nombre: string;
   descripcion?: string;
   nodoResponsableId: number;
   fechaInicio?: Date;
   fechaFinEstimada?: Date;
+  cupo?: number | null;
+  color?: string;
+  imagenUrl?: string;
 }
 
 export async function listarProyectos() {
@@ -44,7 +57,9 @@ export async function obtenerProyecto(id: number) {
 }
 
 export async function crearProyecto(datos: DatosProyecto) {
-  await obtenerCliente(datos.clienteId);
+  if (datos.clienteId !== null) {
+    await obtenerCliente(datos.clienteId);
+  }
   await obtenerNodo(datos.nodoResponsableId);
 
   const [creado] = await db.insert(proyectosProyecto).values(datos).returning();
@@ -70,6 +85,8 @@ export async function actualizarProyecto(
       | "nodoResponsableId"
       | "fechaInicio"
       | "fechaFinEstimada"
+      | "color"
+      | "imagenUrl"
     >
   >,
 ) {
@@ -217,6 +234,207 @@ export async function obtenerProgresoDeProyecto(proyectoId: number) {
   const tareas = await listarTareasDeProyecto(proyectoId);
   const hechas = tareas.filter((t) => t.estado === "hecha").length;
   return { hechas, totales: tareas.length };
+}
+
+async function contarInscriptos(proyectoId: number): Promise<number> {
+  const filas = await db
+    .select({ id: proyectosInscripcion.id })
+    .from(proyectosInscripcion)
+    .where(eq(proyectosInscripcion.proyectoId, proyectoId));
+  return filas.length;
+}
+
+async function obtenerLiderDeProyecto(proyectoId: number) {
+  const [fila] = await db
+    .select()
+    .from(proyectosInscripcion)
+    .where(
+      and(
+        eq(proyectosInscripcion.proyectoId, proyectoId),
+        eq(proyectosInscripcion.rol, "lider"),
+      ),
+    );
+  return fila ?? null;
+}
+
+export type RolInscripcion = "lider" | "miembro";
+
+// Anotarse (diseño §1.1/§8.10, PR 10). El cupo se valida acá, no en la
+// UI — la card solo deshabilita el botón para no ofrecer una acción que
+// va a fallar, pero la invariante real vive en la única puerta de
+// entrada al dato.
+export async function inscribirPersona(
+  proyectoId: number,
+  personaId: number,
+  rol: RolInscripcion = "miembro",
+) {
+  const proyecto = await obtenerProyecto(proyectoId);
+  await obtenerPersona(personaId);
+
+  if (proyecto.cupo !== null) {
+    const cantidad = await contarInscriptos(proyectoId);
+    if (cantidad >= proyecto.cupo) {
+      throw new Conflicto(
+        `El proyecto ${proyectoId} ya alcanzó su cupo de ${proyecto.cupo}`,
+      );
+    }
+  }
+  if (rol === "lider" && (await obtenerLiderDeProyecto(proyectoId))) {
+    throw new Conflicto(`El proyecto ${proyectoId} ya tiene un líder`);
+  }
+
+  try {
+    const [creada] = await db
+      .insert(proyectosInscripcion)
+      .values({ proyectoId, personaId, rol })
+      .returning();
+    return creada!;
+  } catch (error) {
+    if (esViolacionDeUnicidad(error)) {
+      throw new Conflicto(`Ya está inscripto en el proyecto ${proyectoId}`);
+    }
+    throw error;
+  }
+}
+
+export async function desinscribirPersona(
+  proyectoId: number,
+  personaId: number,
+) {
+  await db
+    .delete(proyectosInscripcion)
+    .where(
+      and(
+        eq(proyectosInscripcion.proyectoId, proyectoId),
+        eq(proyectosInscripcion.personaId, personaId),
+      ),
+    );
+}
+
+// Solo el líder cambia el cupo (diseño §1.1) — no es una capacidad de
+// kernel/permisos, es una pregunta sobre ESTE proyecto puntual: ¿la
+// persona que pide el cambio es su líder inscripto?
+export async function cambiarCupo(
+  proyectoId: number,
+  personaIdQueCambia: number,
+  nuevoCupo: number | null,
+) {
+  await obtenerProyecto(proyectoId);
+  const lider = await obtenerLiderDeProyecto(proyectoId);
+  if (!lider || lider.personaId !== personaIdQueCambia) {
+    throw new NoAutorizado(
+      `Solo el líder del proyecto ${proyectoId} puede cambiar el cupo`,
+    );
+  }
+
+  if (nuevoCupo !== null) {
+    const cantidad = await contarInscriptos(proyectoId);
+    if (nuevoCupo < cantidad) {
+      throw new Validacion(
+        `El cupo no puede ser menor a los ${cantidad} ya inscriptos`,
+      );
+    }
+  }
+
+  const [actualizado] = await db
+    .update(proyectosProyecto)
+    .set({ cupo: nuevoCupo })
+    .where(eq(proyectosProyecto.id, proyectoId))
+    .returning();
+  return actualizado!;
+}
+
+export interface InscriptoDeProyecto {
+  id: number;
+  personaId: number;
+  nombre: string;
+  apellido: string;
+  rol: RolInscripcion;
+  inscriptoEn: Date;
+}
+
+export async function listarInscriptos(
+  proyectoId: number,
+): Promise<InscriptoDeProyecto[]> {
+  return db
+    .select({
+      id: proyectosInscripcion.id,
+      personaId: persona.id,
+      nombre: persona.nombre,
+      apellido: persona.apellido,
+      rol: proyectosInscripcion.rol,
+      inscriptoEn: proyectosInscripcion.inscriptoEn,
+    })
+    .from(proyectosInscripcion)
+    .innerJoin(persona, eq(persona.id, proyectosInscripcion.personaId))
+    .where(eq(proyectosInscripcion.proyectoId, proyectoId));
+}
+
+// "Mis proyectos" sale de la inscripción, nunca de los nodos del
+// organigrama (diseño §1.1 y criterio de aceptación del PR 10).
+export async function listarProyectosDePersona(
+  personaId: number,
+): Promise<number[]> {
+  const filas = await db
+    .select({ proyectoId: proyectosInscripcion.proyectoId })
+    .from(proyectosInscripcion)
+    .where(eq(proyectosInscripcion.personaId, personaId));
+  return filas.map((f) => f.proyectoId);
+}
+
+export interface ProyectoConDetalle {
+  id: number;
+  nombre: string;
+  descripcion: string | null;
+  estado: EstadoProyecto;
+  clienteId: number | null;
+  cupo: number | null;
+  color: string | null;
+  imagenUrl: string | null;
+  hechas: number;
+  totales: number;
+  inscriptos: {
+    personaId: number;
+    nombre: string;
+    apellido: string;
+    rol: RolInscripcion;
+  }[];
+}
+
+// La grilla de /app/proyectos (diseño §8.10) necesita todo junto: la
+// tarjeta muestra progreso, cupo y avatares apilados a la vez. N+1
+// deliberado — mismo patrón que listarProyectosDeCliente en el módulo
+// clientes — no vale la pena optimizar antes de que la cantidad real de
+// proyectos lo justifique.
+export async function listarProyectosConDetalle(): Promise<
+  ProyectoConDetalle[]
+> {
+  const proyectos = await listarProyectos();
+  return Promise.all(
+    proyectos.map(async (p) => {
+      const [progreso, inscriptos] = await Promise.all([
+        obtenerProgresoDeProyecto(p.id),
+        listarInscriptos(p.id),
+      ]);
+      return {
+        id: p.id,
+        nombre: p.nombre,
+        descripcion: p.descripcion,
+        estado: p.estado,
+        clienteId: p.clienteId,
+        cupo: p.cupo,
+        color: p.color,
+        imagenUrl: p.imagenUrl,
+        ...progreso,
+        inscriptos: inscriptos.map((i) => ({
+          personaId: i.personaId,
+          nombre: i.nombre,
+          apellido: i.apellido,
+          rol: i.rol,
+        })),
+      };
+    }),
+  );
 }
 
 export interface ProyectoDeCliente {

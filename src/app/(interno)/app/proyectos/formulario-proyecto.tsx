@@ -45,16 +45,13 @@ export function FormularioProyecto({
         />
       </label>
       <label className="flex flex-col gap-1 text-sm">
-        Cliente
+        Cliente (opcional — un proyecto interno puede no tener uno)
         <select
           name="clienteId"
-          required
           defaultValue=""
           className="rounded-md border px-3 py-1.5"
         >
-          <option value="" disabled>
-            Elegir cliente…
-          </option>
+          <option value="">Sin cliente (proyecto interno)</option>
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nombre}
@@ -94,6 +91,24 @@ export function FormularioProyecto({
           type="date"
           name="fechaFinEstimada"
           className="rounded-md border px-3 py-1.5"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        Cupo de inscriptos (vacío = sin límite)
+        <input
+          type="number"
+          name="cupo"
+          min={1}
+          className="rounded-md border px-3 py-1.5"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        Color de la card
+        <input
+          type="color"
+          name="color"
+          defaultValue="#0d9488"
+          className="h-9 w-16 rounded-md border p-1"
         />
       </label>
 

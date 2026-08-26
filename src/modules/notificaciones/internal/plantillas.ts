@@ -26,7 +26,7 @@ function clienteCreado(datos: unknown): PlantillaRenderizada {
 
 interface DatosProyectoCreado {
   proyectoId: number;
-  clienteId: number;
+  clienteId: number | null;
   nombre: string;
 }
 

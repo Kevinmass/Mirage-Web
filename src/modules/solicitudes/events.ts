@@ -59,6 +59,10 @@ declare module "@/kernel/eventos/bus" {
 // borde que no cubre.
 export function suscribirseAEventos(): void {
   suscribir("proyecto.creado", async (payload) => {
+    // Un proyecto interno (PR 10, clienteId null) no puede ser el
+    // destino de ninguna solicitud aceptada — una solicitud siempre
+    // tiene un cliente real. Nada que vincular.
+    if (payload.clienteId === null) return;
     await vincularProyectoPendiente(payload.clienteId, payload.proyectoId);
   });
 }

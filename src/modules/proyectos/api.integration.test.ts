@@ -3,7 +3,12 @@ import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { NoEncontrado } from "@/kernel/errores";
+import {
+  Conflicto,
+  NoAutorizado,
+  NoEncontrado,
+  Validacion,
+} from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
 import { asignacion, nodo } from "@/kernel/organigrama/schema";
 
@@ -34,8 +39,8 @@ describe("modules/proyectos api", () => {
     await db.execute(sql`
       truncate table
         proyectos_repositorio_snapshot, proyectos_repositorio,
-        proyectos_tarea, proyectos_proyecto, clientes_cliente,
-        asignacion, nodo, persona
+        proyectos_inscripcion, proyectos_tarea, proyectos_proyecto,
+        clientes_cliente, asignacion, nodo, persona
       restart identity cascade
     `);
   });
@@ -551,5 +556,160 @@ describe("modules/proyectos api", () => {
     expect(Object.keys(paraElPortal).sort()).toEqual(
       ["id", "nombre", "estado", "hechas", "totales"].sort(),
     );
+  });
+
+  async function crearPersona(email: string) {
+    const [p] = await db
+      .insert(persona)
+      .values({
+        nombre: "Persona",
+        apellido: "De Prueba",
+        email,
+        tipo: "empleado",
+      })
+      .returning();
+    return p!;
+  }
+
+  it("inscribirPersona anota a la persona en el proyecto", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const p = await crearPersona("miembro1@mirage.test");
+
+    await api.inscribirPersona(proyecto.id, p.id);
+
+    expect(await api.listarProyectosDePersona(p.id)).toEqual([proyecto.id]);
+  });
+
+  it("inscribirPersona rechaza si el proyecto ya está en su cupo", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+      cupo: 1,
+    });
+    const uno = await crearPersona("uno@mirage.test");
+    const dos = await crearPersona("dos@mirage.test");
+
+    await api.inscribirPersona(proyecto.id, uno.id);
+
+    await expect(api.inscribirPersona(proyecto.id, dos.id)).rejects.toThrow(
+      Conflicto,
+    );
+  });
+
+  it("inscribirPersona rechaza anotar dos veces a la misma persona", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const p = await crearPersona("miembro2@mirage.test");
+
+    await api.inscribirPersona(proyecto.id, p.id);
+
+    await expect(api.inscribirPersona(proyecto.id, p.id)).rejects.toThrow(
+      Conflicto,
+    );
+  });
+
+  it("inscribirPersona rechaza un segundo líder para el mismo proyecto", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const uno = await crearPersona("lider1@mirage.test");
+    const dos = await crearPersona("lider2@mirage.test");
+
+    await api.inscribirPersona(proyecto.id, uno.id, "lider");
+
+    await expect(
+      api.inscribirPersona(proyecto.id, dos.id, "lider"),
+    ).rejects.toThrow(Conflicto);
+  });
+
+  it("desinscribirPersona la saca de sus proyectos", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const p = await crearPersona("miembro3@mirage.test");
+    await api.inscribirPersona(proyecto.id, p.id);
+
+    await api.desinscribirPersona(proyecto.id, p.id);
+
+    expect(await api.listarProyectosDePersona(p.id)).toEqual([]);
+  });
+
+  it("cambiarCupo rechaza si quien pide el cambio no es el líder", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const lider = await crearPersona("lider3@mirage.test");
+    const otro = await crearPersona("otro@mirage.test");
+    await api.inscribirPersona(proyecto.id, lider.id, "lider");
+
+    await expect(api.cambiarCupo(proyecto.id, otro.id, 5)).rejects.toThrow(
+      NoAutorizado,
+    );
+  });
+
+  it("cambiarCupo rechaza bajar el cupo por debajo de los ya inscriptos", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const lider = await crearPersona("lider4@mirage.test");
+    const miembro = await crearPersona("miembro4@mirage.test");
+    await api.inscribirPersona(proyecto.id, lider.id, "lider");
+    await api.inscribirPersona(proyecto.id, miembro.id);
+
+    await expect(api.cambiarCupo(proyecto.id, lider.id, 1)).rejects.toThrow(
+      Validacion,
+    );
+  });
+
+  it("cambiarCupo permite al líder subir o quitar el cupo", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+      cupo: 2,
+    });
+    const lider = await crearPersona("lider5@mirage.test");
+    await api.inscribirPersona(proyecto.id, lider.id, "lider");
+
+    const actualizado = await api.cambiarCupo(proyecto.id, lider.id, null);
+    expect(actualizado.cupo).toBeNull();
+  });
+
+  it("listarInscriptos trae nombre, apellido y rol de cada inscripto", async () => {
+    const { nodo: n, cliente } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const lider = await crearPersona("lider6@mirage.test");
+    await api.inscribirPersona(proyecto.id, lider.id, "lider");
+
+    const inscriptos = await api.listarInscriptos(proyecto.id);
+    expect(inscriptos).toMatchObject([{ personaId: lider.id, rol: "lider" }]);
   });
 });
