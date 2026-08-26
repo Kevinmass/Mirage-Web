@@ -44,4 +44,11 @@ export const contenidoCaso = pgTable("contenido_caso", {
   clienteId: integer("cliente_id"),
   resumen: text("resumen").notNull(),
   publicado: boolean("publicado").notNull().default(false),
+  // Los cuatro nullable (PR 5 del rediseño de frontend, §1.3): un caso
+  // publicado sin testimonio sigue siendo válido (es lo que hay hoy),
+  // el testimonio se completa cuando el cliente lo autoriza.
+  testimonio: text("testimonio"),
+  autor: text("autor"),
+  cargoAutor: text("cargo_autor"),
+  imagenUrl: text("imagen_url"),
 });

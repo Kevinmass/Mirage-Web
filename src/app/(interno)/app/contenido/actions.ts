@@ -91,3 +91,73 @@ export async function actualizarServicioAction(
   revalidatePath(`/servicios/${(await contenido.obtenerServicio(id)).slug}`);
   redirect("/app/contenido");
 }
+
+function leerDatosCaso(formData: FormData): contenido.DatosCaso {
+  const clienteId = String(formData.get("clienteId") ?? "");
+  const testimonio = String(formData.get("testimonio") ?? "").trim();
+  const autor = String(formData.get("autor") ?? "").trim();
+  const cargoAutor = String(formData.get("cargoAutor") ?? "").trim();
+  const imagenUrl = String(formData.get("imagenUrl") ?? "").trim();
+
+  return {
+    titulo: String(formData.get("titulo") ?? "").trim(),
+    resumen: String(formData.get("resumen") ?? "").trim(),
+    clienteId: clienteId ? Number(clienteId) : undefined,
+    testimonio: testimonio || undefined,
+    autor: autor || undefined,
+    cargoAutor: cargoAutor || undefined,
+    imagenUrl: imagenUrl || undefined,
+    publicado: formData.get("publicado") === "on",
+  };
+}
+
+export async function crearCasoAction(
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const personaId = await personaActualOTira();
+
+  try {
+    await contenido.crearCaso(personaId, leerDatosCaso(formData));
+  } catch (error) {
+    if (
+      error instanceof Validacion ||
+      error instanceof Conflicto ||
+      error instanceof NoEncontrado ||
+      error instanceof NoAutorizado
+    ) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
+  revalidatePath("/app/contenido");
+  revalidatePath("/casos");
+  redirect("/app/contenido");
+}
+
+export async function actualizarCasoAction(
+  id: number,
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const personaId = await personaActualOTira();
+
+  try {
+    await contenido.actualizarCaso(personaId, id, leerDatosCaso(formData));
+  } catch (error) {
+    if (
+      error instanceof Validacion ||
+      error instanceof Conflicto ||
+      error instanceof NoEncontrado ||
+      error instanceof NoAutorizado
+    ) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+
+  revalidatePath("/app/contenido");
+  revalidatePath("/casos");
+  redirect("/app/contenido");
+}

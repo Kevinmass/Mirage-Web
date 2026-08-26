@@ -5,9 +5,9 @@ import { Revelado } from "@/components/revelado";
 import { listarCasosPublicados } from "@/modules/contenido/api";
 
 // §8.1.6 — con dos clientes activos esto es chico a propósito: mejor
-// chico y verdadero que grande e inflado. Los testimonios con cita y
-// autor (`contenido_caso.testimonio`) son la migración del PR 5; acá se
-// muestran los casos ya publicados tal como existen hoy.
+// chico y verdadero que grande e inflado. Usa el testimonio con cita y
+// autor cuando ya está cargado (contenido_caso.testimonio, PR 5); si
+// todavía no lo autorizaron, cae al resumen del caso.
 export async function PruebaSocial() {
   const casos = (await listarCasosPublicados()).slice(0, 2);
 
@@ -20,10 +20,26 @@ export async function PruebaSocial() {
           <Revelado key={caso.id} indice={indice}>
             <Card className="h-full shadow-md">
               <CardContent className="flex flex-col gap-2">
-                <CardTitle className="font-heading text-h3">
-                  {caso.titulo}
-                </CardTitle>
-                <CardDescription>{caso.resumen}</CardDescription>
+                {caso.testimonio ? (
+                  <>
+                    <blockquote className="font-heading text-h3 leading-snug font-medium">
+                      “{caso.testimonio}”
+                    </blockquote>
+                    {caso.autor && (
+                      <CardDescription>
+                        {caso.autor}
+                        {caso.cargoAutor ? `, ${caso.cargoAutor}` : null}
+                      </CardDescription>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <CardTitle className="font-heading text-h3">
+                      {caso.titulo}
+                    </CardTitle>
+                    <CardDescription>{caso.resumen}</CardDescription>
+                  </>
+                )}
               </CardContent>
             </Card>
           </Revelado>

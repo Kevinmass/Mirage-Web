@@ -148,3 +148,66 @@ export async function listarCasosPublicados() {
     .from(contenidoCaso)
     .where(eq(contenidoCaso.publicado, true));
 }
+
+// Para el ABM de /app/contenido: todos, publicados o no.
+export async function listarCasos() {
+  return db.select().from(contenidoCaso);
+}
+
+export async function obtenerCaso(id: number) {
+  const [fila] = await db
+    .select()
+    .from(contenidoCaso)
+    .where(eq(contenidoCaso.id, id));
+  if (!fila) {
+    throw new NoEncontrado(`No existe el caso ${id}`);
+  }
+  return fila;
+}
+
+export interface DatosCaso {
+  titulo: string;
+  resumen: string;
+  clienteId?: number;
+  testimonio?: string;
+  autor?: string;
+  cargoAutor?: string;
+  imagenUrl?: string;
+  publicado: boolean;
+}
+
+export async function crearCaso(personaId: number, datos: DatosCaso) {
+  await requiere(personaId, "contenido.editar");
+
+  const [creado] = await db.insert(contenidoCaso).values(datos).returning();
+  await registrarEvento({
+    personaId,
+    accion: "contenido.caso.creado",
+    entidad: "contenido_caso",
+    entidadId: creado!.id,
+  });
+  return creado!;
+}
+
+export async function actualizarCaso(
+  personaId: number,
+  id: number,
+  datos: Partial<DatosCaso>,
+) {
+  await requiere(personaId, "contenido.editar");
+  await obtenerCaso(id);
+
+  const [actualizado] = await db
+    .update(contenidoCaso)
+    .set(datos)
+    .where(eq(contenidoCaso.id, id))
+    .returning();
+  await registrarEvento({
+    personaId,
+    accion: "contenido.caso.actualizado",
+    entidad: "contenido_caso",
+    entidadId: id,
+    datos,
+  });
+  return actualizado!;
+}
