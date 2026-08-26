@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Conflicto, NoEncontrado } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
 import { asignacion, nodo } from "@/kernel/organigrama/schema";
+import { eventoAuditoria } from "@/kernel/auditoria/schema";
 import { clientesContacto, clientesInteraccion } from "./schema";
 
 // Contra Postgres real en un contenedor efímero, no mocks (diseño §10).
@@ -28,8 +29,8 @@ describe("modules/clientes api", () => {
   beforeEach(async () => {
     await db.execute(sql`
       truncate table
-        clientes_interaccion, clientes_contacto, clientes_cliente,
-        asignacion, nodo, persona
+        evento_auditoria, clientes_interaccion, clientes_contacto,
+        clientes_cliente, asignacion, nodo, persona
       restart identity cascade
     `);
   });
@@ -352,6 +353,53 @@ describe("modules/clientes api", () => {
     const interacciones = await api.listarInteraccionesDeCliente(creado.id);
     expect(interacciones).toMatchObject([
       { tipo: "llamada", resumen: "Charla de seguimiento" },
+    ]);
+  });
+
+  it("registrarInteraccion admite el tipo whatsapp", async () => {
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const creado = await api.crearCliente({
+      nombre: "Acme",
+      cuit: "30-11111111-1",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+
+    await api.registrarInteraccion(creado.id, {
+      personaId: p.id,
+      tipo: "whatsapp",
+      resumen: "Consulta rápida por WhatsApp",
+    });
+
+    const interacciones = await api.listarInteraccionesDeCliente(creado.id);
+    expect(interacciones).toMatchObject([{ tipo: "whatsapp" }]);
+  });
+
+  it("registrarInteraccion deja rastro en la auditoría", async () => {
+    const { nodo: n, persona: p } = await armarNodoYPersona();
+    const creado = await api.crearCliente({
+      nombre: "Acme",
+      cuit: "30-11111111-1",
+      nodoResponsableId: n.id,
+      contactoDirectoId: p.id,
+    });
+
+    const interaccion = await api.registrarInteraccion(creado.id, {
+      personaId: p.id,
+      tipo: "llamada",
+      resumen: "Charla de seguimiento",
+    });
+
+    const eventos = await db
+      .select()
+      .from(eventoAuditoria)
+      .where(eq(eventoAuditoria.entidadId, interaccion.id));
+    expect(eventos).toMatchObject([
+      {
+        personaId: p.id,
+        accion: "clientes.interaccion.registrada",
+        entidad: "clientes_interaccion",
+      },
     ]);
   });
 });

@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db/client";
+import { registrarEvento } from "@/kernel/auditoria/registro";
 import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { publicar } from "@/kernel/eventos/bus";
 import { Conflicto, NoEncontrado } from "@/kernel/errores";
@@ -206,7 +207,7 @@ export async function crearContacto(clienteId: number, datos: DatosContacto) {
 
 export interface DatosInteraccion {
   personaId: number;
-  tipo: "llamada" | "mail" | "reunion" | "otro";
+  tipo: "llamada" | "mail" | "reunion" | "whatsapp" | "otro";
   resumen: string;
 }
 
@@ -221,6 +222,13 @@ export async function registrarInteraccion(
     .insert(clientesInteraccion)
     .values({ clienteId, ...datos })
     .returning();
+  await registrarEvento({
+    personaId: datos.personaId,
+    accion: "clientes.interaccion.registrada",
+    entidad: "clientes_interaccion",
+    entidadId: creada!.id,
+    datos: { clienteId, tipo: datos.tipo },
+  });
   return creada!;
 }
 
@@ -229,7 +237,7 @@ export interface InteraccionDeCliente {
   personaId: number;
   nombre: string;
   apellido: string;
-  tipo: "llamada" | "mail" | "reunion" | "otro";
+  tipo: "llamada" | "mail" | "reunion" | "whatsapp" | "otro";
   fecha: Date;
   resumen: string;
 }
