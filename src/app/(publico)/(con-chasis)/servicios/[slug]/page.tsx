@@ -36,7 +36,7 @@ export default async function PaginaServicio({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const servicio = await obtenerServicioPorSlug(slug);
+  const servicio = await obtenerServicioPorSlug(slug).catch(() => undefined);
   if (!servicio) {
     notFound();
   }

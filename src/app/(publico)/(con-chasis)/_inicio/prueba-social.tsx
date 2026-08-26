@@ -13,8 +13,10 @@ import { listarCasosPublicados } from "@/modules/contenido/api";
 // chico y verdadero que grande e inflado. Usa el testimonio con cita y
 // autor cuando ya está cargado (contenido_caso.testimonio, PR 5); si
 // todavía no lo autorizaron, cae al resumen del caso.
+// .catch(() => []) tolera que la base no esté disponible en build —
+// mismo motivo que en <ServiciosDestacados>.
 export async function PruebaSocial() {
-  const casos = (await listarCasosPublicados()).slice(0, 2);
+  const casos = (await listarCasosPublicados().catch(() => [])).slice(0, 2);
 
   if (casos.length === 0) return null;
 
