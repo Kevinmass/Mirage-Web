@@ -92,6 +92,20 @@
       "when": 1787264919017,
       "tag": "0012_fuzzy_albert_cleary",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1787763013264,
+      "tag": "0013_agregar_columnas_contenido_servicio",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1787763025972,
+      "tag": "0014_backfill_slug_contenido_servicio",
+      "breakpoints": true
     }
   ]
 }

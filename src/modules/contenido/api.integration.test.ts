@@ -2,6 +2,13 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Conflicto, NoAutorizado } from "@/kernel/errores";
+import {
+  capacidad,
+  personaRol,
+  rol,
+  rolCapacidad,
+} from "@/kernel/permisos/schema";
 import { contenidoCaso, contenidoPagina, contenidoServicio } from "./schema";
 
 // Contra Postgres real en un contenedor efímero, no mocks (diseño §10).
@@ -16,6 +23,9 @@ describe("modules/contenido api", () => {
   let api: typeof import("./api");
   let db: (typeof import("@/db/client"))["db"];
   let client: (typeof import("@/db/client"))["client"];
+
+  const PERSONA_CON_PERMISO = 1;
+  const PERSONA_SIN_PERMISO = 2;
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer("postgres:17-alpine").start();
@@ -41,9 +51,27 @@ describe("modules/contenido api", () => {
       },
     ]);
     await db.insert(contenidoServicio).values([
-      { nombre: "Activo, primero", descripcion: "d", orden: 1, activo: true },
-      { nombre: "Activo, segundo", descripcion: "d", orden: 2, activo: true },
-      { nombre: "Inactivo", descripcion: "d", orden: 0, activo: false },
+      {
+        nombre: "Activo, primero",
+        descripcion: "d",
+        slug: "activo-primero",
+        orden: 1,
+        activo: true,
+      },
+      {
+        nombre: "Activo, segundo",
+        descripcion: "d",
+        slug: "activo-segundo",
+        orden: 2,
+        activo: true,
+      },
+      {
+        nombre: "Inactivo",
+        descripcion: "d",
+        slug: "inactivo",
+        orden: 0,
+        activo: false,
+      },
     ]);
     await db.insert(contenidoCaso).values([
       { titulo: "Publicado", resumen: "r", publicado: true, clienteId: null },
@@ -54,6 +82,22 @@ describe("modules/contenido api", () => {
         clienteId: null,
       },
     ]);
+
+    await db.insert(capacidad).values({
+      clave: "contenido.editar",
+      modulo: "contenido",
+      descripcion: "d",
+    });
+    const [rolCreado] = await db
+      .insert(rol)
+      .values({ nombre: "editor de contenido" })
+      .returning();
+    await db
+      .insert(rolCapacidad)
+      .values({ rolId: rolCreado!.id, capacidadClave: "contenido.editar" });
+    await db
+      .insert(personaRol)
+      .values({ personaId: PERSONA_CON_PERMISO, rolId: rolCreado!.id });
   });
 
   afterAll(async () => {
@@ -84,9 +128,88 @@ describe("modules/contenido api", () => {
     ]);
   });
 
+  it("obtenerServicioPorSlug no devuelve un servicio inactivo", async () => {
+    const servicio = await api.obtenerServicioPorSlug("inactivo");
+    expect(servicio).toBeUndefined();
+  });
+
   it("listarCasosPublicados filtra los no publicados", async () => {
     const casos = await api.listarCasosPublicados();
     expect(casos).toHaveLength(1);
     expect(casos[0]?.titulo).toBe("Publicado");
+  });
+
+  it("crearServicio tira NoAutorizado sin la capacidad contenido.editar", async () => {
+    await expect(
+      api.crearServicio(PERSONA_SIN_PERMISO, {
+        nombre: "Nuevo",
+        descripcion: "d",
+        slug: "nuevo-1",
+        orden: 0,
+        activo: true,
+      }),
+    ).rejects.toThrow(NoAutorizado);
+  });
+
+  it("crearServicio crea el servicio con la capacidad y aparece en listarServiciosActivos", async () => {
+    const creado = await api.crearServicio(PERSONA_CON_PERMISO, {
+      nombre: "Consultoría técnica",
+      descripcion: "d",
+      slug: "consultoria-tecnica",
+      orden: 3,
+      activo: true,
+    });
+    expect(creado.slug).toBe("consultoria-tecnica");
+
+    const servicio = await api.obtenerServicioPorSlug("consultoria-tecnica");
+    expect(servicio?.nombre).toBe("Consultoría técnica");
+  });
+
+  it("crearServicio con un slug repetido tira Conflicto", async () => {
+    await expect(
+      api.crearServicio(PERSONA_CON_PERMISO, {
+        nombre: "Otro nombre",
+        descripcion: "d",
+        slug: "consultoria-tecnica",
+        orden: 4,
+        activo: true,
+      }),
+    ).rejects.toThrow(Conflicto);
+  });
+
+  it("actualizarServicio con activo:false lo saca de listarServiciosActivos pero no lo borra", async () => {
+    const creado = await api.crearServicio(PERSONA_CON_PERMISO, {
+      nombre: "A despublicar",
+      descripcion: "d",
+      slug: "a-despublicar",
+      orden: 5,
+      activo: true,
+    });
+
+    await api.actualizarServicio(PERSONA_CON_PERMISO, creado.id, {
+      activo: false,
+    });
+
+    const activos = await api.listarServiciosActivos();
+    expect(activos.map((s) => s.slug)).not.toContain("a-despublicar");
+
+    const todos = await api.listarServicios();
+    expect(todos.map((s) => s.slug)).toContain("a-despublicar");
+  });
+
+  it("actualizarServicio tira NoAutorizado sin la capacidad", async () => {
+    const creado = await api.crearServicio(PERSONA_CON_PERMISO, {
+      nombre: "Protegido",
+      descripcion: "d",
+      slug: "protegido",
+      orden: 6,
+      activo: true,
+    });
+
+    await expect(
+      api.actualizarServicio(PERSONA_SIN_PERMISO, creado.id, {
+        nombre: "Hackeado",
+      }),
+    ).rejects.toThrow(NoAutorizado);
   });
 });

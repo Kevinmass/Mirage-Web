@@ -1,37 +1,59 @@
 import type { Metadata } from "next";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Link from "next/link";
+import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { listarServiciosActivos } from "@/modules/contenido/api";
 
 export const revalidate = 3600;
 export const metadata: Metadata = { title: "Servicios" };
 
+// Cards alargadas y apiladas, no lado a lado (§8.2 del sistema visual):
+// cada card es sticky con un top creciente de 24px, así la siguiente se
+// monta encima de la anterior dejando ver su borde superior. Puro CSS,
+// sin JS. En móvil (`static` hasta `sm:`) colapsa a lista vertical.
 export default async function PaginaServicios() {
   const servicios = await listarServiciosActivos().catch(() => []);
 
   return (
-    <main className="mx-auto max-w-2xl flex-1 px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight">Servicios</h1>
+    <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
+      <h1 className="text-display font-heading font-bold tracking-[-0.025em]">
+        Servicios
+      </h1>
+
       {servicios.length === 0 ? (
-        <p className="mt-4 text-muted-foreground">
-          Todavía no hay servicios publicados.
-        </p>
+        <EstadoVacio
+          className="mt-8"
+          titulo="Todavía no hay servicios publicados."
+        />
       ) : (
-        <div className="mt-8 flex flex-col gap-4">
-          {servicios.map((servicio) => (
-            <Card key={servicio.id}>
-              <CardHeader>
-                <CardTitle>{servicio.nombre}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>{servicio.descripcion}</CardDescription>
-              </CardContent>
-            </Card>
+        <div className="mt-10 flex flex-col gap-6 sm:mt-16 sm:gap-8">
+          {servicios.map((servicio, indice) => (
+            <Link
+              key={servicio.id}
+              href={`/servicios/${servicio.slug}`}
+              style={{ top: `${indice * 24}px` }}
+              className="static block min-h-56 rounded-2xl border border-border bg-card p-8 shadow-lg transition-shadow hover:shadow-xl sm:sticky"
+            >
+              <div
+                className="flex h-full flex-col justify-between gap-4"
+                style={
+                  servicio.color
+                    ? { borderTop: `4px solid ${servicio.color}` }
+                    : undefined
+                }
+              >
+                <div>
+                  <h2 className="font-heading text-h2 font-semibold tracking-[-0.02em]">
+                    {servicio.nombre}
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-body text-muted-foreground">
+                    {servicio.descripcion}
+                  </p>
+                </div>
+                <span className="text-sm font-medium text-primary">
+                  Ver más →
+                </span>
+              </div>
+            </Link>
           ))}
         </div>
       )}
