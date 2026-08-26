@@ -42,15 +42,19 @@ async function main() {
     ])
     .onConflictDoNothing();
 
-  await db.insert(contenidoServicio).values([
-    {
-      nombre: "Desarrollo de software a medida",
-      descripcion:
-        "Sistemas a medida de punta a punta: relevamiento, diseño, desarrollo y operación.",
-      orden: 0,
-      activo: true,
-    },
-  ]);
+  await db
+    .insert(contenidoServicio)
+    .values([
+      {
+        nombre: "Desarrollo de software a medida",
+        slug: "desarrollo-de-software-a-medida",
+        descripcion:
+          "Sistemas a medida de punta a punta: relevamiento, diseño, desarrollo y operación.",
+        orden: 0,
+        activo: true,
+      },
+    ])
+    .onConflictDoNothing();
 
   await db.insert(contenidoCaso).values([
     {

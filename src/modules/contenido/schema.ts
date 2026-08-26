@@ -23,6 +23,13 @@ export const contenidoServicio = pgTable("contenido_servicio", {
   id: serial("id").primaryKey(),
   nombre: text("nombre").notNull(),
   descripcion: text("descripcion").notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  cuerpo: text("cuerpo"), // markdown, para /servicios/[slug]
+  imagenUrl: text("imagen_url"),
+  color: varchar("color", { length: 32 }),
+  // Sin FK: proyectos es otro módulo y los módulos no comparten schema
+  // entre sí, solo api.ts (mismo patrón que contenido_caso.cliente_id).
+  proyectoOrigenId: integer("proyecto_origen_id"),
   orden: integer("orden").notNull().default(0),
   activo: boolean("activo").notNull().default(true),
 });
