@@ -26,10 +26,7 @@ function EstadoVacio({
         className,
       )}
     >
-      <Icono
-        className="size-8 stroke-[1.5] text-[color:var(--arena-400)]"
-        aria-hidden
-      />
+      <Icono className="size-8 stroke-[1.5] text-arena-400" aria-hidden />
       <p className="font-medium text-foreground">{titulo}</p>
       {descripcion ? (
         <p className="max-w-sm text-sm text-muted-foreground">
