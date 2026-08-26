@@ -4,7 +4,7 @@
     {
       "name": "mirage-web-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", ".worktrees/fase-7-solicitudes-portal", "dev"],
+      "runtimeArgs": ["dev"],
       "port": 3000
     }
   ]
