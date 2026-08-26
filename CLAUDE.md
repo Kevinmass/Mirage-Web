@@ -4,19 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Estado del repo
 
-Las 8 fases del plan están implementadas y integradas en `main`.
-Next.js + TypeScript + Drizzle + Postgres andando — ver `package.json`
-antes de asumir que un comando no existe.
+Las 8 fases del plan v1 (backend + kernel + módulos) están implementadas e
+integradas en `main`. Next.js + TypeScript + Drizzle + Postgres andando —
+ver `package.json` antes de asumir que un comando no existe.
 
-Lo que el plan dejó pendiente y no está hecho: el panel de edición de
-contenido (la web pública se sirve del seed) y los chequeos de permisos
+Lo que el plan v1 dejó pendiente y no está hecho: los chequeos de permisos
 de todos los módulos salvo `clientes` — `proyectos.*`, `solicitudes.*`,
 `notificaciones.*` y `contenido.editar` están declarados en su
 `permissions.ts` pero ningún `api.ts` los verifica todavía.
 
-Las ramas `fase-*` fueron el vehículo de implementación (encadenadas
-entre sí, mergeadas a `staging` y de ahí a `main`). Ya están integradas:
-no buscar trabajo pendiente ahí.
+**El trabajo vigente es el rediseño de frontend** (`docs/plan/2026-08-21-plan-frontend.md`,
+estado "propuesto", ningún PR arrancado todavía). Hoy toda la UI está
+pintada con shadcn por defecto ("en gris"); el plan reemplaza eso por el
+sistema visual "Espejismo cálido" en 12 PRs, orden tokens → landing →
+interno. El panel de edición de contenido (`/app/contenido`) es parte de
+ese plan (PR 4), no un pendiente aparte. Ver la sección
+[Rediseño de frontend](#rediseño-de-frontend-plan-vigente) más abajo antes
+de tocar cualquier pantalla.
+
+Las ramas `fase-*` fueron el vehículo del plan v1 (encadenadas entre sí,
+mergeadas a `staging` y de ahí a `main`). Ya están integradas: no buscar
+trabajo pendiente ahí. Los 12 PRs del plan de frontend son el próximo
+vehículo y todavía no tienen rama creada.
 
 Comandos:
 
@@ -43,8 +52,16 @@ Documentos de referencia, en orden de lectura:
    diseño aprobado: kernel, contrato de módulo, schema de cada módulo, flujos,
    manejo de errores, testing, deploy.
 2. [`docs/plan/2026-08-18-plan-de-implementacion-v1.md`](docs/plan/2026-08-18-plan-de-implementacion-v1.md) —
-   38 PRs en 8 fases, con criterio de aceptación por PR. Es el plan de trabajo
-   vigente; seguirlo en orden salvo que el usuario indique lo contrario.
+   38 PRs en 8 fases del backend/kernel, ya integrados. Queda como referencia
+   histórica, no como trabajo por hacer.
+3. [`docs/specs/2026-08-21-sistema-visual-mirage.md`](docs/specs/2026-08-21-sistema-visual-mirage.md) —
+   sistema visual aprobado: paleta y tokens semánticos, tipografía, movimiento,
+   inventario cerrado de componentes, pantalla por pantalla de las tres
+   superficies. Normativo: "solo", "nunca" y "máximo" son restricciones duras.
+4. [`docs/plan/2026-08-21-plan-frontend.md`](docs/plan/2026-08-21-plan-frontend.md) —
+   plan de implementación del rediseño, 12 PRs, orden tokens → landing → interno.
+   Es el plan de trabajo vigente para UI; seguirlo en orden salvo que el
+   usuario indique lo contrario.
 
 El contexto de negocio (por qué existe Mirage, organigrama real, registro de
 decisiones) vive en el repo hermano `../mirage-empresa/`, fuera de este
@@ -218,6 +235,50 @@ Dominio en español (`persona`, `nodo`, `cliente`, `solicitud`...). Tablas en
 `snake_case` singular; las de un módulo prefijadas con su nombre
 (`clientes_cliente`, `proyectos_tarea`); las del kernel sin prefijo
 (`persona`, `nodo`). Teléfonos en E.164 (`+5491122334455`).
+
+## Rediseño de frontend (plan vigente)
+
+El diseño completo vive en `docs/specs/2026-08-21-sistema-visual-mirage.md`
+y el plan de ejecución en `docs/plan/2026-08-21-plan-frontend.md` — leerlos
+antes de tocar una pantalla, no resumir de memoria. Lo que sigue es lo que
+no es obvio releyéndolos sueltos:
+
+- **El orden importa y está en el nombre del juego: tokens → landing →
+  interno.** El PR 1 (tokens) es cuello de botella deliberado — toca
+  `src/app/globals.css`, `components/ui/*` y nada más. Pintar una pantalla
+  de negocio antes de que el PR 1 esté mergeado significa repintarla.
+- **Ya existe andamiaje que el plan reusa, no crea de cero:**
+  `src/components/ui/{button,card}.tsx` (sobre Base UI/shadcn) y
+  `src/app/dev/ui/page.tsx` — la vitrina visual contra la que se revisa cada
+  PR posterior. El PR 1 la expande, no la inaugura.
+- **Un solo fondo WebGL en toda la plataforma:** el hero de `/`. El resto
+  (`CampoArena`, page breaks, revelados al scrollear) es CSS/SVG/canvas 2D.
+  Es una restricción de rendimiento (cada contexto WebGL + RAF compite por
+  el hilo principal en un celular de gama media), no de gusto.
+- **`--accent` de shadcn pasa a ser ámbar.** Su default (hover de menú/ítem)
+  hay que reasignarlo a `secondary` en el PR 1, o cada hover del interno
+  queda naranja. `--border` y `--input` dejan de compartir valor por la
+  misma razón: accesibilidad de contraste, no estética.
+- **Inventario cerrado de componentes de React Bits** (§6.8 del sistema
+  visual): agregar uno que no está en la lista requiere sacar otro, no es
+  una librería de la que importar libremente.
+- **El plan expuso una brecha de modelo, no solo de UI:** no existen
+  inscripciones a proyectos (`proyectos_inscripcion`, con `cupo`). Hoy "mis
+  proyectos"/"mis tareas" salen de los nodos del organigrama;
+  `proyectos_inscripcion` responde una pregunta distinta (quién lo hace
+  hoy, no qué responsabilidad es dueña) y sin ella el PR 10 no puede
+  empezar. Los PRs 11 y 12 dependen a su vez del 10 — es una cadena, no se
+  adelantan. Las tareas siguen colgando del nodo, nunca de la inscripción,
+  para no quedar huérfanas si la persona se va.
+- **La "definición de terminado" del plan (§2) se aplica a los 12 PRs, sin
+  excepción:** tipos/lint/test/build en verde, cero color literal fuera de
+  `globals.css`, ambos temas, 390px sin scroll horizontal, estados
+  vacío/carga/error, navegación por teclado, y los presupuestos de
+  rendimiento del hero (LCP ≤ 2.5s, JS inicial ≤ 180 KB sin el shader).
+- **`.claude/launch.json`** (el preview de `pnpm dev`) apunta hoy a
+  `.worktrees/fase-7-solicitudes-portal` — ese worktree ya no existe (el
+  gitlink se sacó en `2f752c7`). Corregir el `runtimeArgs` antes de usar el
+  preview del navegador para verificar UI.
 
 ## Decisiones ya cerradas (no reabrir sin motivo nuevo)
 
