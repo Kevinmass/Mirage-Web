@@ -4,12 +4,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Sistema visual "Espejismo cálido" — docs/specs/2026-08-21-sistema-visual-mirage.md
+ * Las rampas crudas (§2.1) son la única fuente de color. Los tokens
+ * semánticos (§2.2) son lo único que se usa en componentes — nunca la
+ * rampa cruda directamente ni un color literal.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-bricolage);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -27,6 +33,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -46,75 +53,188 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Sombras — tinta con tinte cálido (§4). Reemplazan la escala gris de
+     Tailwind; --shadow-cal es nueva, solo para hover de CTA. */
+  --shadow-sm: var(--sombra-sm);
+  --shadow-md: var(--sombra-md);
+  --shadow-lg: var(--sombra-lg);
+  --shadow-cal: var(--sombra-cal);
+
+  /* Tipografía — escala modular del §3. clamp() para que el hero respire
+     en desktop sin explotar en móvil. */
+  --text-hero: clamp(3rem, 9vw, 7rem);
+  --text-display: clamp(2.25rem, 5vw, 3.75rem);
+  --text-h2: clamp(1.75rem, 3vw, 2.5rem);
+  --text-h3: 1.5rem;
+  --text-lead: 1.25rem;
+  --text-lead--line-height: 1.6;
+  --text-body: 1rem;
+  --text-body--line-height: 1.65;
+
+  /* Movimiento — tiempos y curvas del §5.4. --dur-ambiente nunca baja de
+     8s: es la velocidad de los loops de fondo, no de una interacción. */
+  --dur-micro: 120ms;
+  --dur-rapida: 200ms;
+  --dur-media: 320ms;
+  --dur-entrada: 400ms;
+  --dur-ambiente: 12s;
+  --ease-salida: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-entrada: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-suave: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ángulo registrado para poder animar un conic-gradient con una
+   transición suave (CampoArena) en vez de saltar entre keyframes. */
+@property --campo-angulo {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes campo-arena-girar {
+  to {
+    --campo-angulo: 360deg;
+  }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Arena — la superficie del mundo claro. */
+  --arena-50: oklch(0.989 0.006 84.6);
+  --arena-100: oklch(0.974 0.01 81.8);
+  --arena-200: oklch(0.942 0.018 81.3);
+  --arena-300: oklch(0.889 0.027 80.2);
+  --arena-400: oklch(0.795 0.036 78.6);
+  --arena-500: oklch(0.619 0.039 75.3);
+
+  /* Tinta — texto y estructura. Verde-negro, nunca negro puro. */
+  --tinta-900: oklch(0.254 0.009 159.4);
+  --tinta-800: oklch(0.321 0.012 160.7);
+  --tinta-700: oklch(0.414 0.014 161.5);
+  --tinta-600: oklch(0.524 0.015 159.5);
+  --tinta-400: oklch(0.661 0.013 153.5);
+
+  /* Turquesa — el oasis. Todo lo interactivo. */
+  --turquesa-700: oklch(0.521 0.091 181.8);
+  --turquesa-500: oklch(0.649 0.114 182);
+  --turquesa-400: oklch(0.745 0.122 183.4);
+  --turquesa-200: oklch(0.877 0.064 185);
+  --turquesa-50: oklch(0.963 0.018 184.3);
+
+  /* Ámbar — el calor. Destaca sin ser acción. */
+  --ambar-600: oklch(0.69 0.14 70.8);
+  --ambar-500: oklch(0.787 0.147 73);
+  --ambar-300: oklch(0.873 0.098 79);
+  --ambar-50: oklch(0.97 0.023 82.1);
+
+  /* Coral — la alarma y el énfasis raro. */
+  --coral-700: oklch(0.54 0.172 31.8);
+  --coral-500: oklch(0.708 0.185 31);
+  --coral-300: oklch(0.809 0.109 31.4);
+  --coral-50: oklch(0.959 0.02 32.5);
+
+  /* Cielo — apoyo. Solo información neutra y gráficos. */
+  --cielo-500: oklch(0.794 0.086 228.8);
+  --cielo-200: oklch(0.915 0.034 228.3);
+
+  /* Tokens semánticos — nunca se usa la rampa cruda directamente fuera
+     de este archivo (§2.2). */
+  --background: var(--arena-100);
+  --foreground: var(--tinta-900);
+  --card: var(--arena-50);
+  --card-foreground: var(--tinta-900);
+  --popover: var(--arena-50);
+  --popover-foreground: var(--tinta-900);
+  --primary: var(--turquesa-700);
+  --primary-foreground: var(--arena-50);
+  --secondary: var(--arena-200);
+  --secondary-foreground: var(--tinta-800);
+  --muted: var(--arena-200);
+  --muted-foreground: var(--tinta-600);
+  /* --accent es ámbar, no un gris (§2.2). El default de shadcn lo usa
+     como fondo de hover de ítems de menú — un módulo que necesite ese
+     hover reasigna a --secondary, o queda pintado de ámbar. */
+  --accent: var(--ambar-500);
+  --accent-foreground: var(--tinta-900);
+  --destructive: var(--coral-700);
+  --destructive-foreground: var(--arena-50);
+  /* --border y --input son distintos a propósito: el borde decorativo
+     puede ser suave, el borde de un control necesita 3:1 de contraste. */
+  --border: var(--arena-300);
+  --input: var(--arena-500);
+  --ring: var(--turquesa-700);
+  --chart-1: var(--turquesa-500);
+  --chart-2: var(--ambar-500);
+  --chart-3: var(--coral-500);
+  --chart-4: var(--cielo-500);
+  --chart-5: var(--tinta-600);
+  --radius: 0.75rem;
+  --sidebar: var(--arena-50);
+  --sidebar-foreground: var(--tinta-900);
+  --sidebar-primary: var(--turquesa-700);
+  --sidebar-primary-foreground: var(--arena-50);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Sombras — tinta con tinte cálido, cuatro niveles (§4). */
+  --sombra-sm: 0 1px 2px oklch(0.254 0.009 159.4 / 0.06);
+  --sombra-md: 0 4px 12px oklch(0.254 0.009 159.4 / 0.08);
+  --sombra-lg: 0 12px 32px oklch(0.254 0.009 159.4 / 0.1);
+  --sombra-cal: 0 8px 24px oklch(0.649 0.114 182 / 0.18);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Noche y crema — el mundo oscuro. La noche es cálida, no azul. */
+  --noche-900: oklch(0.18 0.004 48.5);
+  --noche-800: oklch(0.216 0.006 56);
+  --noche-700: oklch(0.259 0.008 59.3);
+  --noche-600: oklch(0.321 0.01 61.1);
+  --noche-500: oklch(0.554 0.018 67.4);
+  --crema-100: oklch(0.954 0.014 78.3);
+  --crema-300: oklch(0.855 0.019 78.2);
+  --crema-500: oklch(0.69 0.018 76.1);
+
+  --background: var(--noche-900);
+  --foreground: var(--crema-100);
+  --card: var(--noche-800);
+  --card-foreground: var(--crema-100);
+  --popover: var(--noche-700);
+  --popover-foreground: var(--crema-100);
+  --primary: var(--turquesa-400);
+  --primary-foreground: var(--noche-900);
+  --secondary: var(--noche-700);
+  --secondary-foreground: var(--crema-100);
+  --muted: var(--noche-700);
+  --muted-foreground: var(--crema-500);
+  --accent: #f5b95c;
+  --accent-foreground: var(--noche-900);
+  --destructive: #ff8570;
+  --destructive-foreground: var(--noche-900);
+  --border: var(--noche-600);
+  --input: var(--noche-500);
+  --ring: var(--turquesa-400);
+  --chart-1: var(--turquesa-400);
+  --chart-2: var(--ambar-300);
+  --chart-3: var(--coral-300);
+  --chart-4: var(--cielo-200);
+  --chart-5: var(--crema-500);
+  --sidebar: var(--noche-800);
+  --sidebar-foreground: var(--crema-100);
+  --sidebar-primary: var(--turquesa-400);
+  --sidebar-primary-foreground: var(--noche-900);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* En dark mode las sombras casi desaparecen — la elevación se
+     comunica con el color de superficie, no con negro flotando. */
+  --sombra-sm: 0 1px 2px oklch(0 0 0 / 0.16);
+  --sombra-md: 0 4px 12px oklch(0 0 0 / 0.22);
+  --sombra-lg: 0 12px 32px oklch(0 0 0 / 0.28);
+  --sombra-cal: 0 8px 24px oklch(0.745 0.122 183.4 / 0.22);
 }
 
 @layer base {
