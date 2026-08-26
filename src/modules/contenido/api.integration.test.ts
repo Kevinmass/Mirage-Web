@@ -212,4 +212,60 @@ describe("modules/contenido api", () => {
       }),
     ).rejects.toThrow(NoAutorizado);
   });
+
+  it("crearCaso tira NoAutorizado sin la capacidad contenido.editar", async () => {
+    await expect(
+      api.crearCaso(PERSONA_SIN_PERMISO, {
+        titulo: "Nuevo caso",
+        resumen: "r",
+        publicado: false,
+      }),
+    ).rejects.toThrow(NoAutorizado);
+  });
+
+  it("crearCaso crea el caso sin testimonio y no aparece en listarCasosPublicados si no está publicado", async () => {
+    const creado = await api.crearCaso(PERSONA_CON_PERMISO, {
+      titulo: "Caso sin autorizar todavía",
+      resumen: "r",
+      publicado: false,
+    });
+    expect(creado.testimonio).toBeNull();
+
+    const publicados = await api.listarCasosPublicados();
+    expect(publicados.map((c) => c.id)).not.toContain(creado.id);
+  });
+
+  it("actualizarCaso agrega el testimonio y publicado:true lo saca a listarCasosPublicados", async () => {
+    const creado = await api.crearCaso(PERSONA_CON_PERMISO, {
+      titulo: "Caso a publicar",
+      resumen: "r",
+      publicado: false,
+    });
+
+    await api.actualizarCaso(PERSONA_CON_PERMISO, creado.id, {
+      testimonio: "Nos cambió la forma de trabajar.",
+      autor: "Ana Pérez",
+      cargoAutor: "Gerenta de operaciones",
+      publicado: true,
+    });
+
+    const publicados = await api.listarCasosPublicados();
+    const actualizado = publicados.find((c) => c.id === creado.id);
+    expect(actualizado?.testimonio).toBe("Nos cambió la forma de trabajar.");
+    expect(actualizado?.autor).toBe("Ana Pérez");
+  });
+
+  it("actualizarCaso tira NoAutorizado sin la capacidad", async () => {
+    const creado = await api.crearCaso(PERSONA_CON_PERMISO, {
+      titulo: "Protegido",
+      resumen: "r",
+      publicado: false,
+    });
+
+    await expect(
+      api.actualizarCaso(PERSONA_SIN_PERMISO, creado.id, {
+        titulo: "Hackeado",
+      }),
+    ).rejects.toThrow(NoAutorizado);
+  });
 });
