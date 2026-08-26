@@ -303,6 +303,24 @@ export async function contarNodosDeLaPersona(
   return (await listarNodosDeLaPersona(personaId)).length;
 }
 
+// Los nodos sobre los que una persona tiene autoridad: los suyos
+// propios más todo su subárbol — "estar por encima en el organigrama"
+// (diseño, PR 8) es ocupar un nodo y todo lo que cuelga de él, no una
+// capacidad de kernel/permisos aparte. Lo usa la UI para habilitar
+// edición nodo por nodo, no una sola bandera global.
+export async function nodosControladosPorPersona(
+  personaId: number,
+): Promise<Set<number>> {
+  const propios = await listarNodosDeLaPersona(personaId);
+  const controlados = new Set<number>(propios);
+  for (const id of propios) {
+    for (const descendienteId of await subarbol(id)) {
+      controlados.add(descendienteId);
+    }
+  }
+  return controlados;
+}
+
 // El titular vigente de un nodo, si lo hay — null si el nodo está
 // vacante (ocupado por no-titulares, o sin nadie). Lo usan los
 // módulos que publican eventos (PR 6.2) para resolver a quién

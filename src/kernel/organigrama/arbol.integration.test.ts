@@ -317,4 +317,28 @@ describe("kernel/organigrama — api del árbol", () => {
     await arbol.finalizarAsignacion(asignacionTitular.id);
     expect(await arbol.obtenerTitularDeNodo(a.id)).toBeNull();
   });
+
+  it("nodosControladosPorPersona incluye los nodos propios y todo su subárbol", async () => {
+    const { raiz, a, b, c } = await armarCadena();
+    const p = await crearPersonaDePrueba("control1@mirage.test");
+    await arbol.asignarPersona(p.id, a.id, false);
+
+    const controlados = await arbol.nodosControladosPorPersona(p.id);
+
+    expect(Array.from(controlados).sort((x, y) => x - y)).toEqual(
+      [a.id, b.id, c.id].sort((x, y) => x - y),
+    );
+    expect(controlados.has(raiz.id)).toBe(false);
+  });
+
+  it("nodosControladosPorPersona no incluye nada fuera de la rama de la persona", async () => {
+    const { b, c } = await armarCadena();
+    const p = await crearPersonaDePrueba("control2@mirage.test");
+    await arbol.asignarPersona(p.id, b.id, false);
+
+    const controlados = await arbol.nodosControladosPorPersona(p.id);
+
+    expect(controlados.has(c.id)).toBe(true);
+    expect(controlados.size).toBe(2);
+  });
 });
