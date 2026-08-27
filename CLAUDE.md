@@ -32,23 +32,19 @@ pantalla.
 
 Los 12 PRs del rediseño de frontend
 (`docs/plan/2026-08-21-plan-frontend.md`) están hechos e integrados en
-`staging`; queda como referencia, no como trabajo pendiente. Lo que sigue de
-este párrafo quedó viejo y se corrige en el PR 1 de la ronda de fixes:
+`staging`: reemplazaron el shadcn por defecto ("en gris") por el sistema
+visual "Espejismo cálido", orden tokens → landing → interno. Queda como
+referencia histórica, no como trabajo pendiente. La sección
+[Rediseño de frontend](#rediseño-de-frontend-plan-vigente) más abajo
+también quedó vieja en varios puntos — la ronda de fixes la corrige PR por
+PR; leer el plan de fixes, no esa sección, antes de tocar una pantalla.
 
-**El trabajo vigente era el rediseño de frontend** (`docs/plan/2026-08-21-plan-frontend.md`).
-PRs 1 a 4 están hechos (tokens, chasis público, hero y portada, servicios +
-panel de contenido) — el 4 recién se abrió como PR, todavía sin mergear.
-El plan reemplaza el shadcn por defecto ("en gris") por el sistema visual
-"Espejismo cálido" en 12 PRs, orden tokens → landing → interno. Ver la
-sección [Rediseño de frontend](#rediseño-de-frontend-plan-vigente) más abajo
-antes de tocar cualquier pantalla — y `gh pr list` para el estado real de
-cada PR en vez de asumir por esta nota, que se desactualiza rápido.
-
-Las ramas `fase-*` fueron el vehículo del plan v1 (encadenadas entre sí,
-mergeadas a `staging` y de ahí a `main`). Ya están integradas: no buscar
-trabajo pendiente ahí. Los PRs del plan de frontend son `fase-frontend-0N-*`,
-cada uno apilado sobre el anterior hasta que se mergea a `staging` (no
-`main` directo — ver "Ramas" más abajo).
+Las ramas `fase-*` (plan v1) y `fase-frontend-0N-*` (rediseño) fueron los
+vehículos de esos dos planes: encadenadas entre sí, mergeadas a `staging` y
+de ahí a `main`. Ya están todas integradas: no buscar trabajo pendiente ahí.
+Los PRs de la ronda de fixes son `fix-0N-*`, cada uno saliendo de `staging`
+actualizado (no apilados entre sí salvo la cadena 1→2→3; ver §0.1 y §4 del
+plan de fixes), PR contra `staging`.
 
 Comandos:
 
@@ -300,10 +296,10 @@ no es obvio releyéndolos sueltos:
   `globals.css`, ambos temas, 390px sin scroll horizontal, estados
   vacío/carga/error, navegación por teclado, y los presupuestos de
   rendimiento del hero (LCP ≤ 2.5s, JS inicial ≤ 180 KB sin el shader).
-- **`.claude/launch.json`** (el preview de `pnpm dev`) apunta hoy a
-  `.worktrees/fase-7-solicitudes-portal` — ese worktree ya no existe (el
-  gitlink se sacó en `2f752c7`). Corregir el `runtimeArgs` antes de usar el
-  preview del navegador para verificar UI.
+- **`.claude/launch.json`** ya está corregido: corre `pnpm dev` en el puerto
+  3000, sin apuntar a ningún worktree. (La nota vieja decía que apuntaba a
+  `.worktrees/fase-7-solicitudes-portal`; se verificó en el PR 1 de la ronda
+  de fixes y ya no es así.)
 
 ## Decisiones ya cerradas (no reabrir sin motivo nuevo)
 
