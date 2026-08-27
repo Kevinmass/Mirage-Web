@@ -270,19 +270,26 @@ no es obvio releyéndolos sueltos:
   `src/components/ui/{button,card}.tsx` (sobre Base UI/shadcn) y
   `src/app/dev/ui/page.tsx` — la vitrina visual contra la que se revisa cada
   PR posterior. El PR 1 la expande, no la inaugura.
-- **Un solo fondo WebGL en toda la plataforma:** el hero de `/`.
-  (Revertido — ver `docs/plan/2026-08-27-plan-fixes.md` §0.2: pasa a ser un
-  presupuesto por página, y el PR 2 de esa ronda reescribe esta línea.) El resto
-  (`CampoArena`, page breaks, revelados al scrollear) es CSS/SVG/canvas 2D.
-  Es una restricción de rendimiento (cada contexto WebGL + RAF compite por
-  el hilo principal en un celular de gama media), no de gusto.
+- **Presupuesto de WebGL por página** (revisado en el PR 2 de la ronda de
+  fixes; antes era "un solo fondo WebGL en toda la plataforma"): uno en el
+  hero de `/` (Prism), hasta dos activos a la vez en el resto de la landing
+  (auroras de sección, montadas/desmontadas por viewport), **cero** en
+  `/app` y `/portal`. El resto del ambiente (`FondoSeccion`/`FondoContinuo`,
+  page breaks, revelados) es CSS/SVG. El límite es de rendimiento —cada
+  contexto WebGL + RAF compite por el hilo principal en un celular de gama
+  media—, y lo que cuenta es cuántos contextos activos hay a la vez. Ver
+  §5.1-5.3 del sistema visual.
 - **`--accent` de shadcn pasa a ser ámbar.** Su default (hover de menú/ítem)
   hay que reasignarlo a `secondary` en el PR 1, o cada hover del interno
   queda naranja. `--border` y `--input` dejan de compartir valor por la
   misma razón: accesibilidad de contraste, no estética.
-- **Inventario cerrado de componentes de React Bits** (§6.8 del sistema
-  visual): agregar uno que no está en la lista requiere sacar otro, no es
-  una librería de la que importar libremente.
+- **Inventario de React Bits** (§6.8 del sistema visual): **abierto para
+  los fondos de la landing** (el único límite es el presupuesto de
+  rendimiento de arriba), cerrado para el resto —botones, cards, menús son
+  superficie de negocio—. Revisado en el PR 2 de la ronda de fixes; antes
+  era cerrado para todo. Hoy montados: `Prism` (hero) y `SoftAurora`
+  (fondos de sección). `card-swap` salió (la sección de capacidades de `/`
+  son tres cards sin rotación).
 - **El plan expuso una brecha de modelo, no solo de UI:** no existen
   inscripciones a proyectos (`proyectos_inscripcion`, con `cupo`). Hoy "mis
   proyectos"/"mis tareas" salen de los nodos del organigrama;

@@ -314,57 +314,82 @@ lista de items.
 
 ### 5.1 El presupuesto
 
-Esta es la decisión que más aprieta las notas originales, así que va explícita:
-
-> **Hay exactamente un background WebGL en toda la plataforma: el hero de `/`.**
+> **Actualizado por `docs/plan/2026-08-27-plan-fixes.md` (§0.2, PR 2).** La regla
+> original —"exactamente un background WebGL en toda la plataforma"— resultó
+> demasiado dura: por respetarla, varios efectos se reimplementaron a mano y
+> salieron flojos (el card-swap sin física, el cónico de `CampoArena`). Pasa a
+> ser un **presupuesto por página**:
+>
+> - **Hero de `/`:** uno (Prism).
+> - **Resto de la landing:** hasta dos a la vez (auroras de sección, montadas y
+>   desmontadas por viewport).
+> - **`/app` y `/portal`:** cero. Ni un byte de WebGL.
+>
 > Todo lo demás se anima con CSS, SVG o canvas 2D.
 
-`Backgrounds.md` lista 45 candidatos. La razón para el techo no es estética sino
-física: cada uno de esos componentes arrastra `ogl` o `three`, monta un contexto
-WebGL, corre un `requestAnimationFrame` continuo y en un celular de gama media
-compite con el hilo principal por el mismo presupuesto. Dos en la misma página
-duplican el costo. Cuatro hacen que un sitio que quiere decir "modernidad" se sienta
-lento, que es la única forma segura de decir lo contrario.
+La razón del techo no es estética sino física: cada componente de `Backgrounds.md`
+arrastra `ogl` o `three`, monta un contexto WebGL, corre un `requestAnimationFrame`
+continuo y en un celular de gama media compite con el hilo principal. El límite real
+es "cuántos contextos activos a la vez", no "cuántos existen en el repo" — por eso
+las auroras de sección se desmontan al salir del viewport.
 
-Los 45 no se descartan: se convierten en un **catálogo de referencia visual** del que
-se toman ideas para los fondos baratos. Lo que se descarta es instanciarlos.
+`Backgrounds.md` sigue siendo además un **catálogo de referencia** para los fondos
+baratos (CSS/SVG).
 
-### 5.2 El hero: "calor que distorsiona"
+### 5.2 El hero: "luz que se dobla"
 
-Un componente propio, `<EspejismoHero>`, construido a partir de `grid-distortion` y
-`waves` de React Bits y reteñido a la paleta.
+> **Actualizado por el plan de fixes (PR 2).** El shader propio original
+> (`canvas-hero.tsx`, a partir de `grid-distortion` + `waves`) tenía la ondulación
+> ambiente tan baja que en una captura se leía estático (§1.1 del plan). Se
+> reemplaza por **Prism** de React Bits (base `ogl`, ya en el repo).
 
-- **En reposo:** un campo de gradiente arena → turquesa que ondula lento, como aire
-  caliente sobre asfalto. Ciclo de 12 segundos, amplitud baja.
-- **Con el cursor:** una estela de calor sigue al mouse y deforma lo que hay debajo.
-  Cuando pasa cerca del título, las letras se doblan y vuelven. El nombre de la
-  empresa se explica solo.
-- **En scroll:** la distorsión se apaga y el gradiente se desplaza, cumpliendo lo
-  que pide `Inicio.md` — que el hero tenga una dinámica distinta al resto.
+`<EspejismoHero>` monta `Prism` en modo `rotate`: un prisma que gira sobre su eje y
+refracta la luz en haces de color — la lectura literal de "aire caliente que dobla
+la luz". El matiz rota solo, un ciclo completo cada ~10 s, para que el fondo
+transicione y no se lea fijo. No reacciona al cursor (decisión: `rotate` limpio).
+
+El hero, la sección "Qué hacemos" y el `<PageBreak>` que sigue **comparten** ese
+fondo: el prisma corre continuo por detrás y el break es un panel de vidrio
+(`variante="vidrio"`), no una franja opaca. Un fade en el borde inferior lleva el
+prisma a `--background` para empalmar sin costura con el fondo continuo de la
+landing.
 
 **Obligaciones técnicas, todas bloqueantes:**
 
-- `next/dynamic` con `ssr: false` y un `loading` que es el póster estático.
-- Se monta solo cuando entra al viewport (`IntersectionObserver`) y **pausa el RAF
-  al salir** y con `document.visibilityState === "hidden"`.
-- **Fallback obligatorio en tres casos**, y el fallback es un póster CSS (gradiente
-  + grano, sin JS): `prefers-reduced-motion: reduce`, viewport `< 768px`, y
-  `navigator.hardwareConcurrency <= 4`.
-- No participa del LCP: el H1 y el subtítulo son HTML del servidor y se pintan
-  antes de que el shader exista.
+- `next/dynamic` con `ssr: false` y un `loading` que es el póster estático
+  (`<FondoSeccion tinte="turquesa">`, sin JS).
+- **Pausa fuera del viewport** — la maneja el propio Prism
+  (`suspendWhenOffscreen`).
+- **Único fallback a póster: `prefers-reduced-motion: reduce`.** Se cayeron los
+  cortes por `viewport < 768px` y por `navigator.hardwareConcurrency <= 4` (§1.2
+  del plan: en un notebook modesto o un celular el hero terminaba siendo una foto
+  fija). En móvil se sirve la misma escena en versión liviana (menos glow / bloom /
+  noise / escala), no un póster.
+- No participa del LCP: el H1 y el subtítulo son HTML del servidor.
 
 ### 5.3 Las capas baratas
 
+> **Actualizado por el plan de fixes (PR 1 y 2).** `<CampoArena>` (cónico girando)
+> se leía siempre como una hélice de ventilador y en modo claro ni se veía; se
+> borró.
+
 Todo el resto del ambiente:
 
-- **`<CampoArena>`** — la capa de fondo por defecto de toda página que no es el
-  hero. Gradiente cónico animado por CSS + grano. Cero JS. Cambia de tinte según la
-  sección (arena → arena+turquesa → arena+ámbar) para dar variedad sin cambiar de
-  técnica.
-- **Page breaks.** Franjas de color contundente que cortan la página. La regla de
-  `Inicio.md` se respeta al pie de la letra: **después de un break fuerte se vuelve
-  al fondo que había antes**. Un break es una interrupción, no un cambio de tema.
-  Máximo dos por página.
+- **`<FondoSeccion>`** — banda quieta, sin JS: un degradé lineal vertical
+  (`--background` → tinte → `--background`) más dos resplandores radiales de esquina,
+  del color de tinte de la sección (`turquesa` / `ambar` / `neutro`, tokens
+  `--tinte-*`). Acepta `children`: una capa animada opcional encima (ver abajo).
+- **`<FondoContinuo>`** — para tramos con varias secciones seguidas: una sola capa
+  que las abarca todas, con un degradé largo que fluye entre tintes sin volver a
+  `--background` en el medio, para que no se note el borde de cada sección.
+- **Auroras de sección** (`SoftAurora` de React Bits, base `ogl`, retiñido) — la
+  capa animada opcional. A bajo brillo, sin interacción con el mouse. Se montan y
+  desmontan por `IntersectionObserver`: hasta dos activas a la vez (presupuesto
+  §5.1). Se ocultan bajo `prefers-reduced-motion`.
+- **Page breaks.** `<PageBreak>` con dos variantes: `"solido"` (franja de color
+  contundente; después se vuelve al fondo anterior; máximo dos por página) y
+  `"vidrio"` (panel translúcido con `backdrop-blur` que deja pasar el fondo de
+  atrás — para cuando el break tiene que sentirse como transición, no como pared).
 - **Revelado al scrollear.** Entradas de 400ms con desplazamiento de 16px y opacidad,
   vía `IntersectionObserver` una sola vez (nunca reversible: reanimar al subir
   marea). Escalonado de 60ms entre hermanos, máximo 6 elementos.
@@ -520,14 +545,21 @@ después.
 - **Error:** qué falló en lenguaje humano, qué puede hacer el usuario, y un botón de
   reintentar. Nunca un código de error solo.
 
-### 6.8 El inventario cerrado de React Bits
+### 6.8 El inventario de React Bits
 
-Estos son los únicos componentes que entran. Cada uno llega en su propio PR,
-reteñido a la paleta, probado contra `prefers-reduced-motion` y contra móvil.
+> **Actualizado por el plan de fixes (§0.2, PR 2).** El inventario era cerrado
+> ("agregar uno requiere sacar otro"); pasa a ser **abierto para los fondos de la
+> landing**, con el presupuesto de rendimiento de §5.1 como único límite. Para el
+> resto (botones, cards, menús) sigue valiendo la lista: son superficie de negocio,
+> no hay razón para abrirla.
+
+Componentes en uso o comprometidos, cada uno reteñido a la paleta y probado contra
+`prefers-reduced-motion` y móvil:
 
 | Componente | Dónde | Por qué |
 |---|---|---|
-| `grid-distortion` + `waves` | Hero de `/` | La firma |
+| `Prism` | Hero de `/` | La firma — "luz que se dobla" (§5.2) |
+| `SoftAurora` | Fondos de sección de la landing | Capa animada de `<FondoSeccion>` (§5.3) |
 | `specular-button` | Botón primario | El glare |
 | `click-spark` | CTA del hero, enviar contacto | Recompensa del click |
 | `star-border` | CTA del hero | Distinguir la acción principal |
@@ -535,15 +567,16 @@ reteñido a la paleta, probado contra `prefers-reduced-motion` y contra móvil.
 | `border-glow` | Card de proyecto propio | Marcar pertenencia |
 | `staggered-menu` | Header móvil | Menú |
 | `lanyard` | Header desktop landing | El interruptor de la lámpara |
-| `card-swap` | Sección de capacidades en `/` | Pila de cards que rotan |
 | `flowing-menu` | Índice de secciones en `/` | Navegación expresiva |
 | `masonry` | Grilla de testimonios en Casos | Alturas desparejas |
 | `profile-card` | Ficha de persona | Ya elegido en `Personas.md` |
 | `curved-input` | Formulario de contacto | Ya elegido en `Contacto.md` |
 | `gradual-blur` | Bordes de zonas con scroll | Insinuar que hay más |
 
-Todo lo demás de las notas queda como catálogo de inspiración. Agregar uno nuevo
-requiere sacar otro.
+`card-swap` salió: la sección de capacidades de `/` pasó a tres cards visibles a la
+vez, sin rotación (§1.5 del plan — no se entendía como interactivo). Los fondos
+candidatos que se instalaron para comparar en `/dev/hero` (`DarkVeil`, `LightRays`)
+quedan en el repo como referencia; solo `Prism` y `SoftAurora` están montados.
 
 ---
 
@@ -552,7 +585,7 @@ requiere sacar otro.
 | | `/` público | `/app` interno | `/portal` cliente |
 |---|---|---|---|
 | Registro | Expresivo | Mismo lenguaje, volumen bajo | Intermedio |
-| Fondo | Hero WebGL + `CampoArena` | `CampoArena` casi quieto | `CampoArena` suave |
+| Fondo | Hero Prism + `FondoSeccion` / `FondoContinuo` + auroras | `FondoSeccion` quieto, cero WebGL | `FondoSeccion` suave, cero WebGL |
 | Densidad | Aire, 96px entre secciones | Densa, 32px | Media, 48px |
 | Vidrio | Header, modales | Solo modales | Solo modales |
 | Movimiento | Completo | Micro-interacciones y el organigrama | Micro-interacciones |
