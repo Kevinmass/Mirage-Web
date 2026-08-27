@@ -1,5 +1,6 @@
 import { EspejismoHero } from "@/components/espejismo-hero/espejismo-hero";
 import { FondoSeccion } from "@/components/fondo-seccion";
+import { FondoSeccionAurora } from "@/components/fondo-seccion-aurora";
 import { PageBreak } from "@/components/page-break";
 import { Revelado } from "@/components/revelado";
 import { Capacidades } from "./_inicio/capacidades";
@@ -19,7 +20,9 @@ export default function PaginaInicio() {
       <EspejismoHero />
 
       <section className="relative">
-        <FondoSeccion tinte="turquesa" />
+        <FondoSeccion tinte="turquesa">
+          <FondoSeccionAurora tono="turquesa" />
+        </FondoSeccion>
         <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
@@ -35,7 +38,7 @@ export default function PaginaInicio() {
       </PageBreak>
 
       <section className="relative">
-        <FondoSeccion tinte="turquesa" />
+        <FondoSeccion tinte="neutro" />
         <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-12 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
@@ -59,7 +62,9 @@ export default function PaginaInicio() {
       </section>
 
       <section className="relative">
-        <FondoSeccion tinte="ambar" />
+        <FondoSeccion tinte="ambar">
+          <FondoSeccionAurora tono="ambar" />
+        </FondoSeccion>
         <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
