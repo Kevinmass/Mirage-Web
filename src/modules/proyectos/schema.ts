@@ -93,17 +93,37 @@ export const proyectosTarea = pgTable("proyectos_tarea", {
   })
     .notNull()
     .default("pendiente"),
+  // Nivel de prioridad de la tarjeta en el Kanban (diseño §8.11, PR 11)
+  // — no fija un enum el diseño en sí, es una decisión de producto
+  // razonable, mismo criterio que solicitudes_solicitud.tipo.
+  prioridad: text("prioridad", { enum: ["baja", "media", "alta"] })
+    .notNull()
+    .default("media"),
   nodoResponsableId: integer("nodo_responsable_id")
     .notNull()
     .references(() => nodo.id),
   personaAsignadaId: integer("persona_asignada_id").references(
     () => persona.id,
   ),
+  // El Gantt necesita inicio, no solo vencimiento (PR 11).
+  empiezaEn: timestamp("empieza_en", { withTimezone: true }),
   venceEn: timestamp("vence_en", { withTimezone: true }),
   creadoEn: timestamp("creado_en", { withTimezone: true })
     .notNull()
     .defaultNow(),
   completadaEn: timestamp("completada_en", { withTimezone: true }),
+});
+
+// Marcadores del Gantt (diseño §8.11, PR 11): rombo sobre la línea de
+// tiempo con nombre y color propios, no atados a ninguna tarea puntual.
+export const proyectosHito = pgTable("proyectos_hito", {
+  id: serial("id").primaryKey(),
+  proyectoId: integer("proyecto_id")
+    .notNull()
+    .references(() => proyectosProyecto.id),
+  nombre: text("nombre").notNull(),
+  fecha: timestamp("fecha", { withTimezone: true }).notNull(),
+  color: text("color"),
 });
 
 export const proyectosRepositorio = pgTable("proyectos_repositorio", {

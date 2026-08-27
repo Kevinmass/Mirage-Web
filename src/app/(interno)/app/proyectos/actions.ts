@@ -168,11 +168,20 @@ export async function crearTareaAction(
   _previo: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return { error: "Sin sesión" };
+
   const venceEn = String(formData.get("venceEn") ?? "").trim();
+  const empiezaEn = String(formData.get("empiezaEn") ?? "").trim();
+  const prioridad = String(
+    formData.get("prioridad") ?? "media",
+  ) as proyectos.PrioridadTarea;
   try {
-    await proyectos.crearTarea(proyectoId, {
+    await proyectos.crearTarea(sesion.personaId, proyectoId, {
       titulo: String(formData.get("titulo") ?? "").trim(),
       nodoResponsableId: Number(formData.get("nodoResponsableId")),
+      prioridad,
+      empiezaEn: empiezaEn ? new Date(empiezaEn) : undefined,
       venceEn: venceEn ? new Date(venceEn) : undefined,
     });
   } catch (error) {
@@ -180,6 +189,49 @@ export async function crearTareaAction(
   }
 
   revalidatePath(`/app/proyectos/${proyectoId}`);
+  revalidatePath("/app/tareas");
+  return {};
+}
+
+// El compositor inline al pie de cada columna del Kanban (diseño §8.11,
+// PR 11) — a diferencia de crearTareaAction, el proyecto lo elige el
+// formulario, no la URL: el Kanban no está parado en un proyecto. Si la
+// columna no es "pendiente" (el default de crearTarea), la tarea nace
+// directamente en esa columna en vez de aparecer en Pendiente y saltar
+// después.
+export async function crearTareaEnColumnaAction(
+  estadoColumna: proyectos.EstadoTarea,
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return { error: "Sin sesión" };
+
+  const proyectoId = Number(formData.get("proyectoId"));
+  const nodoResponsableId = Number(formData.get("nodoResponsableId"));
+  const titulo = String(formData.get("titulo") ?? "").trim();
+  const prioridad = String(
+    formData.get("prioridad") ?? "media",
+  ) as proyectos.PrioridadTarea;
+
+  try {
+    const creada = await proyectos.crearTarea(sesion.personaId, proyectoId, {
+      titulo,
+      nodoResponsableId,
+      prioridad,
+    });
+    if (estadoColumna !== "pendiente") {
+      await proyectos.cambiarEstadoTarea(
+        sesion.personaId,
+        creada.id,
+        estadoColumna,
+      );
+    }
+  } catch (error) {
+    return manejarError(error);
+  }
+
+  revalidatePath("/app/tareas");
   return {};
 }
 
@@ -188,9 +240,43 @@ export async function cambiarEstadoTareaAction(
   tareaId: number,
   formData: FormData,
 ) {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return;
+
   const nuevoEstado = String(formData.get("estado")) as proyectos.EstadoTarea;
-  await proyectos.cambiarEstadoTarea(tareaId, nuevoEstado);
+  await proyectos.cambiarEstadoTarea(sesion.personaId, tareaId, nuevoEstado);
   revalidatePath(`/app/proyectos/${proyectoId}`);
+  revalidatePath("/app/tareas");
+}
+
+export interface ResultadoMover {
+  ok: boolean;
+  error?: string;
+}
+
+// Llamada directamente desde el handler de drag del Kanban (no un
+// <form>): devuelve ok/error en vez de tirar, para que el cliente
+// pueda revertir la tarjeta visiblemente si el servidor rechaza
+// (diseño §8.11, criterio de aceptación del PR 11 — "arrastrar es
+// optimista y revierte si el servidor rechaza").
+export async function moverTareaAction(
+  proyectoId: number,
+  tareaId: number,
+  nuevoEstado: proyectos.EstadoTarea,
+): Promise<ResultadoMover> {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return { ok: false, error: "Sin sesión" };
+
+  try {
+    await proyectos.cambiarEstadoTarea(sesion.personaId, tareaId, nuevoEstado);
+  } catch (error) {
+    const { error: mensaje } = manejarError(error);
+    return { ok: false, error: mensaje };
+  }
+
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+  revalidatePath("/app/tareas");
+  return { ok: true };
 }
 
 export async function asignarPersonaATareaAction(
