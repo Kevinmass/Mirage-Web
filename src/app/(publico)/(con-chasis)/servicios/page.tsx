@@ -31,7 +31,7 @@ export default async function PaginaServicios() {
               key={servicio.id}
               href={`/servicios/${servicio.slug}`}
               style={{ top: `${indice * 24}px` }}
-              className="static block min-h-56 rounded-2xl border border-border bg-card p-8 shadow-lg transition-shadow hover:shadow-xl sm:sticky"
+              className="static block min-h-56 rounded-2xl border border-border bg-card p-8 shadow-lg outline-none transition-[transform,box-shadow,border-color] duration-(--dur-rapida) ease-(--ease-suave) hover:-translate-y-0.5 hover:border-primary hover:shadow-xl focus-visible:-translate-y-0.5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-turquesa-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:sticky"
             >
               <div
                 className="flex h-full flex-col justify-between gap-4"

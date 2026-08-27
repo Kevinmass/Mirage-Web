@@ -40,6 +40,14 @@ export function HeaderPublico() {
   }, [esLanding]);
 
   const transparente = esLanding && !traspasado;
+  // Un anillo de foco que se ve tanto sobre el hero (transparente) como
+  // sobre el header sólido.
+  const anilloFoco = cn(
+    "outline-none focus-visible:ring-2",
+    transparente
+      ? "focus-visible:ring-crema-100/70"
+      : "focus-visible:ring-ring",
+  );
 
   return (
     <>
@@ -62,7 +70,8 @@ export function HeaderPublico() {
           <Link
             href="/"
             className={cn(
-              "font-heading text-lg font-bold tracking-tight transition-colors duration-(--dur-media)",
+              "rounded-sm font-heading text-lg font-bold tracking-tight transition-colors duration-(--dur-media)",
+              anilloFoco,
               transparente
                 ? "text-crema-100 drop-shadow-sm"
                 : "text-foreground",
@@ -82,7 +91,8 @@ export function HeaderPublico() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "transition-opacity hover:opacity-100",
+                  "rounded-sm transition-opacity hover:opacity-100",
+                  anilloFoco,
                   transparente
                     ? "opacity-90"
                     : "opacity-100 hover:text-foreground",
@@ -101,6 +111,7 @@ export function HeaderPublico() {
               href="/ingresar"
               className={cn(
                 "hidden rounded-md px-3 py-2 text-sm font-medium transition-colors sm:block",
+                anilloFoco,
                 transparente
                   ? "text-crema-100 hover:bg-white/10"
                   : "text-foreground hover:bg-secondary",
@@ -115,6 +126,7 @@ export function HeaderPublico() {
               aria-label="Abrir menú"
               className={cn(
                 "inline-flex size-11 items-center justify-center rounded-full transition-colors md:hidden",
+                anilloFoco,
                 transparente
                   ? "text-crema-100 hover:bg-white/10"
                   : "hover:bg-secondary",
