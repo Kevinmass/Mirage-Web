@@ -57,7 +57,7 @@ export default async function PaginaPersonas() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Personas</h1>
+        <h1 className="text-h3 font-heading font-semibold">Personas</h1>
         <Button
           render={<Link href="/app/personas/nueva">Nueva persona</Link>}
         />

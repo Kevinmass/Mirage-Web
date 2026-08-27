@@ -30,7 +30,7 @@ export default async function PaginaProyectosPortal() {
 
   return (
     <main className="flex flex-col gap-6">
-      <h1 className="text-3xl font-semibold">Tus proyectos</h1>
+      <h1 className="text-h2 font-heading font-semibold">Tus proyectos</h1>
 
       {proyectos.length === 0 ? (
         <EstadoVacio titulo="Todavía no hay proyectos en marcha." />

@@ -34,7 +34,7 @@ export default async function PaginaProyectos() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Proyectos</h1>
+        <h1 className="text-h3 font-heading font-semibold">Proyectos</h1>
         <Button
           render={<Link href="/app/proyectos/nuevo">Nuevo proyecto</Link>}
         />

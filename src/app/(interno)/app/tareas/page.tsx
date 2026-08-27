@@ -54,7 +54,7 @@ export default async function PaginaTareas({
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Tareas</h1>
+        <h1 className="text-h3 font-heading font-semibold">Tareas</h1>
         <Link href="/app/tareas/mias" className="text-sm hover:underline">
           Mis tareas
         </Link>

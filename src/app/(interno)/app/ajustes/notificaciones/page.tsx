@@ -27,7 +27,9 @@ export default async function PaginaAjustesNotificaciones() {
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <p className="text-sm text-muted-foreground">Ajustes</p>
-      <h1 className="text-2xl font-semibold">Notificaciones fallidas</h1>
+      <h1 className="text-h3 font-heading font-semibold">
+        Notificaciones fallidas
+      </h1>
       <p className="text-sm text-muted-foreground">
         Después de 5 intentos con backoff exponencial, una notificación pasa a
         fallida y queda acá para reintentar a mano.

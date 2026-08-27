@@ -135,35 +135,53 @@ sin tocar una sola pantalla.
 
 | Semántico | Claro | Oscuro |
 |---|---|---|
-| `--background` | `arena-100` | `noche-900` |
+| `--background` | `arena-200` | `noche-900` |
 | `--foreground` | `tinta-900` | `crema-100` |
 | `--card` | `arena-50` | `noche-800` |
 | `--card-foreground` | `tinta-900` | `crema-100` |
 | `--popover` | `arena-50` | `noche-700` |
-| `--muted` | `arena-200` | `noche-700` |
-| `--muted-foreground` | `tinta-600` | `crema-500` |
+| `--muted` | `arena-300` | `noche-700` |
+| `--muted-foreground` | `tinta-700` | `crema-500` |
 | `--primary` | `turquesa-700` | `turquesa-400` |
 | `--primary-foreground` | `arena-50` | `noche-900` |
-| `--secondary` | `arena-200` | `noche-700` |
+| `--secondary` | `arena-300` | `noche-700` |
 | `--secondary-foreground` | `tinta-800` | `crema-100` |
 | `--accent` | `ambar-500` | `#F5B95C` |
 | `--accent-foreground` | `tinta-900` | `noche-900` |
 | `--destructive` | `coral-700` | `#FF8570` |
-| `--border` | `arena-300` | `noche-600` |
+| `--border` | `mix(turquesa-500 18% + arena-300)` | `noche-600` |
 | `--input` | `arena-500` | `noche-500` |
 | `--ring` | `turquesa-700` | `turquesa-400` |
 | `--chart-1..5` | turquesa-500, ámbar-500, coral-500, cielo-500, tinta-600 | idem aclarados |
+| `--tinte-turquesa` / `--tinte-ambar` / `--tinte-neutro` | mezcla del color sobre `--background` (§5.3) | ídem, mezcla más tenue |
+
+> **Actualizado por `docs/plan/2026-08-27-plan-fixes.md` (PR 1).** El modo
+> claro original (§1.7 de ese plan) se leía como un blanco plano: `--background`
+> en `arena-100` y `--card` en `arena-50` diferían ~1.5 % de luminosidad, y
+> `--muted` / `--secondary` compartían tono con el fondo. Cambios: el fondo baja
+> a `arena-200` y las superficies mudas a `arena-300` para que se separen de un
+> vistazo; `--muted-foreground` pasa a `tinta-700` para conservar AA sobre el
+> fondo nuevo; `--border` toma un tinte turquesa (decisión 6) en vez de ser gris
+> cálido; y aparecen los tres `--tinte-*`, el color medio de las bandas quietas
+> de `<FondoSeccion>`. Los pares de §2.3 medidos "sobre arena-100" siguen
+> valiendo como piso: `arena-200` es marginalmente más oscuro, así que el texto
+> `tinta-*` gana contraste, no lo pierde. Falta re-medir con herramienta WCAG
+> `--input` (`arena-500`) sobre `arena-200` — sigue siendo el borde de control y
+> tiene que mantener 3:1.
 
 Dos cosas a notar:
 
 - **`--border` y `--input` son distintos a propósito.** El borde decorativo puede
-  ser suave (`arena-300`); el borde de un control que el usuario tiene que
-  encontrar necesita 3:1 contra el fondo y por eso es `arena-500`. Hoy shadcn los
-  tiene iguales y es una falla de accesibilidad heredada.
+  ser suave (ahora `arena-300` teñido de turquesa); el borde de un control que el
+  usuario tiene que encontrar necesita 3:1 contra el fondo y por eso es
+  `arena-500`. Hoy shadcn los tiene iguales y es una falla de accesibilidad
+  heredada.
 - **`--accent` es ámbar, no un gris.** El default de shadcn usa `accent` como el
   fondo del hover de los ítems de menú. Eso **hay que reasignarlo** a
   `secondary`, o cada hover del interno se va a pintar de ámbar. Es un cambio de
-  una línea por componente y es un paso obligatorio del PR de tokens.
+  una línea por componente y es un paso obligatorio del PR de tokens. El
+  `<select>` nuevo (`components/ui/select.tsx`) ya lo hace: sus opciones usan
+  `--secondary` en `data-highlighted`.
 
 ### 2.3 Contrastes verificados
 
@@ -211,18 +229,25 @@ información neutra.
 
 **Display: Bricolage Grotesque.** Variable, en Google Fonts, con ejes de ancho y
 tamaño óptico. Es una grotesca con quiebres raros que se lee moderna sin ser la
-enésima geométrica. Solo titulares.
+enésima geométrica. Titulares — y desde el PR 1 de la ronda de fixes, también
+los títulos de `/app` y `/portal` (antes eran Inter en todo, lo que se leía como
+"genérico"; ver §1.8 de `docs/plan/2026-08-27-plan-fixes.md`). El cuerpo sigue
+sin tocarla.
 
-**Cuerpo e interfaz: Inter.** Variable, neutra, resuelta en tablas y formularios.
-Es donde el interno vive ocho horas por día y ahí la personalidad es un costo.
+**Cuerpo e interfaz: Geist.** Variable, neutra, resuelta en tablas y formularios.
+Reemplaza a Inter (PR 1 de la ronda de fixes) para cambiar el par tipográfico
+completo sin perder legibilidad en pantallas densas. Es donde el interno vive
+ocho horas por día y ahí la personalidad es un costo. Se carga con la variable
+`--font-geist`; `--font-sans` la apunta. (Alternativa acordada si no rinde en
+`/app`: General Sans vía `next/font/local` — se decidió que Geist alcanzaba.)
 
 **Datos: Geist Mono.** Ya está configurada. Números tabulares, CUIT, fechas,
 contadores `0/X`, ids, código. Es la firma de "estudio de ingeniería" sin invadir
 el cuerpo.
 
-Las tres se cargan con `next/font/google` (`display: "swap"`, subconjunto latino),
-que las autoaloja y elimina la petición a Google — importante porque el CSP del
-sitio no debería tener que abrirse a `fonts.gstatic.com`.
+Bricolage y Geist se cargan con `next/font/google` (`display: "swap"`, subconjunto
+latino), que las autoaloja y elimina la petición a Google — importante porque el
+CSP del sitio no debería tener que abrirse a `fonts.gstatic.com`.
 
 ### Escala
 
@@ -233,15 +258,19 @@ desktop sin explotar en móvil.
 |---|---|---|
 | `--text-hero` | `clamp(3rem, 9vw, 7rem)` | Solo el H1 del hero. Bricolage 800, tracking `-0.03em` |
 | `--text-display` | `clamp(2.25rem, 5vw, 3.75rem)` | H1 de páginas. Bricolage 700 |
-| `--text-h2` | `clamp(1.75rem, 3vw, 2.5rem)` | Bricolage 600 |
-| `--text-h3` | `1.5rem` | Inter 600 |
-| `--text-lead` | `1.25rem` | Inter 400, `line-height: 1.6` |
-| `--text-body` | `1rem` | Inter 400, `line-height: 1.65` |
+| `--text-h2` | `clamp(1.75rem, 3vw, 2.5rem)` | Bricolage 600. H1 de `/portal` |
+| `--text-h3` | `1.5rem` | Bricolage 600. H1 de `/app`, subtítulos |
+| `--text-lead` | `1.25rem` | Geist 400, `line-height: 1.6` |
+| `--text-body` | `1rem` | Geist 400, `line-height: 1.65` |
 | `--text-sm` | `0.875rem` | Interfaz, tablas |
 | `--text-xs` | `0.75rem` | Badges, metadatos. Nunca para texto que haya que leer |
 
 **Reglas:** el ancho de línea máximo del texto largo es `68ch`. Los titulares en
-Bricolage siempre llevan tracking negativo (`-0.02em` a `-0.03em`); Inter, nunca.
+Bricolage siempre llevan tracking negativo (`-0.02em` a `-0.03em`); Geist, nunca.
+Ningún título de `/app` ni `/portal` queda en la fuente de cuerpo — llevan
+`font-heading` más `text-h2` / `text-h3` (PR 1 de la ronda de fixes). Las
+etiquetas chicas de sección (`text-sm font-medium`) no son títulos y siguen en
+Geist.
 
 ---
 

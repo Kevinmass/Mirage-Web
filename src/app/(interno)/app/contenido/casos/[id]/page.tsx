@@ -24,7 +24,7 @@ export default async function PaginaEditarCaso({
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">Editar caso</h1>
+      <h1 className="text-h3 font-heading font-semibold">Editar caso</h1>
       <div className="mt-6">
         <FormularioCaso
           action={actualizarCasoAction.bind(null, caso.id)}

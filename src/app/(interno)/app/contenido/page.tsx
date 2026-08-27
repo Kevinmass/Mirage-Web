@@ -25,7 +25,7 @@ export default async function PaginaContenido() {
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">Contenido</h1>
+      <h1 className="text-h3 font-heading font-semibold">Contenido</h1>
       <p className="text-sm text-muted-foreground">
         Servicios y casos que se muestran en /servicios y /casos.
       </p>
@@ -40,7 +40,7 @@ export default async function PaginaContenido() {
 
       <section className="mt-8">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Servicios</h2>
+          <h2 className="text-lg font-heading font-semibold">Servicios</h2>
           {puedeEditar && (
             <Button
               size="sm"
@@ -106,7 +106,7 @@ export default async function PaginaContenido() {
 
       <section className="mt-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Casos</h2>
+          <h2 className="text-lg font-heading font-semibold">Casos</h2>
           {puedeEditar && (
             <Button
               size="sm"

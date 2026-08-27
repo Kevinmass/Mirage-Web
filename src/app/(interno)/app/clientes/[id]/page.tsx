@@ -94,7 +94,9 @@ export default async function PaginaCliente({
     <main className="mx-auto max-w-5xl px-6 py-10">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold">{cliente.nombre}</h1>
+          <h1 className="text-h3 font-heading font-semibold">
+            {cliente.nombre}
+          </h1>
           <Badge variant={cliente.estado === "activo" ? "primary" : "outline"}>
             {cliente.estado === "activo" ? "Activo" : "Inactivo"}
           </Badge>

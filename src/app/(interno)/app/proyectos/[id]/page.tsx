@@ -92,7 +92,9 @@ export default async function PaginaProyecto({
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{proyecto.nombre}</h1>
+        <h1 className="text-h3 font-heading font-semibold">
+          {proyecto.nombre}
+        </h1>
         <form action={cambiarEstadoProyectoAction.bind(null, proyecto.id)}>
           <select
             name="estado"
@@ -142,7 +144,7 @@ export default async function PaginaProyecto({
       </div>
 
       <div className="mt-8 border-t pt-6">
-        <h2 className="text-lg font-semibold">Equipo</h2>
+        <h2 className="text-lg font-heading font-semibold">Equipo</h2>
         {inscriptos.length === 0 ? (
           <p className="py-2 text-sm text-muted-foreground">
             Todavía nadie está inscripto.
@@ -195,7 +197,7 @@ export default async function PaginaProyecto({
       </div>
 
       <div className="mt-8">
-        <h2 className="text-lg font-semibold">Tareas</h2>
+        <h2 className="text-lg font-heading font-semibold">Tareas</h2>
         <ul className="mt-2">
           {tareas.map((t) => (
             <FilaTarea
@@ -220,7 +222,9 @@ export default async function PaginaProyecto({
           barra de arriba, ni visual ni en el cálculo (eso lo hace
           obtenerProgresoDeProyecto, que ni sabe que esto existe). */}
       <div className="mt-10 border-t pt-6">
-        <h2 className="text-lg font-semibold">Actividad (GitHub)</h2>
+        <h2 className="text-lg font-heading font-semibold">
+          Actividad (GitHub)
+        </h2>
         <p className="text-xs text-muted-foreground">
           Se sincroniza sola cada 30 minutos. Nunca se usa para calcular
           progreso.

@@ -61,7 +61,7 @@ export default async function PaginaNotificaciones({
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Notificaciones</h1>
+        <h1 className="text-h3 font-heading font-semibold">Notificaciones</h1>
         <form action={marcarTodasLeidasAction}>
           <Button
             type="submit"
