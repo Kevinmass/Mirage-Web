@@ -1,10 +1,11 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { publicar } from "@/kernel/eventos/bus";
 import { Conflicto, NoEncontrado } from "@/kernel/errores";
 import { obtenerPersona } from "@/kernel/identidad/personas";
 import { obtenerTitularDeNodo } from "@/kernel/organigrama/arbol";
 import { obtenerCliente } from "@/modules/clientes/api";
+import { listarClientesDePersona } from "@/modules/proyectos/api";
 import { solicitudesMensaje, solicitudesSolicitud } from "./schema";
 
 export type EstadoSolicitud =
@@ -61,17 +62,33 @@ export async function crearSolicitud(
   return creada!;
 }
 
-// Bandeja interna (PR 7.4): todas, sin filtrar por cliente — a
-// diferencia de listarSolicitudesDeCliente, que es la única que puede
-// llamar el portal.
-export async function listarSolicitudes(filtro?: { estado?: EstadoSolicitud }) {
+// Bandeja interna (PR 12, §1.2 del plan de frontend): filtrada por los
+// clientes con los que la persona comparte un proyecto — "solo deberían
+// aparecer los tickets a los usuarios que estén anotados en el proyecto
+// que el cliente esté vinculado" (Solicitudes.md). Una solicitud no
+// queda vinculada a NINGÚN proyecto en particular hasta que se acepta
+// (proyectoId es null antes de eso), así que el filtro no puede ser "el
+// proyecto de esta solicitud" — es "algún proyecto de ese cliente",
+// resuelto por proyectos.listarClientesDePersona. Sin proyectos
+// propios, la bandeja está vacía: es el criterio de aceptación del PR,
+// no un caso raro a tolerar.
+export async function listarSolicitudes(
+  personaId: number,
+  filtro?: { estado?: EstadoSolicitud },
+) {
+  const clienteIds = await listarClientesDePersona(personaId);
+  if (clienteIds.length === 0) return [];
+
   return db
     .select()
     .from(solicitudesSolicitud)
     .where(
-      filtro?.estado
-        ? eq(solicitudesSolicitud.estado, filtro.estado)
-        : undefined,
+      and(
+        inArray(solicitudesSolicitud.clienteId, clienteIds),
+        filtro?.estado
+          ? eq(solicitudesSolicitud.estado, filtro.estado)
+          : undefined,
+      ),
     )
     .orderBy(desc(solicitudesSolicitud.creadoEn));
 }
@@ -284,4 +301,47 @@ export async function listarMensajesVisiblesParaCliente(solicitudId: number) {
       ),
     )
     .orderBy(asc(solicitudesMensaje.creadoEn));
+}
+
+export interface SolicitudConActividad {
+  id: number;
+  clienteId: number;
+  titulo: string;
+  tipo: TipoSolicitud;
+  estado: EstadoSolicitud;
+  creadoEn: Date;
+  // No hay una columna de "leído" en el schema (ninguna migración del
+  // plan de frontend la pide) — esto es una señal derivada, en vivo:
+  // "el último movimiento del hilo fue del cliente y todavía nadie del
+  // equipo contestó", que es lo que la bandeja necesita para el punto
+  // turquesa + negrita (diseño §8.12). Sin mensajes todavía cuenta como
+  // que requiere atención — es una solicitud recién llegada.
+  requiereAtencion: boolean;
+}
+
+// La bandeja de /app/solicitudes (diseño §8.12) necesita la señal de
+// actividad junto con la solicitud — N+1 deliberado, mismo criterio que
+// listarProyectosConDetalle en modules/proyectos/api.ts.
+export async function listarSolicitudesConActividad(
+  personaId: number,
+  filtro?: { estado?: EstadoSolicitud },
+): Promise<SolicitudConActividad[]> {
+  const solicitudes = await listarSolicitudes(personaId, filtro);
+  return Promise.all(
+    solicitudes.map(async (s) => {
+      const mensajes = await listarMensajesDeSolicitud(s.id);
+      const ultimo = mensajes.at(-1);
+      const requiereAtencion =
+        !ultimo || ultimo.personaId === s.creadaPorPersonaId;
+      return {
+        id: s.id,
+        clienteId: s.clienteId,
+        titulo: s.titulo,
+        tipo: s.tipo,
+        estado: s.estado,
+        creadoEn: s.creadoEn,
+        requiereAtencion,
+      };
+    }),
+  );
 }

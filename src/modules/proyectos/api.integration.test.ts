@@ -382,7 +382,12 @@ describe("modules/proyectos api", () => {
     await api.asignarPersonaATarea(tarea.id, null);
 
     expect(recibidos).toEqual([
-      { tareaId: tarea.id, personaId: empleado!.id, titulo: "Maquetar home" },
+      {
+        tareaId: tarea.id,
+        personaId: empleado!.id,
+        titulo: "Maquetar home",
+        proyectoId: proyecto.id,
+      },
     ]);
 
     bus._reiniciarParaTests();

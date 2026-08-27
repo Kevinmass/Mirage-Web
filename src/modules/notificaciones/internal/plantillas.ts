@@ -165,3 +165,40 @@ export function renderizarPlantilla(
   const renderizador = PLANTILLAS[plantilla];
   return renderizador ? renderizador(datos) : generica(plantilla, datos);
 }
+
+// La campana del interno (diseño §8.13): "cada notificación es un
+// enlace a su origen". Los hrefs de acá son SIEMPRE rutas de /app —
+// esta función solo la usa la campana interna (obtenerSesionActual ya
+// garantiza que quien la ve es un empleado). solicitud.aceptada,
+// solicitud.rechazada y auth.recuperar-password no tienen un origen de
+// /app: las dos primeras siempre viajan a la persona que creó el
+// pedido (un contacto_cliente, que nunca puede entrar a /app — ver
+// decidirAcceso), y la tercera no es un evento del bus. Si el interno
+// alguna vez necesita ver esas, hace falta un resolver aparte para
+// /portal, no estirar este.
+export function resolverEnlaceInterno(
+  plantilla: string,
+  datos: unknown,
+): string | null {
+  switch (plantilla) {
+    case "cliente.creado":
+      return `/app/clientes/${(datos as { clienteId: number }).clienteId}`;
+    case "proyecto.creado":
+    case "proyecto.estado_cambiado":
+      return `/app/proyectos/${(datos as { proyectoId: number }).proyectoId}`;
+    case "tarea.asignada":
+      return `/app/proyectos/${(datos as { proyectoId: number }).proyectoId}`;
+    case "solicitud.creada":
+    case "solicitud.mensaje_agregado":
+      return `/app/solicitudes/${(datos as { solicitudId: number }).solicitudId}`;
+    default:
+      return null;
+  }
+}
+
+// El nombre de módulo (antes del primer punto) alcanza como categoría
+// de filtro (diseño §8.13: "filtros por tipo") — no hay una taxonomía
+// de producto más fina que valga la pena mantener aparte.
+export function tipoDeNotificacion(plantilla: string): string {
+  return plantilla.split(".")[0]!;
+}

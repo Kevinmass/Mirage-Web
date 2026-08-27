@@ -33,5 +33,12 @@ export const notificacionesNotificacion = pgTable(
       .defaultNow(),
     ultimoIntentoEn: timestamp("ultimo_intento_en", { withTimezone: true }),
     enviadoEn: timestamp("enviado_en", { withTimezone: true }),
+    // PR 12: la campana del interno necesita leído/no leído, y esta
+    // fila ya es "una notificación para esta persona, sobre este
+    // evento" — reusar la cola de mails en vez de crear una tabla
+    // nueva para el feed en pantalla (mismo dato, dos consumidores:
+    // el worker de mail y la campana). Nullable porque toda fila
+    // existente antes de este PR nace sin leer.
+    leidaEn: timestamp("leida_en", { withTimezone: true }),
   },
 );

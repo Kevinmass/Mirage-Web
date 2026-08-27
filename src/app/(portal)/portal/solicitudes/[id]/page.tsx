@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { NoEncontrado } from "@/kernel/errores";
 import { obtenerSesionPortal } from "@/lib/sesion-portal";
+import { tiempoRelativo } from "@/lib/tiempo-relativo";
 import {
   listarMensajesVisiblesParaCliente,
   obtenerSolicitudDeCliente,
@@ -13,6 +16,16 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   en_evaluacion: "En evaluación",
   aceptada: "Aceptada",
   rechazada: "Rechazada",
+};
+
+const VARIANTE_ESTADO: Record<
+  string,
+  "outline" | "accent" | "primary" | "destructive"
+> = {
+  recibida: "outline",
+  en_evaluacion: "accent",
+  aceptada: "primary",
+  rechazada: "destructive",
 };
 
 const ETIQUETA_TIPO: Record<string, string> = {
@@ -68,22 +81,23 @@ export default async function PaginaSolicitudPortal({
       <div>
         <Link
           href="/portal/solicitudes"
-          className="text-sm text-muted-foreground hover:underline"
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Tus solicitudes
+          <ArrowLeft className="size-4" aria-hidden />
+          Tus solicitudes
         </Link>
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-2 flex items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold">{solicitud.titulo}</h1>
-          <span className="text-sm text-muted-foreground">
+          <Badge variant={VARIANTE_ESTADO[solicitud.estado]}>
             {ETIQUETA_ESTADO[solicitud.estado]}
-          </span>
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
           {ETIQUETA_TIPO[solicitud.tipo]}
         </p>
       </div>
 
-      <p className="whitespace-pre-wrap rounded-lg border bg-background p-4">
+      <p className="rounded-lg bg-muted p-4 whitespace-pre-wrap">
         {solicitud.descripcion}
       </p>
 
@@ -95,17 +109,28 @@ export default async function PaginaSolicitudPortal({
           </p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {mensajes.map((m) => (
-              <li key={m.id} className="rounded-lg border bg-background p-4">
-                <p className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {m.personaId === sesion.personaId ? "Vos" : "Mirage"}
-                  </span>
-                  <span>{new Date(m.creadoEn).toLocaleString("es-AR")}</span>
-                </p>
-                <p className="mt-1 whitespace-pre-wrap">{m.cuerpo}</p>
-              </li>
-            ))}
+            {mensajes.map((m) => {
+              const esMio = m.personaId === sesion.personaId;
+              const fecha = new Date(m.creadoEn);
+              return (
+                <li
+                  key={m.id}
+                  className={
+                    esMio
+                      ? "max-w-[85%] self-start rounded-lg rounded-bl-none bg-muted p-4"
+                      : "max-w-[85%] self-end rounded-lg rounded-br-none bg-turquesa-50 p-4"
+                  }
+                >
+                  <p className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+                    <span>{esMio ? "Vos" : "Mirage"}</span>
+                    <span title={fecha.toLocaleString("es-AR")}>
+                      {tiempoRelativo(fecha)}
+                    </span>
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">{m.cuerpo}</p>
+                </li>
+              );
+            })}
           </ul>
         )}
 

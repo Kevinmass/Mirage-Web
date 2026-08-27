@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import { db } from "@/db/client";
 import { registrarEvento } from "@/kernel/auditoria/registro";
 import { esViolacionDeUnicidad } from "@/kernel/db-utils";
@@ -277,6 +277,7 @@ export async function asignarPersonaATarea(
       tareaId: id,
       personaId,
       titulo: tarea.titulo,
+      proyectoId: tarea.proyectoId,
     });
   }
   return actualizada!;
@@ -435,6 +436,32 @@ export async function listarProyectosDePersona(
     .from(proyectosInscripcion)
     .where(eq(proyectosInscripcion.personaId, personaId));
   return filas.map((f) => f.proyectoId);
+}
+
+// Solicitudes filtra su bandeja interna por esto (diseño: "solo
+// deberían aparecer los tickets a los usuarios que estén anotados en
+// el proyecto que el cliente esté vinculado" — Solicitudes.md). Un
+// cliente puede tener varios proyectos y una solicitud no queda
+// vinculada a ninguno en particular hasta que se acepta, así que el
+// filtro es "algún proyecto de ese cliente", no "el proyecto de esta
+// solicitud". Proyectos sin cliente (clienteId null) no aportan nada acá.
+export async function listarClientesDePersona(
+  personaId: number,
+): Promise<number[]> {
+  const filas = await db
+    .selectDistinct({ clienteId: proyectosProyecto.clienteId })
+    .from(proyectosInscripcion)
+    .innerJoin(
+      proyectosProyecto,
+      eq(proyectosProyecto.id, proyectosInscripcion.proyectoId),
+    )
+    .where(
+      and(
+        eq(proyectosInscripcion.personaId, personaId),
+        isNotNull(proyectosProyecto.clienteId),
+      ),
+    );
+  return filas.map((f) => f.clienteId!);
 }
 
 export interface ProyectoConDetalle {

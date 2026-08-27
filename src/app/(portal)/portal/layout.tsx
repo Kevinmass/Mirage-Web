@@ -14,6 +14,12 @@ export const dynamic = "force-dynamic";
 // explicación de qué está pasando, nada del organigrama ni de la
 // estructura interna de Mirage (diseño §8) — acá solo aparece "Mirage"
 // y el nombre del cliente, nunca un nodo ni una asignación.
+const NAV_PORTAL = [
+  { href: "/portal", etiqueta: "Inicio" },
+  { href: "/portal/solicitudes", etiqueta: "Solicitudes" },
+  { href: "/portal/proyectos", etiqueta: "Proyectos" },
+];
+
 export default async function LayoutPortal({
   children,
 }: {
@@ -24,11 +30,14 @@ export default async function LayoutPortal({
 
   return (
     <div className="min-h-full bg-muted/30">
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-8 py-6">
-          <div className="flex items-center gap-8">
+      <header className="border-b border-border bg-background">
+        <div className="mx-auto flex max-w-[1000px] items-center justify-between px-8 py-6">
+          <div className="flex items-center gap-10">
             <div>
-              <Link href="/portal" className="text-lg font-semibold">
+              <Link
+                href="/portal"
+                className="font-heading text-lg font-bold text-foreground"
+              >
                 Mirage
               </Link>
               {cliente && (
@@ -38,19 +47,16 @@ export default async function LayoutPortal({
               )}
             </div>
             {sesion && (
-              <nav className="flex gap-4">
-                <Link
-                  href="/portal/solicitudes"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Solicitudes
-                </Link>
-                <Link
-                  href="/portal/proyectos"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Proyectos
-                </Link>
+              <nav className="flex gap-6">
+                {NAV_PORTAL.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {item.etiqueta}
+                  </Link>
+                ))}
               </nav>
             )}
           </div>
@@ -63,7 +69,7 @@ export default async function LayoutPortal({
           )}
         </div>
       </header>
-      <div className="mx-auto max-w-4xl px-8 py-10">{children}</div>
+      <div className="mx-auto max-w-[1000px] px-8 py-12">{children}</div>
     </div>
   );
 }

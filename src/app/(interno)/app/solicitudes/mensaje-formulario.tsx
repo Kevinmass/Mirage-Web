@@ -2,13 +2,15 @@
 
 import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { agregarMensajeAction, type EstadoFormulario } from "./actions";
 
 // Criterio de aceptación (PR 7.4): el interruptor interno/visible al
 // cliente tiene que ser "imposible de confundir" — no alcanza con la
 // etiqueta del checkbox. Por eso el fondo de todo el formulario cambia
-// (ámbar = interno, no solo el checkbox) y hay un texto explícito al
-// lado, no solo el estado del control.
+// (acento = interno, no solo el checkbox) y hay un texto explícito al
+// lado, no solo el estado del control. `accent` es el token semántico
+// (ámbar) del sistema visual, no un color literal.
 export function FormularioMensaje({ solicitudId }: { solicitudId: number }) {
   const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
     agregarMensajeAction.bind(null, solicitudId),
@@ -19,9 +21,10 @@ export function FormularioMensaje({ solicitudId }: { solicitudId: number }) {
   return (
     <form
       action={accion}
-      className={`flex flex-col gap-2 rounded-md border p-3 text-sm ${
-        visibleParaCliente ? "" : "border-amber-400 bg-amber-50"
-      }`}
+      className={cn(
+        "flex flex-col gap-2 rounded-md border border-border p-3 text-sm",
+        !visibleParaCliente && "border-accent bg-accent/10",
+      )}
     >
       <textarea
         name="cuerpo"
@@ -32,7 +35,7 @@ export function FormularioMensaje({ solicitudId }: { solicitudId: number }) {
             ? "Escribir una respuesta que va a ver el cliente…"
             : "Escribir una nota interna — el cliente no la va a ver…"
         }
-        className="rounded-md border px-2 py-1"
+        className="rounded-md border border-input bg-card px-2 py-1"
       />
       <label className="flex items-center gap-2">
         <input
@@ -45,7 +48,7 @@ export function FormularioMensaje({ solicitudId }: { solicitudId: number }) {
           className={
             visibleParaCliente
               ? "text-muted-foreground"
-              : "font-medium text-amber-800"
+              : "font-medium text-accent-foreground"
           }
         >
           {visibleParaCliente

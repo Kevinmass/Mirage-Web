@@ -17,14 +17,14 @@ export function FormularioMensajePortal({
   return (
     <form
       action={accion}
-      className="flex flex-col gap-2 rounded-lg border bg-background p-4"
+      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4"
     >
       <textarea
         name="cuerpo"
         required
         rows={3}
         placeholder="Escribir una respuesta…"
-        className="rounded-md border px-3 py-2"
+        className="rounded-md border border-input bg-card px-3 py-2 text-sm text-card-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-turquesa-200 focus-visible:outline-none"
       />
       {estado.error && (
         <p className="text-sm text-destructive">{estado.error}</p>
