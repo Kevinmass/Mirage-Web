@@ -5,7 +5,6 @@ import DarkVeil from "@/components/DarkVeil";
 import LightRays from "@/components/LightRays";
 import Prism from "@/components/Prism";
 import SoftAurora from "@/components/SoftAurora";
-import { CanvasHero } from "@/components/espejismo-hero/canvas-hero";
 import { tokenAHex } from "@/lib/color-token";
 
 // Harness de comparación para el PR 2 de la ronda de fixes (paso 2): elegir
@@ -13,25 +12,22 @@ import { tokenAHex } from "@/lib/color-token";
 // candidato por vez (un contexto WebGL a la vez), con el <h1>/bajada reales
 // encima para juzgar legibilidad, y una ficha de qué hace cada uno.
 //
+// El hero ya quedó en Prism (modo 'rotate', matiz que rota solo). El harness
+// se conserva para volver a comparar si hace falta y para tunear los otros
+// fondos de la landing.
+//
 // Los colores salen de los tokens de globals.css vía tokenAHex(): el harness
 // no tiene un color literal. Prism y DarkVeil no aceptan color, solo rotan
 // el matiz — para esos hay un slider de hueShift.
 
-type Id = "canvas-hero" | "prism" | "light-rays" | "soft-aurora" | "dark-veil";
+type Id = "prism" | "light-rays" | "soft-aurora" | "dark-veil";
 
 const FICHAS: Record<
   Id,
   { nombre: string; dep: string; solo: string; mouse: string; lee: string }
 > = {
-  "canvas-hero": {
-    nombre: "canvas-hero (actual)",
-    dep: "ogl (ya instalado)",
-    solo: "Ondulación ambiente lenta, hoy imperceptible (§1.1)",
-    mouse: "Estela de calor que sigue y deforma el campo",
-    lee: "Degradé arena→turquesa que ondula; sin capas ni refracción",
-  },
   prism: {
-    nombre: "Prism",
+    nombre: "Prism (elegido)",
     dep: "ogl (ya instalado)",
     solo: "Sí — haces refractados girando (animationType 'rotate')",
     mouse: "Solo en modo 'hover' / '3drotate' (abajo se cambia)",
@@ -60,13 +56,7 @@ const FICHAS: Record<
   },
 };
 
-const ORDEN: Id[] = [
-  "prism",
-  "light-rays",
-  "soft-aurora",
-  "canvas-hero",
-  "dark-veil",
-];
+const ORDEN: Id[] = ["prism", "light-rays", "soft-aurora", "dark-veil"];
 
 type Colores = {
   turquesa400: string;
@@ -121,12 +111,13 @@ export function ComparadorHero() {
           <Prism
             animationType={prismMode}
             hueShift={hueShift}
+            hueShiftSpeed={(2 * Math.PI) / 10}
             colorFrequency={1}
-            glow={0.6}
-            bloom={0.8}
-            noise={0.3}
-            scale={3.6}
-            timeScale={0.5}
+            glow={0.7}
+            bloom={0.9}
+            noise={0.4}
+            scale={3.4}
+            timeScale={0.4}
             hoverStrength={1.5}
             suspendWhenOffscreen
           />
@@ -167,7 +158,6 @@ export function ComparadorHero() {
             warpAmount={2}
           />
         )}
-        {id === "canvas-hero" && <CanvasHero activo />}
       </div>
 
       {/* El hero real encima, para juzgar contraste y legibilidad. */}
