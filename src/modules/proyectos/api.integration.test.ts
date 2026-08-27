@@ -11,6 +11,12 @@ import {
 } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
 import { asignacion, nodo } from "@/kernel/organigrama/schema";
+import {
+  capacidad,
+  personaRol,
+  rol,
+  rolCapacidad,
+} from "@/kernel/permisos/schema";
 
 // Contra Postgres real en un contenedor efímero, no mocks (diseño §10).
 //
@@ -23,6 +29,7 @@ describe("modules/proyectos api", () => {
   let clientesApi: typeof import("@/modules/clientes/api");
   let db: (typeof import("@/db/client"))["db"];
   let client: (typeof import("@/db/client"))["client"];
+  let rolConPermiso: { id: number };
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer("postgres:17-alpine").start();
@@ -33,14 +40,35 @@ describe("modules/proyectos api", () => {
     clientesApi = await import("@/modules/clientes/api");
 
     await migrate(db, { migrationsFolder: "./src/db/migrations" });
+
+    // capacidad/rol/rol_capacidad no se truncan en beforeEach (no
+    // dependen de persona) — se arman una sola vez acá. personaRol sí
+    // se pierde en cada truncate de persona (cascade), por eso
+    // armarClienteYNodo() lo vuelve a otorgar en cada test.
+    await db.insert(capacidad).values({
+      clave: "proyectos.editar",
+      modulo: "proyectos",
+      descripcion: "Crear y editar proyectos y tareas.",
+    });
+    [rolConPermiso] = await db
+      .insert(rol)
+      .values({ nombre: "editor de proyectos" })
+      .returning();
+    await db
+      .insert(rolCapacidad)
+      .values({ rolId: rolConPermiso.id, capacidadClave: "proyectos.editar" });
   });
 
   beforeEach(async () => {
+    // persona_rol no tiene FK real a persona todavía (ver
+    // kernel/permisos/schema.ts) — el truncate cascade de `persona` no
+    // la alcanza, así que se trunca acá a mano o quedan filas
+    // huérfanas que colisionan cuando el id de persona se reinicia.
     await db.execute(sql`
       truncate table
         proyectos_repositorio_snapshot, proyectos_repositorio,
         proyectos_inscripcion, proyectos_tarea, proyectos_proyecto,
-        clientes_cliente, asignacion, nodo, persona
+        clientes_cliente, asignacion, nodo, persona, persona_rol
       restart identity cascade
     `);
   });
@@ -74,7 +102,13 @@ describe("modules/proyectos api", () => {
       nodoResponsableId: n!.id,
       contactoDirectoId: p!.id,
     });
-    return { nodo: n!, cliente };
+    // Con capacidad proyectos.editar — el actor por defecto de los
+    // tests que crean o mueven tareas. personaRol no sobrevive el
+    // truncate de persona entre tests, así que se otorga de nuevo acá.
+    await db
+      .insert(personaRol)
+      .values({ personaId: p!.id, rolId: rolConPermiso.id });
+    return { nodo: n!, cliente, persona: p! };
   }
 
   it("crearProyecto exige un cliente existente", async () => {
@@ -189,7 +223,7 @@ describe("modules/proyectos api", () => {
   });
 
   it("crearTarea exige un proyecto y un nodo responsable existentes", async () => {
-    const { nodo: n, cliente } = await armarClienteYNodo();
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
     const proyecto = await api.crearProyecto({
       clienteId: cliente.id,
       nombre: "Sitio nuevo",
@@ -197,43 +231,101 @@ describe("modules/proyectos api", () => {
     });
 
     await expect(
-      api.crearTarea(999_999, { titulo: "X", nodoResponsableId: n.id }),
+      api.crearTarea(actor.id, 999_999, {
+        titulo: "X",
+        nodoResponsableId: n.id,
+      }),
     ).rejects.toThrow(NoEncontrado);
     await expect(
-      api.crearTarea(proyecto.id, {
+      api.crearTarea(actor.id, proyecto.id, {
         titulo: "X",
         nodoResponsableId: 999_999,
       }),
     ).rejects.toThrow(NoEncontrado);
   });
 
-  it("cambiarEstadoTarea a hecha marca completadaEn, y volver atrás la limpia", async () => {
+  it("crearTarea tira NoAutorizado sin la capacidad proyectos.editar", async () => {
     const { nodo: n, cliente } = await armarClienteYNodo();
     const proyecto = await api.crearProyecto({
       clienteId: cliente.id,
       nombre: "Sitio nuevo",
       nodoResponsableId: n.id,
     });
-    const tarea = await api.crearTarea(proyecto.id, {
+    const [sinPermiso] = await db
+      .insert(persona)
+      .values({
+        nombre: "Sin",
+        apellido: "Permiso",
+        email: "sin-permiso@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+
+    await expect(
+      api.crearTarea(sinPermiso!.id, proyecto.id, {
+        titulo: "X",
+        nodoResponsableId: n.id,
+      }),
+    ).rejects.toThrow(NoAutorizado);
+  });
+
+  it("cambiarEstadoTarea a hecha marca completadaEn, y volver atrás la limpia", async () => {
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const tarea = await api.crearTarea(actor.id, proyecto.id, {
       titulo: "Maquetar home",
       nodoResponsableId: n.id,
     });
 
-    const hecha = await api.cambiarEstadoTarea(tarea.id, "hecha");
+    const hecha = await api.cambiarEstadoTarea(actor.id, tarea.id, "hecha");
     expect(hecha.completadaEn).not.toBeNull();
 
-    const vueltaAtras = await api.cambiarEstadoTarea(tarea.id, "en_curso");
+    const vueltaAtras = await api.cambiarEstadoTarea(
+      actor.id,
+      tarea.id,
+      "en_curso",
+    );
     expect(vueltaAtras.completadaEn).toBeNull();
   });
 
-  it("asignarPersonaATarea exige que la persona exista, y permite desasignar", async () => {
-    const { nodo: n, cliente } = await armarClienteYNodo();
+  it("cambiarEstadoTarea tira NoAutorizado sin la capacidad proyectos.editar", async () => {
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
     const proyecto = await api.crearProyecto({
       clienteId: cliente.id,
       nombre: "Sitio nuevo",
       nodoResponsableId: n.id,
     });
-    const tarea = await api.crearTarea(proyecto.id, {
+    const tarea = await api.crearTarea(actor.id, proyecto.id, {
+      titulo: "Maquetar home",
+      nodoResponsableId: n.id,
+    });
+    const [sinPermiso] = await db
+      .insert(persona)
+      .values({
+        nombre: "Sin",
+        apellido: "Permiso",
+        email: "sin-permiso2@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+
+    await expect(
+      api.cambiarEstadoTarea(sinPermiso!.id, tarea.id, "hecha"),
+    ).rejects.toThrow(NoAutorizado);
+  });
+
+  it("asignarPersonaATarea exige que la persona exista, y permite desasignar", async () => {
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const tarea = await api.crearTarea(actor.id, proyecto.id, {
       titulo: "Maquetar home",
       nodoResponsableId: n.id,
     });
@@ -260,13 +352,13 @@ describe("modules/proyectos api", () => {
 
   it("asignarPersonaATarea publica tarea.asignada con el título, y no publica al desasignar", async () => {
     const bus = await import("@/kernel/eventos/bus");
-    const { nodo: n, cliente } = await armarClienteYNodo();
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
     const proyecto = await api.crearProyecto({
       clienteId: cliente.id,
       nombre: "Sitio nuevo",
       nodoResponsableId: n.id,
     });
-    const tarea = await api.crearTarea(proyecto.id, {
+    const tarea = await api.crearTarea(actor.id, proyecto.id, {
       titulo: "Maquetar home",
       nodoResponsableId: n.id,
     });
@@ -295,25 +387,25 @@ describe("modules/proyectos api", () => {
   });
 
   it("obtenerProgresoDeProyecto cuenta tareas hechas sobre el total", async () => {
-    const { nodo: n, cliente } = await armarClienteYNodo();
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
     const proyecto = await api.crearProyecto({
       clienteId: cliente.id,
       nombre: "Sitio nuevo",
       nodoResponsableId: n.id,
     });
-    const t1 = await api.crearTarea(proyecto.id, {
+    const t1 = await api.crearTarea(actor.id, proyecto.id, {
       titulo: "Uno",
       nodoResponsableId: n.id,
     });
-    await api.crearTarea(proyecto.id, {
+    await api.crearTarea(actor.id, proyecto.id, {
       titulo: "Dos",
       nodoResponsableId: n.id,
     });
-    await api.crearTarea(proyecto.id, {
+    await api.crearTarea(actor.id, proyecto.id, {
       titulo: "Tres",
       nodoResponsableId: n.id,
     });
-    await api.cambiarEstadoTarea(t1.id, "hecha");
+    await api.cambiarEstadoTarea(actor.id, t1.id, "hecha");
 
     const progreso = await api.obtenerProgresoDeProyecto(proyecto.id);
 
@@ -342,7 +434,7 @@ describe("modules/proyectos api", () => {
   });
 
   it("listarTareas filtra por nodo, por persona y por lista de nodos, y excluye hechas", async () => {
-    const { nodo: n, cliente } = await armarClienteYNodo();
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
     const [otroNodo] = await db
       .insert(nodo)
       .values({ nombre: "Ventas", padreId: n.id })
@@ -361,16 +453,16 @@ describe("modules/proyectos api", () => {
       nombre: "Sitio nuevo",
       nodoResponsableId: n.id,
     });
-    const enDesarrollo = await api.crearTarea(proyecto.id, {
+    const enDesarrollo = await api.crearTarea(actor.id, proyecto.id, {
       titulo: "En desarrollo",
       nodoResponsableId: n.id,
     });
-    await api.crearTarea(proyecto.id, {
+    await api.crearTarea(actor.id, proyecto.id, {
       titulo: "En ventas",
       nodoResponsableId: otroNodo!.id,
     });
     await api.asignarPersonaATarea(enDesarrollo.id, empleado!.id);
-    await api.cambiarEstadoTarea(enDesarrollo.id, "hecha");
+    await api.cambiarEstadoTarea(actor.id, enDesarrollo.id, "hecha");
 
     expect(
       (await api.listarTareas({ nodoResponsableId: n.id })).map(

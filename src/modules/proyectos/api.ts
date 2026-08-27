@@ -11,6 +11,7 @@ import {
 import { obtenerPersona } from "@/kernel/identidad/personas";
 import { persona } from "@/kernel/identidad/schema";
 import { obtenerNodo, obtenerTitularDeNodo } from "@/kernel/organigrama/arbol";
+import { requiere } from "@/kernel/permisos/evaluar";
 import { obtenerCliente } from "@/modules/clientes/api";
 import { obtenerDatosDeRepositorio } from "./internal/github";
 import {
@@ -134,11 +135,14 @@ export async function cambiarEstadoProyecto(
 }
 
 export type EstadoTarea = "pendiente" | "en_curso" | "bloqueada" | "hecha";
+export type PrioridadTarea = "baja" | "media" | "alta";
 
 export interface DatosTarea {
   titulo: string;
   descripcion?: string;
   nodoResponsableId: number;
+  prioridad?: PrioridadTarea;
+  empiezaEn?: Date;
   venceEn?: Date;
 }
 
@@ -160,7 +164,16 @@ export async function obtenerTarea(id: number) {
   return fila;
 }
 
-export async function crearTarea(proyectoId: number, datos: DatosTarea) {
+// Quién puede crear una tarea sale del sistema de roles que ya existe
+// (diseño §8.11, PR 11) — no se decide en el componente del Kanban.
+// Segundo uso real de kernel/permisos/evaluar.requiere() en todo el
+// repo, después de contenido.editar (PR 4/5).
+export async function crearTarea(
+  personaId: number,
+  proyectoId: number,
+  datos: DatosTarea,
+) {
+  await requiere(personaId, "proyectos.editar");
   await obtenerProyecto(proyectoId);
   await obtenerNodo(datos.nodoResponsableId);
 
@@ -187,8 +200,15 @@ export async function actualizarTarea(id: number, datos: Partial<DatosTarea>) {
 
 // completadaEn se deriva del estado, no se pide aparte: 'hecha' la
 // marca con la fecha, cualquier otro estado la limpia (p.ej. si una
-// tarea marcada hecha por error vuelve a en_curso).
-export async function cambiarEstadoTarea(id: number, nuevoEstado: EstadoTarea) {
+// tarea marcada hecha por error vuelve a en_curso). Quién puede mover
+// una tarjeta entre columnas del Kanban pasa por el mismo permiso que
+// crearla (diseño §8.11).
+export async function cambiarEstadoTarea(
+  personaId: number,
+  id: number,
+  nuevoEstado: EstadoTarea,
+) {
+  await requiere(personaId, "proyectos.editar");
   await obtenerTarea(id);
 
   const [actualizada] = await db
@@ -496,16 +516,20 @@ export interface TareaConProyecto {
   id: number;
   titulo: string;
   estado: EstadoTarea;
+  prioridad: PrioridadTarea;
   nodoResponsableId: number;
   personaAsignadaId: number | null;
+  empiezaEn: Date | null;
   venceEn: Date | null;
   proyectoId: number;
   proyectoNombre: string;
+  proyectoColor: string | null;
 }
 
 export interface FiltroTareas {
   nodoResponsableId?: number;
   personaAsignadaId?: number;
+  proyectoId?: number;
   // Para "mis tareas" (PR 5.3): tareas cuyo nodo responsable es uno de
   // los que ocupa la persona que mira la pantalla.
   nodoResponsableIdEntre?: number[];
@@ -530,6 +554,9 @@ export async function listarTareas(
       eq(proyectosTarea.personaAsignadaId, filtro.personaAsignadaId),
     );
   }
+  if (filtro.proyectoId !== undefined) {
+    condiciones.push(eq(proyectosTarea.proyectoId, filtro.proyectoId));
+  }
   if (filtro.nodoResponsableIdEntre !== undefined) {
     condiciones.push(
       filtro.nodoResponsableIdEntre.length > 0
@@ -552,11 +579,14 @@ export async function listarTareas(
       id: proyectosTarea.id,
       titulo: proyectosTarea.titulo,
       estado: proyectosTarea.estado,
+      prioridad: proyectosTarea.prioridad,
       nodoResponsableId: proyectosTarea.nodoResponsableId,
       personaAsignadaId: proyectosTarea.personaAsignadaId,
+      empiezaEn: proyectosTarea.empiezaEn,
       venceEn: proyectosTarea.venceEn,
       proyectoId: proyectosTarea.proyectoId,
       proyectoNombre: proyectosProyecto.nombre,
+      proyectoColor: proyectosProyecto.color,
     })
     .from(proyectosTarea)
     .innerJoin(
