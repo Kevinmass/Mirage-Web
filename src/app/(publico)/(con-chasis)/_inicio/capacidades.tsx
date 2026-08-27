@@ -1,13 +1,9 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
   CardDescription,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 const CAPACIDADES = [
   {
@@ -27,63 +23,29 @@ const CAPACIDADES = [
   },
 ];
 
-// "card-swap" de React Bits, reteñido (§6.8) — acá, una pila que rota
-// sola cada 5s y se puede agarrar clickeando cualquier carta para
-// traerla al frente. No trae la física de arrastre de la librería
-// original: agarrar-y-soltar con inercia es browser-only y GSAP, y no
-// cambia lo que la sección comunica.
+// Las tres capacidades, visibles a la vez (PR 3 §1 del plan de fixes,
+// adelantado: el card-swap casero rotaba solo, era angosto y no se
+// entendía como interactivo — la queja de §1.5). Son tres puntos de
+// información, no una navegación: no hay estado, no hay JS, no rotan. El
+// hover es solo un realce de "está vivo", no promete un click.
 export function Capacidades() {
-  const [activa, setActiva] = useState(0);
-  const [enPausa, setEnPausa] = useState(false);
-
-  useEffect(() => {
-    if (enPausa) return;
-    const id = setInterval(() => {
-      setActiva((valor) => (valor + 1) % CAPACIDADES.length);
-    }, 5000);
-    return () => clearInterval(id);
-  }, [enPausa]);
-
   return (
-    <div
-      className="relative mx-auto h-72 w-full max-w-sm sm:max-w-md"
-      onMouseEnter={() => setEnPausa(true)}
-      onMouseLeave={() => setEnPausa(false)}
-    >
-      {CAPACIDADES.map((capacidad, indice) => {
-        const desplazamiento =
-          (indice - activa + CAPACIDADES.length) % CAPACIDADES.length;
-        return (
-          <button
-            key={capacidad.titulo}
-            type="button"
-            onClick={() => setActiva(indice)}
-            aria-label={`Mostrar "${capacidad.titulo}"`}
-            aria-current={desplazamiento === 0}
-            style={{
-              zIndex: CAPACIDADES.length - desplazamiento,
-              transform: `translateY(${desplazamiento * 14}px) scale(${1 - desplazamiento * 0.05})`,
-            }}
-            className="absolute inset-0 text-left transition-[transform,opacity] duration-(--dur-media) ease-(--ease-suave) motion-reduce:transition-none"
-          >
-            <Card
-              className={cn(
-                "h-full justify-center px-2 shadow-lg transition-shadow",
-                desplazamiento === 0 ? "shadow-lg" : "shadow-sm",
-              )}
-            >
-              <CardContent className="flex flex-col gap-3">
-                <CardTitle className="text-h3 font-heading">
-                  {capacidad.titulo}
-                </CardTitle>
-                <CardDescription className="text-body">
-                  {capacidad.descripcion}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </button>
-        );
-      })}
+    <div className="grid gap-4 sm:grid-cols-3">
+      {CAPACIDADES.map((capacidad) => (
+        <Card
+          key={capacidad.titulo}
+          className="h-full transition-[transform,box-shadow] duration-(--dur-rapida) ease-(--ease-suave) hover:-translate-y-1 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        >
+          <CardContent className="flex h-full flex-col gap-3 py-2">
+            <CardTitle className="text-h3 font-heading">
+              {capacidad.titulo}
+            </CardTitle>
+            <CardDescription className="text-body">
+              {capacidad.descripcion}
+            </CardDescription>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

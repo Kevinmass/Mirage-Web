@@ -1,16 +1,17 @@
 import { ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { FondoHero } from "./fondo-hero";
 
 // La portada de /  — §8.1 punto 1. El <h1> y la bajada son HTML del
 // servidor: no dependen de que el fondo WebGL exista ni cargue, así que
-// nunca participan del LCP del fondo. El fondo es enteramente decorativo
-// (aria-hidden en cada capa) y vive detrás en -z-10.
+// nunca participan del LCP del fondo.
+//
+// El fondo (Prism) ya no vive acá: lo monta page.tsx para que el hero y la
+// sección "Qué hacemos" lo compartan sin un corte brusco entre ambas (PR 2
+// de la ronda de fixes, pedido de Kevin).
 export function EspejismoHero() {
   return (
-    <section className="relative flex min-h-[calc(100vh-5rem)] items-center overflow-hidden">
-      <FondoHero />
+    <section className="relative flex min-h-[calc(100vh-5rem)] items-center">
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-start gap-6 px-6 py-32">
         <h1 className="text-hero font-heading font-extrabold tracking-[-0.03em] text-crema-100 drop-shadow-sm">
           Mirage

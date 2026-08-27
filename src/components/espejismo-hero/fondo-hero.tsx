@@ -1,71 +1,60 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
-import { PosterHero } from "./poster-hero";
+import { useEffect, useState } from "react";
+import { FondoSeccion } from "@/components/fondo-seccion";
 
-const CanvasHeroDinamico = dynamic(
-  () => import("./canvas-hero").then((m) => m.CanvasHero),
-  { ssr: false, loading: () => <PosterHero /> },
+const HeroPrismDinamico = dynamic(
+  () => import("./hero-prism").then((m) => m.HeroPrism),
+  { ssr: false, loading: () => <PosterEstatico /> },
 );
 
-// Decide WebGL o póster (§5.2, obligaciones técnicas del PR 3) y, si es
-// WebGL, si el RAF corre o no. Nunca decide el <h1>/la bajada — esos son
-// HTML del servidor, hermanos de este componente, no hijos.
+function PosterEstatico() {
+  return <FondoSeccion tinte="turquesa" className="absolute inset-0" />;
+}
+
+// Decide WebGL (Prism) o póster estático. Nunca decide el <h1>/la bajada —
+// esos son HTML del servidor, hermanos de este componente, no hijos.
+//
+// PR 2 de la ronda de fixes:
+//  - §1.2: el póster deja de dispararse por `hardwareConcurrency <= 4` y por
+//    ancho de pantalla. El único corte a póster ahora es
+//    `prefers-reduced-motion`.
+//  - El fondo pasa de `canvas-hero.tsx` (ondulación imperceptible, §1.1) a
+//    Prism. En móvil se sirve la misma escena en versión liviana, no una
+//    foto.
+//  - La pausa fuera del viewport la maneja el propio Prism
+//    (`suspendWhenOffscreen`); ya no hace falta el IntersectionObserver de
+//    acá.
 export function FondoHero() {
   const [permiteWebgl, setPermiteWebgl] = useState(false);
-  const [enViewport, setEnViewport] = useState(true);
-  const contenedorRef = useRef<HTMLDivElement>(null);
+  const [liviano, setLiviano] = useState(false);
 
   useEffect(() => {
     const mediaReducido = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const mediaAngosto = window.matchMedia("(min-width: 768px)");
-    const pocosNucleos = (navigator.hardwareConcurrency ?? 8) <= 4;
+    const mediaMovil = window.matchMedia(
+      "(max-width: 767px), (pointer: coarse)",
+    );
 
     function evaluar() {
-      setPermiteWebgl(
-        !mediaReducido.matches && mediaAngosto.matches && !pocosNucleos,
-      );
+      setPermiteWebgl(!mediaReducido.matches);
+      setLiviano(mediaMovil.matches);
     }
     evaluar();
     mediaReducido.addEventListener("change", evaluar);
-    mediaAngosto.addEventListener("change", evaluar);
+    mediaMovil.addEventListener("change", evaluar);
     return () => {
       mediaReducido.removeEventListener("change", evaluar);
-      mediaAngosto.removeEventListener("change", evaluar);
+      mediaMovil.removeEventListener("change", evaluar);
     };
   }, []);
 
-  useEffect(() => {
-    const contenedor = contenedorRef.current;
-    if (!contenedor || !permiteWebgl) return;
-
-    const interseccion = { current: true };
-    function recalcular() {
-      setEnViewport(
-        interseccion.current && document.visibilityState === "visible",
-      );
-    }
-
-    const observer = new IntersectionObserver(([entrada]) => {
-      interseccion.current = entrada.isIntersecting;
-      recalcular();
-    });
-    observer.observe(contenedor);
-    document.addEventListener("visibilitychange", recalcular);
-
-    return () => {
-      observer.disconnect();
-      document.removeEventListener("visibilitychange", recalcular);
-    };
-  }, [permiteWebgl]);
-
   return (
-    <div ref={contenedorRef} className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden">
       {permiteWebgl ? (
-        <CanvasHeroDinamico activo={enViewport} />
+        <HeroPrismDinamico liviano={liviano} />
       ) : (
-        <PosterHero />
+        <PosterEstatico />
       )}
     </div>
   );
