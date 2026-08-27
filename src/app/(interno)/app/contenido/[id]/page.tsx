@@ -24,7 +24,7 @@ export default async function PaginaEditarServicio({
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">Editar servicio</h1>
+      <h1 className="text-h3 font-heading font-semibold">Editar servicio</h1>
       <p className="text-sm text-muted-foreground">
         /servicios/{servicio.slug}
       </p>

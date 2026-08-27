@@ -12,6 +12,13 @@ import { EstadoError } from "@/components/ui/estado-error";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -21,7 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CampoArena } from "@/components/campo-arena";
+import { Textarea } from "@/components/ui/textarea";
+import { FondoSeccion } from "@/components/fondo-seccion";
 import { AlternarTema } from "./alternar-tema";
 
 const RAMPAS = [
@@ -82,9 +90,10 @@ const TOKENS_SEMANTICOS = [
 ] as const;
 
 // Vidriera del sistema visual "Espejismo cálido" — pantalla contra la
-// que se revisa visualmente cada PR posterior del rediseño de frontend
-// (docs/plan/2026-08-21-plan-frontend.md, PR 1). Bloqueada en producción
-// (staging incluido — ver PR 0.4: Docker corre con NODE_ENV=production).
+// que se revisa visualmente cada PR de UI (rediseño de frontend y la
+// ronda de fixes, docs/plan/2026-08-27-plan-fixes.md). Bloqueada en
+// producción (staging incluido — ver PR 0.4: Docker corre con
+// NODE_ENV=production).
 export default function PaginaDevUi() {
   if (process.env.NODE_ENV === "production") {
     notFound();
@@ -92,7 +101,7 @@ export default function PaginaDevUi() {
 
   return (
     <main className="relative mx-auto flex max-w-4xl flex-col gap-14 overflow-hidden px-6 py-16">
-      <CampoArena tinte="arena" />
+      <FondoSeccion tinte="neutro" />
 
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -118,9 +127,9 @@ export default function PaginaDevUi() {
         <p className="text-h2 font-heading font-semibold tracking-[-0.02em]">
           Encabezado de sección
         </p>
-        <p className="text-h3 font-semibold">Subtítulo</p>
+        <p className="text-h3 font-heading font-semibold">Subtítulo</p>
         <p className="text-lead text-foreground">
-          Bajada en Inter, la que se lee en dos frases del hero o de una ficha.
+          Bajada en Geist, la que se lee en dos frases del hero o de una ficha.
         </p>
         <p className="text-body text-foreground">
           Cuerpo normal — el texto largo nunca pasa de 68ch de ancho de línea en
@@ -186,16 +195,23 @@ export default function PaginaDevUi() {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-h2 font-heading">Campo de arena</h2>
+        <h2 className="text-h2 font-heading">Fondo de sección</h2>
+        <p className="text-sm text-muted-foreground">
+          Bandas quietas — sin animación. Reemplazan al cónico giratorio del
+          viejo <code>campo-arena.tsx</code> (plan de fixes §1.3).
+        </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="relative h-24 overflow-hidden rounded-lg border border-border">
-            <CampoArena tinte="arena" />
+          <div className="relative flex h-24 items-center justify-center overflow-hidden rounded-lg border border-border text-xs">
+            <FondoSeccion tinte="turquesa" />
+            turquesa
           </div>
-          <div className="relative h-24 overflow-hidden rounded-lg border border-border">
-            <CampoArena tinte="arena-turquesa" />
+          <div className="relative flex h-24 items-center justify-center overflow-hidden rounded-lg border border-border text-xs">
+            <FondoSeccion tinte="ambar" />
+            ambar
           </div>
-          <div className="relative h-24 overflow-hidden rounded-lg border border-border">
-            <CampoArena tinte="arena-ambar" />
+          <div className="relative flex h-24 items-center justify-center overflow-hidden rounded-lg border border-border text-xs">
+            <FondoSeccion tinte="neutro" />
+            neutro
           </div>
         </div>
       </section>
@@ -240,6 +256,30 @@ export default function PaginaDevUi() {
           <Label htmlFor="dev-ui-error">Con error</Label>
           <Input id="dev-ui-error" aria-invalid defaultValue="dato inválido" />
           <p className="text-sm text-destructive">Este campo es obligatorio.</p>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-h2 font-heading">Select y textarea</h2>
+        <div className="flex max-w-sm flex-col gap-1">
+          <Label>Nodo responsable</Label>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Elegí un nodo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="direccion">Dirección técnica</SelectItem>
+              <SelectItem value="ingenieria">Ingeniería</SelectItem>
+              <SelectItem value="externas">Actividades externas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex max-w-sm flex-col gap-1">
+          <Label htmlFor="dev-ui-nota">Nota</Label>
+          <Textarea
+            id="dev-ui-nota"
+            placeholder="Un par de líneas de contexto…"
+          />
         </div>
       </section>
 

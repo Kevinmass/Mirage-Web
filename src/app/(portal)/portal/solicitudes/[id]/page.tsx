@@ -87,7 +87,9 @@ export default async function PaginaSolicitudPortal({
           Tus solicitudes
         </Link>
         <div className="mt-2 flex items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold">{solicitud.titulo}</h1>
+          <h1 className="text-h2 font-heading font-semibold">
+            {solicitud.titulo}
+          </h1>
           <Badge variant={VARIANTE_ESTADO[solicitud.estado]}>
             {ETIQUETA_ESTADO[solicitud.estado]}
           </Badge>
@@ -102,7 +104,7 @@ export default async function PaginaSolicitudPortal({
       </p>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Hilo</h2>
+        <h2 className="text-lg font-heading font-semibold">Hilo</h2>
         {mensajes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Todavía no hay respuestas.

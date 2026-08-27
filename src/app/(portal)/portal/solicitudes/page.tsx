@@ -42,7 +42,7 @@ export default async function PaginaSolicitudesPortal() {
   return (
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Tus solicitudes</h1>
+        <h1 className="text-h2 font-heading font-semibold">Tus solicitudes</h1>
         <Button size="lg" render={<Link href="/portal/solicitudes/nueva" />}>
           <Plus data-icon="inline-start" />
           Nueva solicitud

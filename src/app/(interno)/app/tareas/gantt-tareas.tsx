@@ -163,7 +163,7 @@ export function GanttTareas({
   return (
     <div className="flex flex-col gap-3">
       <div className="hidden items-center justify-between md:flex">
-        <h2 className="text-lg font-semibold">Gantt</h2>
+        <h2 className="text-lg font-heading font-semibold">Gantt</h2>
         <div className="flex items-center gap-3">
           <div className="flex gap-1" role="group" aria-label="Zoom del Gantt">
             {(["semana", "mes", "trimestre"] as const).map((z) => (

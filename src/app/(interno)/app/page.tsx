@@ -35,7 +35,7 @@ export default async function PaginaInterna() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
-      <h1 className="text-2xl font-semibold">Inicio</h1>
+      <h1 className="text-h3 font-heading font-semibold">Inicio</h1>
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <CardDato

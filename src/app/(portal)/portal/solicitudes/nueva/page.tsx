@@ -25,7 +25,9 @@ export default async function PaginaNuevaSolicitud() {
           <ArrowLeft className="size-4" aria-hidden />
           Tus solicitudes
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold">Nueva solicitud</h1>
+        <h1 className="mt-2 text-h2 font-heading font-semibold">
+          Nueva solicitud
+        </h1>
         <p className="mt-1 text-muted-foreground">
           La recibe el equipo de Mirage a cargo de tu cuenta.
         </p>

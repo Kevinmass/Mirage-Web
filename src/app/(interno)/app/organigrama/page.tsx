@@ -22,7 +22,7 @@ export default async function PaginaOrganigrama() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="text-2xl font-semibold">Organigrama</h1>
+      <h1 className="text-h3 font-heading font-semibold">Organigrama</h1>
       <div className="mt-6">
         <OrganigramaCliente
           nodos={nodos}

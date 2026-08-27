@@ -62,7 +62,7 @@ export function BandejaSolicitudes({
         )}
       >
         <div>
-          <h1 className="text-2xl font-semibold">Solicitudes</h1>
+          <h1 className="text-h3 font-heading font-semibold">Solicitudes</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {cantidadProyectos === 0
               ? "Todavía no estás anotado a ningún proyecto — no vas a ver solicitudes acá."

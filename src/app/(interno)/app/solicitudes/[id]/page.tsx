@@ -84,7 +84,9 @@ export default async function PaginaSolicitud({
 
       <div>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-xl font-semibold">{solicitud.titulo}</h1>
+          <h1 className="text-h3 font-heading font-semibold">
+            {solicitud.titulo}
+          </h1>
           <Badge variant={VARIANTE_ESTADO[solicitud.estado]}>
             {ETIQUETA_ESTADO[solicitud.estado]}
           </Badge>

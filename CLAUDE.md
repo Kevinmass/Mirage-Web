@@ -19,20 +19,32 @@ frontend (buscando un ejemplo a imitar para `contenido.editar`) y ningún
 el primer caso real: `crearServicio`/`actualizarServicio` lo verifican y
 `/app/contenido` oculta sus controles de alta/edición sin él.
 
-**El trabajo vigente es el rediseño de frontend** (`docs/plan/2026-08-21-plan-frontend.md`).
-PRs 1 a 4 están hechos (tokens, chasis público, hero y portada, servicios +
-panel de contenido) — el 4 recién se abrió como PR, todavía sin mergear.
-El plan reemplaza el shadcn por defecto ("en gris") por el sistema visual
-"Espejismo cálido" en 12 PRs, orden tokens → landing → interno. Ver la
-sección [Rediseño de frontend](#rediseño-de-frontend-plan-vigente) más abajo
-antes de tocar cualquier pantalla — y `gh pr list` para el estado real de
-cada PR en vez de asumir por esta nota, que se desactualiza rápido.
+**El trabajo vigente es la ronda de fixes**
+(`docs/plan/2026-08-27-plan-fixes.md`): seis PRs que corrigen lo que quedó
+flojo del rediseño (landing y hero, modo claro, tipografía del interno) y lo
+que faltaba fuera del frontend (alta con mail verificado, arranque en frío
+sin SQL a mano, permisos del organigrama). **Ese documento revierte a
+propósito tres reglas escritas más abajo en este archivo y en el sistema
+visual** — el único WebGL, el inventario cerrado de React Bits y `CampoArena`
+como fondo por defecto. Ver su §0.2: no son restricciones a respetar, son
+reglas a actualizar en el PR que corresponde. Leerlo antes de tocar una
+pantalla.
 
-Las ramas `fase-*` fueron el vehículo del plan v1 (encadenadas entre sí,
-mergeadas a `staging` y de ahí a `main`). Ya están integradas: no buscar
-trabajo pendiente ahí. Los PRs del plan de frontend son `fase-frontend-0N-*`,
-cada uno apilado sobre el anterior hasta que se mergea a `staging` (no
-`main` directo — ver "Ramas" más abajo).
+Los 12 PRs del rediseño de frontend
+(`docs/plan/2026-08-21-plan-frontend.md`) están hechos e integrados en
+`staging`: reemplazaron el shadcn por defecto ("en gris") por el sistema
+visual "Espejismo cálido", orden tokens → landing → interno. Queda como
+referencia histórica, no como trabajo pendiente. La sección
+[Rediseño de frontend](#rediseño-de-frontend-plan-vigente) más abajo
+también quedó vieja en varios puntos — la ronda de fixes la corrige PR por
+PR; leer el plan de fixes, no esa sección, antes de tocar una pantalla.
+
+Las ramas `fase-*` (plan v1) y `fase-frontend-0N-*` (rediseño) fueron los
+vehículos de esos dos planes: encadenadas entre sí, mergeadas a `staging` y
+de ahí a `main`. Ya están todas integradas: no buscar trabajo pendiente ahí.
+Los PRs de la ronda de fixes son `fix-0N-*`, cada uno saliendo de `staging`
+actualizado (no apilados entre sí salvo la cadena 1→2→3; ver §0.1 y §4 del
+plan de fixes), PR contra `staging`.
 
 Comandos:
 
@@ -258,7 +270,9 @@ no es obvio releyéndolos sueltos:
   `src/components/ui/{button,card}.tsx` (sobre Base UI/shadcn) y
   `src/app/dev/ui/page.tsx` — la vitrina visual contra la que se revisa cada
   PR posterior. El PR 1 la expande, no la inaugura.
-- **Un solo fondo WebGL en toda la plataforma:** el hero de `/`. El resto
+- **Un solo fondo WebGL en toda la plataforma:** el hero de `/`.
+  (Revertido — ver `docs/plan/2026-08-27-plan-fixes.md` §0.2: pasa a ser un
+  presupuesto por página, y el PR 2 de esa ronda reescribe esta línea.) El resto
   (`CampoArena`, page breaks, revelados al scrollear) es CSS/SVG/canvas 2D.
   Es una restricción de rendimiento (cada contexto WebGL + RAF compite por
   el hilo principal en un celular de gama media), no de gusto.
@@ -282,10 +296,10 @@ no es obvio releyéndolos sueltos:
   `globals.css`, ambos temas, 390px sin scroll horizontal, estados
   vacío/carga/error, navegación por teclado, y los presupuestos de
   rendimiento del hero (LCP ≤ 2.5s, JS inicial ≤ 180 KB sin el shader).
-- **`.claude/launch.json`** (el preview de `pnpm dev`) apunta hoy a
-  `.worktrees/fase-7-solicitudes-portal` — ese worktree ya no existe (el
-  gitlink se sacó en `2f752c7`). Corregir el `runtimeArgs` antes de usar el
-  preview del navegador para verificar UI.
+- **`.claude/launch.json`** ya está corregido: corre `pnpm dev` en el puerto
+  3000, sin apuntar a ningún worktree. (La nota vieja decía que apuntaba a
+  `.worktrees/fase-7-solicitudes-portal`; se verificó en el PR 1 de la ronda
+  de fixes y ya no es así.)
 
 ## Decisiones ya cerradas (no reabrir sin motivo nuevo)
 

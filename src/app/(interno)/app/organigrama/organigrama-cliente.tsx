@@ -378,7 +378,7 @@ function DetalleNodo({
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{nodo.nombre}</h2>
+      <h2 className="text-lg font-heading font-semibold">{nodo.nombre}</h2>
       {nodo.descripcion && (
         <p className="text-sm text-muted-foreground">{nodo.descripcion}</p>
       )}

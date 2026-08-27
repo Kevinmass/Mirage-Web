@@ -78,7 +78,9 @@ export default async function PaginaProyectoPortal({
           Tus proyectos
         </Link>
         <div className="mt-2 flex items-center gap-3">
-          <h1 className="text-3xl font-semibold">{proyecto.nombre}</h1>
+          <h1 className="text-h2 font-heading font-semibold">
+            {proyecto.nombre}
+          </h1>
           <Badge variant={VARIANTE_ESTADO[proyecto.estado]}>
             {ETIQUETA_ESTADO[proyecto.estado]}
           </Badge>

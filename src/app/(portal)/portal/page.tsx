@@ -60,7 +60,9 @@ export default async function PaginaPortal() {
   return (
     <main className="flex flex-col gap-10">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold">Hola, {cliente.nombre}</h1>
+        <h1 className="text-h2 font-heading font-semibold">
+          Hola, {cliente.nombre}
+        </h1>
         <p className="text-lg text-muted-foreground">
           Acá vas a poder cargar solicitudes y ver el progreso de tus proyectos.
         </p>
@@ -77,7 +79,7 @@ export default async function PaginaPortal() {
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Tus proyectos</h2>
+          <h2 className="text-h3 font-heading font-semibold">Tus proyectos</h2>
           <Link
             href="/portal/proyectos"
             className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
@@ -126,7 +128,9 @@ export default async function PaginaPortal() {
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Tus solicitudes abiertas</h2>
+          <h2 className="text-h3 font-heading font-semibold">
+            Tus solicitudes abiertas
+          </h2>
           <Link
             href="/portal/solicitudes"
             className="text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
