@@ -12,6 +12,7 @@ describe("modules/solicitudes api", () => {
   let container: StartedPostgreSqlContainer;
   let api: typeof import("./api");
   let clientesApi: typeof import("@/modules/clientes/api");
+  let proyectosApi: typeof import("@/modules/proyectos/api");
   let db: (typeof import("@/db/client"))["db"];
   let client: (typeof import("@/db/client"))["client"];
 
@@ -22,6 +23,7 @@ describe("modules/solicitudes api", () => {
     ({ db, client } = await import("@/db/client"));
     api = await import("./api");
     clientesApi = await import("@/modules/clientes/api");
+    proyectosApi = await import("@/modules/proyectos/api");
 
     await migrate(db, { migrationsFolder: "./src/db/migrations" });
   });
@@ -30,6 +32,7 @@ describe("modules/solicitudes api", () => {
     await db.execute(sql`
       truncate table
         solicitudes_mensaje, solicitudes_solicitud,
+        proyectos_inscripcion, proyectos_proyecto,
         clientes_contacto, clientes_cliente,
         asignacion, nodo, persona
       restart identity cascade
@@ -204,6 +207,75 @@ describe("modules/solicitudes api", () => {
 
     const propia = await api.obtenerSolicitudDeCliente(a.cliente.id, deA.id);
     expect(propia.id).toBe(deA.id);
+  });
+
+  // Criterio de aceptación del PR 12 (§1.2 del plan de frontend): el
+  // mismo tipo de test de aislamiento que ya existe para el portal,
+  // ahora del lado interno. Sin proyectos propios, la bandeja está
+  // vacía — no es un caso raro a tolerar, es el comportamiento
+  // esperado.
+  it("listarSolicitudes devuelve bandeja vacía si la persona no está inscripta a ningún proyecto", async () => {
+    const { cliente, personaContactoId } = await armarClienteYContacto();
+    await api.crearSolicitud(cliente.id, personaContactoId, {
+      titulo: "X",
+      descripcion: "Y",
+      tipo: "otro",
+    });
+    const [empleadoSinProyectos] = await db
+      .insert(persona)
+      .values({
+        nombre: "Sin",
+        apellido: "Proyectos",
+        email: "sinproyectos@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+
+    expect(await api.listarSolicitudes(empleadoSinProyectos!.id)).toEqual([]);
+  });
+
+  it("listarSolicitudes filtra por los clientes con los que la persona comparte un proyecto", async () => {
+    const a = await armarClienteYContacto();
+    const b = await clientesApi.crearCliente({
+      nombre: "Beta",
+      cuit: "30-44444444-4",
+      nodoResponsableId: a.nodo.id,
+      contactoDirectoId: a.personaContactoId,
+    });
+    const contactoB = await clientesApi.crearContacto(b.id, {
+      email: "contacto@beta.test",
+      nombre: "Beta",
+      apellido: "Contacto",
+    });
+    await api.crearSolicitud(a.cliente.id, a.personaContactoId, {
+      titulo: "De Acme",
+      descripcion: "...",
+      tipo: "consulta",
+    });
+    await api.crearSolicitud(b.id, contactoB.personaId, {
+      titulo: "De Beta",
+      descripcion: "...",
+      tipo: "consulta",
+    });
+
+    const [empleado] = await db
+      .insert(persona)
+      .values({
+        nombre: "Dev",
+        apellido: "Uno",
+        email: "dev@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+    const proyectoDeAcme = await proyectosApi.crearProyecto({
+      clienteId: a.cliente.id,
+      nombre: "Sitio de Acme",
+      nodoResponsableId: a.nodo.id,
+    });
+    await proyectosApi.inscribirPersona(proyectoDeAcme.id, empleado!.id);
+
+    const bandeja = await api.listarSolicitudes(empleado!.id);
+    expect(bandeja.map((s) => s.titulo)).toEqual(["De Acme"]);
   });
 
   it("marcarEnEvaluacion solo funciona desde recibida", async () => {
@@ -401,5 +473,64 @@ describe("modules/solicitudes api", () => {
       },
     ]);
     bus._reiniciarParaTests();
+  });
+
+  // requiereAtencion no tiene columna propia (§8.12: bandeja ticketera,
+  // "sin leer" con punto turquesa) — es "el último mensaje del hilo es
+  // del cliente, o todavía no hay ninguno". Nunca "nadie contestó
+  // nunca": alcanza con que la respuesta más reciente sea la del
+  // equipo para que deje de pedir atención, aunque el cliente haya
+  // escrito antes en el mismo hilo.
+  it("listarSolicitudesConActividad marca requiereAtencion según el último mensaje del hilo", async () => {
+    const {
+      nodo: n,
+      cliente,
+      personaContactoId,
+    } = await armarClienteYContacto();
+    const [empleado] = await db
+      .insert(persona)
+      .values({
+        nombre: "Dev",
+        apellido: "Uno",
+        email: "dev3@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+    const proyecto = await proyectosApi.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    await proyectosApi.inscribirPersona(proyecto.id, empleado!.id);
+
+    await api.crearSolicitud(cliente.id, personaContactoId, {
+      titulo: "Sin mensajes todavía",
+      descripcion: "...",
+      tipo: "consulta",
+    });
+    const respondida = await api.crearSolicitud(cliente.id, personaContactoId, {
+      titulo: "Ya respondida",
+      descripcion: "...",
+      tipo: "consulta",
+    });
+    await api.agregarMensaje(
+      respondida.id,
+      personaContactoId,
+      "Pregunta del cliente",
+      true,
+    );
+    await api.agregarMensaje(
+      respondida.id,
+      empleado!.id,
+      "Respuesta del equipo",
+      true,
+    );
+
+    const bandeja = await api.listarSolicitudesConActividad(empleado!.id);
+    const porTitulo = new Map(
+      bandeja.map((s) => [s.titulo, s.requiereAtencion]),
+    );
+    expect(porTitulo.get("Sin mensajes todavía")).toBe(true);
+    expect(porTitulo.get("Ya respondida")).toBe(false);
   });
 });

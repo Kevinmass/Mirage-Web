@@ -27,7 +27,9 @@ export default async function PaginaInterna() {
             excluirHechas: true,
           }).catch(() => [])
         : Promise.resolve([]),
-      listarSolicitudes({ estado: "recibida" }).catch(() => []),
+      personaId
+        ? listarSolicitudes(personaId, { estado: "recibida" }).catch(() => [])
+        : Promise.resolve([]),
       listarPersonas().catch(() => []),
     ]);
 
@@ -93,7 +95,13 @@ export default async function PaginaInterna() {
           </h2>
           <div className="rounded-xl border border-border bg-card p-2">
             <Suspense fallback={<TableroCargando />}>
-              <SolicitudesQueMeEsperan />
+              {personaId ? (
+                <SolicitudesQueMeEsperan personaId={personaId} />
+              ) : (
+                <p className="p-4 text-sm text-muted-foreground">
+                  No se pudo identificar tu sesión.
+                </p>
+              )}
             </Suspense>
           </div>
         </section>

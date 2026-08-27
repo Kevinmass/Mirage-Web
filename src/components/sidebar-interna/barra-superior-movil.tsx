@@ -13,8 +13,10 @@ import { NAV_INTERNA } from "./nav-interna";
 // completa, igual que <MenuMovil> del chasis público.
 export function BarraSuperiorMovil({
   cerrarSesion,
+  campana,
 }: {
   cerrarSesion: React.ReactNode;
+  campana?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(false);
   const pathname = usePathname();
@@ -44,15 +46,18 @@ export function BarraSuperiorMovil({
       <Link href="/app" className="font-heading font-bold">
         Mirage
       </Link>
-      <button
-        ref={botonAbrirRef}
-        type="button"
-        onClick={() => setAbierto(true)}
-        aria-label="Abrir menú"
-        className="inline-flex size-11 items-center justify-center rounded-full hover:bg-secondary"
-      >
-        <Menu className="size-6" />
-      </button>
+      <div className="flex items-center gap-1">
+        {campana}
+        <button
+          ref={botonAbrirRef}
+          type="button"
+          onClick={() => setAbierto(true)}
+          aria-label="Abrir menú"
+          className="inline-flex size-11 items-center justify-center rounded-full hover:bg-secondary"
+        >
+          <Menu className="size-6" />
+        </button>
+      </div>
 
       {abierto && (
         <div

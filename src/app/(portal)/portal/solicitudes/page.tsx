@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { obtenerSesionPortal } from "@/lib/sesion-portal";
 import { listarSolicitudesDeCliente } from "@/modules/solicitudes/api";
 
@@ -8,6 +11,16 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   en_evaluacion: "En evaluación",
   aceptada: "Aceptada",
   rechazada: "Rechazada",
+};
+
+const VARIANTE_ESTADO: Record<
+  string,
+  "outline" | "accent" | "primary" | "destructive"
+> = {
+  recibida: "outline",
+  en_evaluacion: "accent",
+  aceptada: "primary",
+  rechazada: "destructive",
 };
 
 export default async function PaginaSolicitudesPortal() {
@@ -30,29 +43,32 @@ export default async function PaginaSolicitudesPortal() {
     <main className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold">Tus solicitudes</h1>
-        <Button
-          render={<Link href="/portal/solicitudes/nueva">Nueva solicitud</Link>}
-        />
+        <Button size="lg" render={<Link href="/portal/solicitudes/nueva" />}>
+          <Plus data-icon="inline-start" />
+          Nueva solicitud
+        </Button>
       </div>
 
       {solicitudes.length === 0 ? (
-        <p className="text-muted-foreground">
-          Todavía no cargaste ninguna solicitud.
-        </p>
+        <EstadoVacio titulo="Todavía no cargaste ninguna solicitud." />
       ) : (
         <ul className="flex flex-col gap-3">
           {solicitudes.map((s) => (
-            <li key={s.id} className="rounded-lg border bg-background p-4">
+            <li key={s.id}>
               <Link
                 href={`/portal/solicitudes/${s.id}`}
-                className="font-medium hover:underline"
+                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-secondary"
               >
-                {s.titulo}
+                <div>
+                  <p className="font-medium">{s.titulo}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(s.creadoEn).toLocaleDateString("es-AR")}
+                  </p>
+                </div>
+                <Badge variant={VARIANTE_ESTADO[s.estado]}>
+                  {ETIQUETA_ESTADO[s.estado]}
+                </Badge>
               </Link>
-              <p className="text-sm text-muted-foreground">
-                {ETIQUETA_ESTADO[s.estado]} ·{" "}
-                {new Date(s.creadoEn).toLocaleDateString("es-AR")}
-              </p>
             </li>
           ))}
         </ul>

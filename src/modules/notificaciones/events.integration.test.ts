@@ -94,6 +94,7 @@ describe("modules/notificaciones events — suscripciones", () => {
       tareaId: 1,
       personaId: p.id,
       titulo: "Maquetar home",
+      proyectoId: 1,
     });
 
     const [fila] = await db.execute<{

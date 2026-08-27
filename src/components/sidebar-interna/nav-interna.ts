@@ -6,6 +6,7 @@ import {
   Inbox,
   ListChecks,
   Network,
+  Settings,
   Users,
 } from "lucide-react";
 
@@ -18,4 +19,9 @@ export const NAV_INTERNA = [
   { href: "/app/tareas", etiqueta: "Tareas", icono: ListChecks },
   { href: "/app/solicitudes", etiqueta: "Solicitudes", icono: Inbox },
   { href: "/app/notificaciones", etiqueta: "Notificaciones", icono: Bell },
+  {
+    href: "/app/ajustes/notificaciones",
+    etiqueta: "Ajustes",
+    icono: Settings,
+  },
 ] as const;

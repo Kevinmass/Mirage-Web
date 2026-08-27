@@ -23,7 +23,12 @@ declare module "@/kernel/eventos/bus" {
       estadoNuevo: string;
       destinatarioPersonaId: number | null;
     };
-    "tarea.asignada": { tareaId: number; personaId: number; titulo: string };
+    "tarea.asignada": {
+      tareaId: number;
+      personaId: number;
+      titulo: string;
+      proyectoId: number;
+    };
   }
 }
 

@@ -1,8 +1,14 @@
 import { BarraSuperiorMovil } from "@/components/sidebar-interna/barra-superior-movil";
+import { CampanaNotificaciones } from "@/components/sidebar-interna/campana-notificaciones";
 import { SidebarInterna } from "@/components/sidebar-interna/sidebar-interna";
 import { Button } from "@/components/ui/button";
+import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import { cerrarSesionAction } from "@/lib/cerrar-sesion-action";
 import { leerSidebarColapsada } from "@/lib/sidebar-interna-actions";
+import {
+  contarNoLeidasDePersona,
+  listarUltimasNotificaciones,
+} from "@/modules/notificaciones/api";
 
 // /app tiene sesión: todo lo que haya debajo muestra datos por
 // persona/por momento, nunca contenido cacheable entre visitantes. Sin
@@ -22,7 +28,16 @@ export default async function LayoutInterno({
 }: {
   children: React.ReactNode;
 }) {
-  const colapsada = await leerSidebarColapsada();
+  const [colapsada, sesion] = await Promise.all([
+    leerSidebarColapsada(),
+    obtenerSesionActual(),
+  ]);
+  const [conteoNoLeidas, ultimasNotificaciones] = sesion
+    ? await Promise.all([
+        contarNoLeidasDePersona(sesion.personaId),
+        listarUltimasNotificaciones(sesion.personaId),
+      ])
+    : [0, []];
   const botonCerrarSesion = (
     <form action={cerrarSesionAction}>
       <Button type="submit" variant="secondary" size="sm" className="w-full">
@@ -30,13 +45,23 @@ export default async function LayoutInterno({
       </Button>
     </form>
   );
+  const campana = (
+    <CampanaNotificaciones
+      conteoNoLeidas={conteoNoLeidas}
+      ultimas={ultimasNotificaciones}
+    />
+  );
 
   return (
     <div className="flex min-h-screen">
       <SidebarInterna colapsada={colapsada} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <BarraSuperiorMovil cerrarSesion={botonCerrarSesion} />
-        <div className="hidden justify-end border-b border-border px-6 py-3 sm:flex">
+        <BarraSuperiorMovil
+          cerrarSesion={botonCerrarSesion}
+          campana={campana}
+        />
+        <div className="hidden items-center justify-end gap-2 border-b border-border px-6 py-3 sm:flex">
+          {campana}
           {botonCerrarSesion}
         </div>
         {/* min-w-0: un item de flex-col hereda min-width:auto por

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EstadoVacio } from "@/components/ui/estado-vacio";
 import { obtenerSesionPortal } from "@/lib/sesion-portal";
 import { listarProyectosDeCliente } from "@/modules/proyectos/api";
 
@@ -31,35 +33,39 @@ export default async function PaginaProyectosPortal() {
       <h1 className="text-3xl font-semibold">Tus proyectos</h1>
 
       {proyectos.length === 0 ? (
-        <p className="text-muted-foreground">
-          Todavía no hay proyectos en marcha.
-        </p>
+        <EstadoVacio titulo="Todavía no hay proyectos en marcha." />
       ) : (
-        <ul className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {proyectos.map((p) => {
             const porcentaje =
               p.totales === 0 ? 0 : Math.round((p.hechas / p.totales) * 100);
             return (
-              <li key={p.id} className="rounded-lg border bg-background p-4">
-                <Link
-                  href={`/portal/proyectos/${p.id}`}
-                  className="font-medium hover:underline"
-                >
-                  {p.nombre}
-                </Link>
-                <p className="text-sm text-muted-foreground">
-                  {ETIQUETA_ESTADO[p.estado]} — {porcentaje}% completado
-                </p>
-                <div className="mt-2 h-2 w-full rounded-full bg-muted">
-                  <div
-                    className="h-2 rounded-full bg-primary"
-                    style={{ width: `${porcentaje}%` }}
-                  />
-                </div>
-              </li>
+              <Card key={p.id}>
+                <CardHeader>
+                  <CardTitle>
+                    <Link
+                      href={`/portal/proyectos/${p.id}`}
+                      className="hover:underline"
+                    >
+                      {p.nombre}
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    {ETIQUETA_ESTADO[p.estado]} — {porcentaje}% completado
+                  </p>
+                  <div className="mt-2 h-2 w-full rounded-full bg-muted">
+                    <div
+                      className="h-2 rounded-full bg-primary"
+                      style={{ width: `${porcentaje}%` }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
-        </ul>
+        </div>
       )}
     </main>
   );

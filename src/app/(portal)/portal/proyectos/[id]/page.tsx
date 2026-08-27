@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { NoEncontrado } from "@/kernel/errores";
 import { obtenerSesionPortal } from "@/lib/sesion-portal";
 import { obtenerProyectoDeCliente } from "@/modules/proyectos/api";
@@ -10,6 +12,17 @@ const ETIQUETA_ESTADO: Record<string, string> = {
   pausado: "Pausado",
   terminado: "Terminado",
   cancelado: "Cancelado",
+};
+
+const VARIANTE_ESTADO: Record<
+  string,
+  "outline" | "accent" | "primary" | "destructive"
+> = {
+  propuesto: "outline",
+  activo: "primary",
+  pausado: "accent",
+  terminado: "primary",
+  cancelado: "destructive",
 };
 
 // Diseño §8, PR 7.7: acá solo va lo que obtenerProyectoDeCliente
@@ -59,17 +72,20 @@ export default async function PaginaProyectoPortal({
       <div>
         <Link
           href="/portal/proyectos"
-          className="text-sm text-muted-foreground hover:underline"
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
-          ← Tus proyectos
+          <ArrowLeft className="size-4" aria-hidden />
+          Tus proyectos
         </Link>
-        <h1 className="mt-2 text-3xl font-semibold">{proyecto.nombre}</h1>
-        <p className="text-sm text-muted-foreground">
-          {ETIQUETA_ESTADO[proyecto.estado]}
-        </p>
+        <div className="mt-2 flex items-center gap-3">
+          <h1 className="text-3xl font-semibold">{proyecto.nombre}</h1>
+          <Badge variant={VARIANTE_ESTADO[proyecto.estado]}>
+            {ETIQUETA_ESTADO[proyecto.estado]}
+          </Badge>
+        </div>
       </div>
 
-      <div className="rounded-lg border bg-background p-6">
+      <div className="rounded-xl border border-border bg-card p-6">
         <p className="text-lg font-medium">{porcentaje}% completado</p>
         <div className="mt-2 h-3 w-full rounded-full bg-muted">
           <div

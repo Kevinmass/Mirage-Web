@@ -4,15 +4,17 @@ import { TableroVacio } from "@/components/ui/tablero-vacio";
 import { listarClientes } from "@/modules/clientes/api";
 import { listarSolicitudes } from "@/modules/solicitudes/api";
 
-// "Que me esperan" hoy es "recibidas, sin evaluar todavía" para
-// cualquier empleado — la bandeja interna no filtra por proyecto
-// todavía (§1.2 del plan de frontend: eso es el PR 12, depende de las
-// inscripciones del PR 10). Cuando ese filtro exista, esto pasa a
-// filtrar por los proyectos de la persona sin tocar el resto del
-// bloque.
-export async function SolicitudesQueMeEsperan() {
+// "Que me esperan" es "recibidas, sin evaluar todavía", filtrado por
+// los proyectos donde esta persona está inscripta (§1.2 del plan de
+// frontend, PR 12) — la misma bandeja vacía-si-no-tenés-proyectos que
+// /app/solicitudes, en miniatura.
+export async function SolicitudesQueMeEsperan({
+  personaId,
+}: {
+  personaId: number;
+}) {
   const [solicitudes, clientes] = await Promise.all([
-    listarSolicitudes({ estado: "recibida" }).catch(() => []),
+    listarSolicitudes(personaId, { estado: "recibida" }).catch(() => []),
     listarClientes().catch(() => []),
   ]);
   const nombreDeCliente = new Map(clientes.map((c) => [c.id, c.nombre]));
