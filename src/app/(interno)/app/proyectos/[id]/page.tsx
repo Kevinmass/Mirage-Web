@@ -116,11 +116,14 @@ export default async function PaginaProyecto({
         <p>Nodo responsable: {nodoResponsable.nombre}</p>
         {(proyecto.fechaInicio ?? proyecto.fechaFinEstimada) && (
           <p>
+            {/* Fechas de calendario (medianoche UTC), no instantes —
+                sin timeZone: "UTC" se corren un día para atrás en
+                Buenos Aires (-03:00). */}
             {proyecto.fechaInicio &&
-              `Inicio: ${new Date(proyecto.fechaInicio).toLocaleDateString("es-AR")}`}
+              `Inicio: ${new Date(proyecto.fechaInicio).toLocaleDateString("es-AR", { timeZone: "UTC" })}`}
             {proyecto.fechaInicio && proyecto.fechaFinEstimada && " — "}
             {proyecto.fechaFinEstimada &&
-              `Fin estimado: ${new Date(proyecto.fechaFinEstimada).toLocaleDateString("es-AR")}`}
+              `Fin estimado: ${new Date(proyecto.fechaFinEstimada).toLocaleDateString("es-AR", { timeZone: "UTC" })}`}
           </p>
         )}
       </div>

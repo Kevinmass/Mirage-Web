@@ -3,8 +3,13 @@ import { listarPersonas } from "@/kernel/identidad/personas";
 import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import { obtenerArbolCompleto } from "@/kernel/organigrama/arbol";
 import { tienePermiso } from "@/kernel/permisos/evaluar";
-import { listarProyectos, listarTareas } from "@/modules/proyectos/api";
-import { KanbanTareas } from "./kanban-tareas";
+import {
+  listarHitosDeProyectos,
+  listarProyectos,
+  listarProyectosDePersona,
+  listarTareas,
+} from "@/modules/proyectos/api";
+import { TareasBoard } from "./tareas-board";
 
 export default async function PaginaTareas({
   searchParams,
@@ -26,6 +31,25 @@ export default async function PaginaTareas({
   const puedeEditar = sesion
     ? await tienePermiso(sesion.personaId, "proyectos.editar")
     : false;
+
+  // El Gantt necesita, además de las tareas, las barras de los
+  // proyectos donde el usuario está inscripto y los hitos de todo lo
+  // que va a mostrar (esos proyectos + los proyectos de las tareas con
+  // fecha) — diseño §8.11.
+  const idsInscritos = sesion
+    ? await listarProyectosDePersona(sesion.personaId)
+    : [];
+  const proyectoPorId = new Map(proyectos.map((p) => [p.id, p]));
+  const proyectosInscritos = idsInscritos
+    .map((id) => proyectoPorId.get(id))
+    .filter((p) => p !== undefined);
+  const idsConTareas = new Set(
+    tareas
+      .filter((t) => t.empiezaEn !== null || t.venceEn !== null)
+      .map((t) => t.proyectoId),
+  );
+  const idsRelevantes = Array.from(new Set([...idsInscritos, ...idsConTareas]));
+  const hitos = await listarHitosDeProyectos(idsRelevantes);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
@@ -83,7 +107,7 @@ export default async function PaginaTareas({
       </form>
 
       <div className="mt-6">
-        <KanbanTareas
+        <TareasBoard
           key={`${proyectoId ?? ""}-${personaId ?? ""}`}
           tareasIniciales={tareas}
           proyectos={proyectos.map((p) => ({
@@ -92,6 +116,14 @@ export default async function PaginaTareas({
             color: p.color,
           }))}
           nodos={nodos.map((n) => ({ id: n.id, nombre: n.nombre }))}
+          proyectosInscritos={proyectosInscritos.map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            color: p.color,
+            fechaInicio: p.fechaInicio,
+            fechaFinEstimada: p.fechaFinEstimada,
+          }))}
+          hitosIniciales={hitos}
           puedeEditar={puedeEditar}
         />
       </div>

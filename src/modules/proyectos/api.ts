@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db/client";
+import { registrarEvento } from "@/kernel/auditoria/registro";
 import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { publicar } from "@/kernel/eventos/bus";
 import {
@@ -15,6 +16,7 @@ import { requiere } from "@/kernel/permisos/evaluar";
 import { obtenerCliente } from "@/modules/clientes/api";
 import { obtenerDatosDeRepositorio } from "./internal/github";
 import {
+  proyectosHito,
   proyectosInscripcion,
   proyectosProyecto,
   proyectosRepositorio,
@@ -219,6 +221,39 @@ export async function cambiarEstadoTarea(
     })
     .where(eq(proyectosTarea.id, id))
     .returning();
+  return actualizada!;
+}
+
+export interface DatosFechasTarea {
+  empiezaEn: Date | null;
+  venceEn: Date | null;
+}
+
+// Mover o alargar/acortar una barra en el Gantt pasa por acá (diseño
+// §8.11, PR 11 parte 2) — mismo permiso que crear o mover en el Kanban,
+// y deja el mismo rastro de auditoría que cualquier otro cambio real
+// sobre la tarea (criterio de aceptación: "cambiar fechas desde el
+// Gantt queda auditado igual que hacerlo desde el formulario").
+export async function cambiarFechasTarea(
+  personaId: number,
+  id: number,
+  datos: DatosFechasTarea,
+) {
+  await requiere(personaId, "proyectos.editar");
+  await obtenerTarea(id);
+
+  const [actualizada] = await db
+    .update(proyectosTarea)
+    .set(datos)
+    .where(eq(proyectosTarea.id, id))
+    .returning();
+  await registrarEvento({
+    personaId,
+    accion: "proyectos.tarea.fechas_cambiadas",
+    entidad: "proyectos_tarea",
+    entidadId: id,
+    datos,
+  });
   return actualizada!;
 }
 
@@ -715,4 +750,51 @@ export async function sincronizarTodosLosRepositorios(
   for (const repositorio of repositorios) {
     await sincronizarRepositorio(repositorio.id, fetchImpl);
   }
+}
+
+export interface DatosHito {
+  nombre: string;
+  fecha: Date;
+  color?: string;
+}
+
+// Marcadores del Gantt (diseño §8.11, PR 11 parte 2): mismo permiso que
+// el resto de las mutaciones de este módulo.
+export async function crearHito(
+  personaId: number,
+  proyectoId: number,
+  datos: DatosHito,
+) {
+  await requiere(personaId, "proyectos.editar");
+  await obtenerProyecto(proyectoId);
+
+  const [creado] = await db
+    .insert(proyectosHito)
+    .values({ proyectoId, ...datos })
+    .returning();
+  await registrarEvento({
+    personaId,
+    accion: "proyectos.hito.creado",
+    entidad: "proyectos_hito",
+    entidadId: creado!.id,
+    datos: { proyectoId, nombre: datos.nombre },
+  });
+  return creado!;
+}
+
+export async function eliminarHito(personaId: number, id: number) {
+  await requiere(personaId, "proyectos.editar");
+  await db.delete(proyectosHito).where(eq(proyectosHito.id, id));
+}
+
+// El Gantt necesita los hitos de todos los proyectos que está
+// mostrando de una sola vez (tareas propias + proyectos inscriptos),
+// no de a uno — a diferencia de listarTareasDeProyecto, que ya sabe en
+// qué proyecto está parada la pantalla.
+export async function listarHitosDeProyectos(proyectoIds: number[]) {
+  if (proyectoIds.length === 0) return [];
+  return db
+    .select()
+    .from(proyectosHito)
+    .where(inArray(proyectosHito.proyectoId, proyectoIds));
 }
