@@ -19,7 +19,23 @@ frontend (buscando un ejemplo a imitar para `contenido.editar`) y ningún
 el primer caso real: `crearServicio`/`actualizarServicio` lo verifican y
 `/app/contenido` oculta sus controles de alta/edición sin él.
 
-**El trabajo vigente es el rediseño de frontend** (`docs/plan/2026-08-21-plan-frontend.md`).
+**El trabajo vigente es la ronda de fixes**
+(`docs/plan/2026-08-27-plan-fixes.md`): seis PRs que corrigen lo que quedó
+flojo del rediseño (landing y hero, modo claro, tipografía del interno) y lo
+que faltaba fuera del frontend (alta con mail verificado, arranque en frío
+sin SQL a mano, permisos del organigrama). **Ese documento revierte a
+propósito tres reglas escritas más abajo en este archivo y en el sistema
+visual** — el único WebGL, el inventario cerrado de React Bits y `CampoArena`
+como fondo por defecto. Ver su §0.2: no son restricciones a respetar, son
+reglas a actualizar en el PR que corresponde. Leerlo antes de tocar una
+pantalla.
+
+Los 12 PRs del rediseño de frontend
+(`docs/plan/2026-08-21-plan-frontend.md`) están hechos e integrados en
+`staging`; queda como referencia, no como trabajo pendiente. Lo que sigue de
+este párrafo quedó viejo y se corrige en el PR 1 de la ronda de fixes:
+
+**El trabajo vigente era el rediseño de frontend** (`docs/plan/2026-08-21-plan-frontend.md`).
 PRs 1 a 4 están hechos (tokens, chasis público, hero y portada, servicios +
 panel de contenido) — el 4 recién se abrió como PR, todavía sin mergear.
 El plan reemplaza el shadcn por defecto ("en gris") por el sistema visual
@@ -258,7 +274,9 @@ no es obvio releyéndolos sueltos:
   `src/components/ui/{button,card}.tsx` (sobre Base UI/shadcn) y
   `src/app/dev/ui/page.tsx` — la vitrina visual contra la que se revisa cada
   PR posterior. El PR 1 la expande, no la inaugura.
-- **Un solo fondo WebGL en toda la plataforma:** el hero de `/`. El resto
+- **Un solo fondo WebGL en toda la plataforma:** el hero de `/`.
+  (Revertido — ver `docs/plan/2026-08-27-plan-fixes.md` §0.2: pasa a ser un
+  presupuesto por página, y el PR 2 de esa ronda reescribe esta línea.) El resto
   (`CampoArena`, page breaks, revelados al scrollear) es CSS/SVG/canvas 2D.
   Es una restricción de rendimiento (cada contexto WebGL + RAF compite por
   el hilo principal en un celular de gama media), no de gusto.
