@@ -2,6 +2,14 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { EstadoTarea } from "@/modules/proyectos/api";
 import {
   asignarPersonaATareaAction,
@@ -35,35 +43,25 @@ export function FormularioCrearTarea({
   );
 
   return (
-    <form action={accion} className="flex max-w-sm flex-col gap-2 text-sm">
-      <input
-        name="titulo"
-        placeholder="Título de la tarea"
-        required
-        className="rounded-md border px-2 py-1"
-      />
-      <select
-        name="nodoResponsableId"
-        required
-        defaultValue=""
-        className="rounded-md border px-2 py-1"
-      >
-        <option value="" disabled>
-          Nodo responsable…
-        </option>
-        {nodos.map((n) => (
-          <option key={n.id} value={n.id}>
-            {n.nombre}
-          </option>
-        ))}
-      </select>
-      <input
-        type="date"
-        name="venceEn"
-        className="rounded-md border px-2 py-1"
-      />
+    <form action={accion} className="flex max-w-sm flex-col gap-2">
+      <Input name="titulo" placeholder="Título de la tarea" required />
+      <Select name="nodoResponsableId" required>
+        <SelectTrigger>
+          <SelectValue placeholder="Nodo responsable…" />
+        </SelectTrigger>
+        <SelectContent>
+          {nodos.map((n) => (
+            <SelectItem key={n.id} value={String(n.id)}>
+              {n.nombre}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input type="date" name="venceEn" aria-label="Vence el" />
       {estado.error && (
-        <p className="text-sm text-destructive">{estado.error}</p>
+        <p role="alert" className="text-sm text-destructive">
+          {estado.error}
+        </p>
       )}
       <Button type="submit" size="sm" variant="secondary" disabled={enviando}>
         Agregar tarea
@@ -100,17 +98,22 @@ export function FilaTarea({
         action={cambiarEstadoTareaAction.bind(null, proyectoId, tarea.id)}
         className="flex items-center gap-1"
       >
-        <select
-          name="estado"
-          defaultValue={tarea.estado}
-          className="rounded-md border px-2 py-1 text-xs"
-        >
-          {ESTADOS_TAREA.map((e) => (
-            <option key={e.value} value={e.value}>
-              {e.etiqueta}
-            </option>
-          ))}
-        </select>
+        <Select name="estado" defaultValue={tarea.estado}>
+          <SelectTrigger
+            size="sm"
+            className="w-36"
+            aria-label="Estado de la tarea"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ESTADOS_TAREA.map((e) => (
+              <SelectItem key={e.value} value={e.value}>
+                {e.etiqueta}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button type="submit" size="sm" variant="ghost">
           Guardar
         </Button>
@@ -120,18 +123,30 @@ export function FilaTarea({
         action={asignarPersonaATareaAction.bind(null, proyectoId, tarea.id)}
         className="flex items-center gap-1"
       >
-        <select
+        <Select
           name="personaId"
-          defaultValue={tarea.personaAsignadaId ?? ""}
-          className="rounded-md border px-2 py-1 text-xs"
+          defaultValue={
+            tarea.personaAsignadaId !== null
+              ? String(tarea.personaAsignadaId)
+              : "sin-asignar"
+          }
         >
-          <option value="">Sin asignar</option>
-          {personas.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre} {p.apellido}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            size="sm"
+            className="w-44"
+            aria-label="Persona asignada"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sin-asignar">Sin asignar</SelectItem>
+            {personas.map((p) => (
+              <SelectItem key={p.id} value={String(p.id)}>
+                {p.nombre} {p.apellido}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button type="submit" size="sm" variant="ghost">
           Asignar
         </Button>

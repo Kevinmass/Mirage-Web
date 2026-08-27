@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 import { invitarPersona } from "@/kernel/identidad/personas";
+import { idElegido } from "@/lib/form";
 import * as clientes from "@/modules/clientes/api";
 
 export interface EstadoFormulario {
@@ -11,11 +12,19 @@ export interface EstadoFormulario {
 }
 
 function leerDatosCliente(formData: FormData): clientes.DatosCliente {
+  const nodoResponsableId = idElegido(formData.get("nodoResponsableId"));
+  const contactoDirectoId = idElegido(formData.get("contactoDirectoId"));
+  if (nodoResponsableId === null) {
+    throw new Validacion("Elegí un nodo responsable.");
+  }
+  if (contactoDirectoId === null) {
+    throw new Validacion("Elegí un contacto directo.");
+  }
   return {
     nombre: String(formData.get("nombre") ?? "").trim(),
     cuit: String(formData.get("cuit") ?? "").trim(),
-    nodoResponsableId: Number(formData.get("nodoResponsableId")),
-    contactoDirectoId: Number(formData.get("contactoDirectoId")),
+    nodoResponsableId,
+    contactoDirectoId,
   };
 }
 
@@ -117,9 +126,11 @@ export async function registrarInteraccionAction(
   _previo: EstadoFormulario,
   formData: FormData,
 ): Promise<EstadoFormulario> {
+  const personaId = idElegido(formData.get("personaId"));
+  if (personaId === null) return { error: "Elegí una persona." };
   try {
     await clientes.registrarInteraccion(clienteId, {
-      personaId: Number(formData.get("personaId")),
+      personaId,
       tipo: String(formData.get("tipo")) as clientes.DatosInteraccion["tipo"],
       resumen: String(formData.get("resumen") ?? "").trim(),
     });

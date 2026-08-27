@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { NoEncontrado } from "@/kernel/errores";
 import { listarPersonas } from "@/kernel/identidad/personas";
 import { obtenerSesionActual } from "@/kernel/identidad/sesion";
@@ -95,19 +102,27 @@ export default async function PaginaProyecto({
         <h1 className="text-h3 font-heading font-semibold">
           {proyecto.nombre}
         </h1>
-        <form action={cambiarEstadoProyectoAction.bind(null, proyecto.id)}>
-          <select
-            name="estado"
-            defaultValue={proyecto.estado}
-            className="rounded-md border px-2 py-1 text-sm"
-          >
-            {ORDEN_ESTADOS.map((e) => (
-              <option key={e.value} value={e.value}>
-                {e.etiqueta}
-              </option>
-            ))}
-          </select>
-          <Button type="submit" size="sm" variant="secondary" className="ml-2">
+        <form
+          action={cambiarEstadoProyectoAction.bind(null, proyecto.id)}
+          className="flex items-center gap-2"
+        >
+          <Select name="estado" defaultValue={proyecto.estado}>
+            <SelectTrigger
+              size="sm"
+              className="w-44"
+              aria-label="Estado del proyecto"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDEN_ESTADOS.map((e) => (
+                <SelectItem key={e.value} value={e.value}>
+                  {e.etiqueta}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button type="submit" size="sm" variant="secondary">
             Guardar estado
           </Button>
         </form>

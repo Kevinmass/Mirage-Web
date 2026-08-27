@@ -9,6 +9,7 @@ import {
   Validacion,
 } from "@/kernel/errores";
 import { obtenerSesionActual } from "@/kernel/identidad/sesion";
+import { idElegido } from "@/lib/form";
 import * as proyectos from "@/modules/proyectos/api";
 
 export interface EstadoFormulario {
@@ -38,6 +39,11 @@ export async function crearProyectoAction(
   const cupo = String(formData.get("cupo") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim();
   const clienteId = String(formData.get("clienteId") ?? "").trim();
+  const nodoResponsableId = idElegido(formData.get("nodoResponsableId"));
+
+  if (nodoResponsableId === null) {
+    return { error: "Elegí un nodo responsable." };
+  }
 
   let creado: Awaited<ReturnType<typeof proyectos.crearProyecto>>;
   try {
@@ -46,7 +52,7 @@ export async function crearProyectoAction(
       nombre: String(formData.get("nombre") ?? "").trim(),
       descripcion:
         String(formData.get("descripcion") ?? "").trim() || undefined,
-      nodoResponsableId: Number(formData.get("nodoResponsableId")),
+      nodoResponsableId,
       fechaInicio: fechaInicio ? new Date(fechaInicio) : undefined,
       fechaFinEstimada: fechaFinEstimada
         ? new Date(fechaFinEstimada)
@@ -129,12 +135,10 @@ export async function agregarAlEquipoAction(
   const rol = String(
     formData.get("rol") ?? "miembro",
   ) as proyectos.RolInscripcion;
+  const personaId = idElegido(formData.get("personaId"));
+  if (personaId === null) return { error: "Elegí una persona." };
   try {
-    await proyectos.inscribirPersona(
-      proyectoId,
-      Number(formData.get("personaId")),
-      rol,
-    );
+    await proyectos.inscribirPersona(proyectoId, personaId, rol);
   } catch (error) {
     return manejarError(error);
   }
@@ -171,15 +175,23 @@ export async function crearTareaAction(
   const sesion = await obtenerSesionActual();
   if (!sesion) return { error: "Sin sesión" };
 
+  const titulo = String(formData.get("titulo") ?? "").trim();
+  const nodoResponsableId = idElegido(formData.get("nodoResponsableId"));
   const venceEn = String(formData.get("venceEn") ?? "").trim();
   const empiezaEn = String(formData.get("empiezaEn") ?? "").trim();
   const prioridad = String(
     formData.get("prioridad") ?? "media",
   ) as proyectos.PrioridadTarea;
+
+  if (!titulo) return { error: "El título es obligatorio." };
+  if (nodoResponsableId === null) {
+    return { error: "Elegí un nodo responsable." };
+  }
+
   try {
     await proyectos.crearTarea(sesion.personaId, proyectoId, {
-      titulo: String(formData.get("titulo") ?? "").trim(),
-      nodoResponsableId: Number(formData.get("nodoResponsableId")),
+      titulo,
+      nodoResponsableId,
       prioridad,
       empiezaEn: empiezaEn ? new Date(empiezaEn) : undefined,
       venceEn: venceEn ? new Date(venceEn) : undefined,
@@ -207,12 +219,18 @@ export async function crearTareaEnColumnaAction(
   const sesion = await obtenerSesionActual();
   if (!sesion) return { error: "Sin sesión" };
 
-  const proyectoId = Number(formData.get("proyectoId"));
-  const nodoResponsableId = Number(formData.get("nodoResponsableId"));
+  const proyectoId = idElegido(formData.get("proyectoId"));
+  const nodoResponsableId = idElegido(formData.get("nodoResponsableId"));
   const titulo = String(formData.get("titulo") ?? "").trim();
   const prioridad = String(
     formData.get("prioridad") ?? "media",
   ) as proyectos.PrioridadTarea;
+
+  if (!titulo) return { error: "El título es obligatorio." };
+  if (proyectoId === null) return { error: "Elegí un proyecto." };
+  if (nodoResponsableId === null) {
+    return { error: "Elegí un nodo responsable." };
+  }
 
   try {
     const creada = await proyectos.crearTarea(sesion.personaId, proyectoId, {
@@ -312,8 +330,10 @@ export async function asignarPersonaATareaAction(
   tareaId: number,
   formData: FormData,
 ) {
-  const valor = String(formData.get("personaId") ?? "");
-  await proyectos.asignarPersonaATarea(tareaId, valor ? Number(valor) : null);
+  // El <Select> manda "sin-asignar" cuando no hay nadie (no puede tener un
+  // value vacío), o el id como string.
+  const personaId = idElegido(formData.get("personaId"));
+  await proyectos.asignarPersonaATarea(tareaId, personaId);
   revalidatePath(`/app/proyectos/${proyectoId}`);
 }
 
@@ -355,10 +375,14 @@ export async function crearHitoAction(
   const sesion = await obtenerSesionActual();
   if (!sesion) return { error: "Sin sesión" };
 
-  const proyectoId = Number(formData.get("proyectoId"));
+  const proyectoId = idElegido(formData.get("proyectoId"));
   const nombre = String(formData.get("nombre") ?? "").trim();
   const fecha = String(formData.get("fecha") ?? "").trim();
   const color = String(formData.get("color") ?? "").trim();
+
+  if (proyectoId === null) return { error: "Elegí un proyecto." };
+  if (!nombre) return { error: "El nombre del hito es obligatorio." };
+  if (!fecha) return { error: "Elegí una fecha." };
 
   try {
     await proyectos.crearHito(sesion.personaId, proyectoId, {
