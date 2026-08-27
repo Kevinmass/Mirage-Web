@@ -139,4 +139,83 @@ describe("kernel/identidad — personas", () => {
 
     await expect(personas.invitarPersona(creada.id)).rejects.toThrow(Conflicto);
   });
+
+  it("el estado de acceso va sin_acceso → invitada → confirmada", async () => {
+    const creada = await personas.crearPersona({
+      nombre: "Hernán",
+      apellido: "Ruiz",
+      email: "hernan@mirage.test",
+      tipo: "empleado",
+    });
+
+    let estado = (await personas.obtenerPersonaConAcceso(creada.id))
+      .estadoAcceso;
+    expect(estado).toBe("sin_acceso");
+
+    await personas.invitarPersona(creada.id);
+    estado = (await personas.obtenerPersonaConAcceso(creada.id)).estadoAcceso;
+    expect(estado).toBe("invitada");
+
+    // Una persona invitada todavía no puede entrar.
+    const { auth } = await import("./auth");
+    await expect(
+      auth.api.signInEmail({
+        body: { email: "hernan@mirage.test", password: "cualquier-cosa-mal" },
+      }),
+    ).rejects.toThrow();
+
+    // Completar el reset del mail de invitación pone la contraseña y deja
+    // el mail verificado.
+    const [fila] = await db.execute<{ datos: { url: string } }>(
+      sql`select datos from notificaciones_notificacion
+          where destinatario_persona_id = ${creada.id}
+            and plantilla = 'auth.recuperar-password'
+          order by id desc limit 1`,
+    );
+    const token = new URL(fila!.datos.url).pathname.split("/").pop();
+    await auth.api.resetPassword({
+      body: { newPassword: "contraseña-elegida-por-hernan", token: token! },
+    });
+
+    estado = (await personas.obtenerPersonaConAcceso(creada.id)).estadoAcceso;
+    expect(estado).toBe("confirmada");
+
+    const resultado = await auth.api.signInEmail({
+      body: {
+        email: "hernan@mirage.test",
+        password: "contraseña-elegida-por-hernan",
+      },
+    });
+    expect(resultado.user.email).toBe("hernan@mirage.test");
+  });
+
+  it("reenviarInvitacion encola otro mail de acceso", async () => {
+    const creada = await personas.crearPersona({
+      nombre: "Irina",
+      apellido: "Sosa",
+      email: "irina@mirage.test",
+      tipo: "empleado",
+    });
+    await personas.invitarPersona(creada.id);
+    await personas.reenviarInvitacion(creada.id);
+
+    const [{ total }] = await db.execute<{ total: number }>(
+      sql`select count(*)::int as total from notificaciones_notificacion
+          where destinatario_persona_id = ${creada.id}
+            and plantilla = 'auth.recuperar-password'`,
+    );
+    expect(Number(total)).toBe(2);
+  });
+
+  it("reenviarInvitacion rechaza si la persona nunca fue invitada", async () => {
+    const creada = await personas.crearPersona({
+      nombre: "Julia",
+      apellido: "Vera",
+      email: "julia@mirage.test",
+      tipo: "empleado",
+    });
+    await expect(personas.reenviarInvitacion(creada.id)).rejects.toThrow(
+      Conflicto,
+    );
+  });
 });
