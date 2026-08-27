@@ -1,8 +1,9 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eventoAuditoria } from "@/kernel/auditoria/schema";
 import {
   Conflicto,
   NoAutorizado,
@@ -66,6 +67,7 @@ describe("modules/proyectos api", () => {
     // huérfanas que colisionan cuando el id de persona se reinicia.
     await db.execute(sql`
       truncate table
+        evento_auditoria, proyectos_hito,
         proyectos_repositorio_snapshot, proyectos_repositorio,
         proyectos_inscripcion, proyectos_tarea, proyectos_proyecto,
         clientes_cliente, asignacion, nodo, persona, persona_rol
@@ -803,5 +805,137 @@ describe("modules/proyectos api", () => {
 
     const inscriptos = await api.listarInscriptos(proyecto.id);
     expect(inscriptos).toMatchObject([{ personaId: lider.id, rol: "lider" }]);
+  });
+
+  it("cambiarFechasTarea actualiza empiezaEn y venceEn, y deja rastro en la auditoría", async () => {
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const tarea = await api.crearTarea(actor.id, proyecto.id, {
+      titulo: "Maquetar home",
+      nodoResponsableId: n.id,
+    });
+    const empiezaEn = new Date("2026-09-01T00:00:00Z");
+    const venceEn = new Date("2026-09-10T00:00:00Z");
+
+    const actualizada = await api.cambiarFechasTarea(actor.id, tarea.id, {
+      empiezaEn,
+      venceEn,
+    });
+    expect(actualizada.empiezaEn).toEqual(empiezaEn);
+    expect(actualizada.venceEn).toEqual(venceEn);
+
+    const eventos = await db
+      .select()
+      .from(eventoAuditoria)
+      .where(eq(eventoAuditoria.entidadId, tarea.id));
+    expect(eventos).toMatchObject([
+      {
+        personaId: actor.id,
+        accion: "proyectos.tarea.fechas_cambiadas",
+        entidad: "proyectos_tarea",
+      },
+    ]);
+  });
+
+  it("cambiarFechasTarea tira NoAutorizado sin la capacidad proyectos.editar", async () => {
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+    const tarea = await api.crearTarea(actor.id, proyecto.id, {
+      titulo: "Maquetar home",
+      nodoResponsableId: n.id,
+    });
+    const [sinPermiso] = await db
+      .insert(persona)
+      .values({
+        nombre: "Sin",
+        apellido: "Permiso",
+        email: "sin-permiso3@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+
+    await expect(
+      api.cambiarFechasTarea(sinPermiso!.id, tarea.id, {
+        empiezaEn: new Date(),
+        venceEn: new Date(),
+      }),
+    ).rejects.toThrow(NoAutorizado);
+  });
+
+  it("crearHito exige un proyecto existente y la capacidad proyectos.editar", async () => {
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
+    const proyecto = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Sitio nuevo",
+      nodoResponsableId: n.id,
+    });
+
+    await expect(
+      api.crearHito(actor.id, 999_999, {
+        nombre: "Lanzamiento",
+        fecha: new Date("2026-10-01T00:00:00Z"),
+      }),
+    ).rejects.toThrow(NoEncontrado);
+
+    const [sinPermiso] = await db
+      .insert(persona)
+      .values({
+        nombre: "Sin",
+        apellido: "Permiso",
+        email: "sin-permiso4@mirage.test",
+        tipo: "empleado",
+      })
+      .returning();
+    await expect(
+      api.crearHito(sinPermiso!.id, proyecto.id, {
+        nombre: "Lanzamiento",
+        fecha: new Date("2026-10-01T00:00:00Z"),
+      }),
+    ).rejects.toThrow(NoAutorizado);
+  });
+
+  it("listarHitosDeProyectos trae los hitos de varios proyectos a la vez, y elimina uno", async () => {
+    const { nodo: n, cliente, persona: actor } = await armarClienteYNodo();
+    const proyectoA = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Uno",
+      nodoResponsableId: n.id,
+    });
+    const proyectoB = await api.crearProyecto({
+      clienteId: cliente.id,
+      nombre: "Dos",
+      nodoResponsableId: n.id,
+    });
+    const hitoA = await api.crearHito(actor.id, proyectoA.id, {
+      nombre: "Lanzamiento A",
+      fecha: new Date("2026-10-01T00:00:00Z"),
+      color: "#0d9488",
+    });
+    await api.crearHito(actor.id, proyectoB.id, {
+      nombre: "Lanzamiento B",
+      fecha: new Date("2026-11-01T00:00:00Z"),
+    });
+
+    expect(
+      (await api.listarHitosDeProyectos([proyectoA.id, proyectoB.id])).map(
+        (h) => h.nombre,
+      ),
+    ).toEqual(["Lanzamiento A", "Lanzamiento B"]);
+    expect(await api.listarHitosDeProyectos([])).toEqual([]);
+
+    await api.eliminarHito(actor.id, hitoA.id);
+    expect(
+      (await api.listarHitosDeProyectos([proyectoA.id, proyectoB.id])).map(
+        (h) => h.nombre,
+      ),
+    ).toEqual(["Lanzamiento B"]);
   });
 });

@@ -279,6 +279,34 @@ export async function moverTareaAction(
   return { ok: true };
 }
 
+// Llamada directamente desde el handler de arrastre/teclado de la barra
+// del Gantt (mismo patrón que moverTareaAction) — mover el centro
+// desplaza ambas fechas, arrastrar un extremo cambia solo esa (diseño
+// §8.11, PR 11 parte 2).
+export async function cambiarFechasTareaAction(
+  proyectoId: number,
+  tareaId: number,
+  empiezaEn: Date | null,
+  venceEn: Date | null,
+): Promise<ResultadoMover> {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return { ok: false, error: "Sin sesión" };
+
+  try {
+    await proyectos.cambiarFechasTarea(sesion.personaId, tareaId, {
+      empiezaEn,
+      venceEn,
+    });
+  } catch (error) {
+    const { error: mensaje } = manejarError(error);
+    return { ok: false, error: mensaje };
+  }
+
+  revalidatePath(`/app/proyectos/${proyectoId}`);
+  revalidatePath("/app/tareas");
+  return { ok: true };
+}
+
 export async function asignarPersonaATareaAction(
   proyectoId: number,
   tareaId: number,
@@ -316,4 +344,32 @@ export async function sincronizarRepositorioAction(
 ) {
   await proyectos.sincronizarRepositorio(repositorioId);
   revalidatePath(`/app/proyectos/${proyectoId}`);
+}
+
+// El compositor de hitos del Gantt (diseño §8.11, PR 11 parte 2): el
+// proyecto lo elige el formulario, igual que crearTareaEnColumnaAction.
+export async function crearHitoAction(
+  _previo: EstadoFormulario,
+  formData: FormData,
+): Promise<EstadoFormulario> {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) return { error: "Sin sesión" };
+
+  const proyectoId = Number(formData.get("proyectoId"));
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const fecha = String(formData.get("fecha") ?? "").trim();
+  const color = String(formData.get("color") ?? "").trim();
+
+  try {
+    await proyectos.crearHito(sesion.personaId, proyectoId, {
+      nombre,
+      fecha: new Date(fecha),
+      color: color || undefined,
+    });
+  } catch (error) {
+    return manejarError(error);
+  }
+
+  revalidatePath("/app/tareas");
+  return {};
 }

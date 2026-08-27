@@ -61,36 +61,32 @@ interface OpcionNodo {
   nombre: string;
 }
 
+export type ActualizadorTareas = (
+  updater: (prev: TareaConProyecto[]) => TareaConProyecto[],
+) => void;
+
 interface Props {
-  tareasIniciales: TareaConProyecto[];
+  tareas: TareaConProyecto[];
+  onTareasChange: ActualizadorTareas;
   proyectos: OpcionProyecto[];
   nodos: OpcionNodo[];
   puedeEditar: boolean;
 }
 
+// El estado de las tareas vive en el padre (TareasBoard), no acá: el
+// Gantt necesita leer y mutar el mismo array — "mover una tarjeta en
+// el Kanban se refleja en el Gantt sin recargar" (diseño §8.11) exige
+// que las dos vistas compartan una sola fuente de verdad en el cliente,
+// no cada una la suya sincronizada por separado.
 export function KanbanTareas({
-  tareasIniciales,
+  tareas,
+  onTareasChange,
   proyectos,
   nodos,
   puedeEditar,
 }: Props) {
-  const [tareas, setTareas] = useState(tareasIniciales);
   const [activaId, setActivaId] = useState<number | null>(null);
   const [errores, setErrores] = useState<Record<number, string>>({});
-
-  // El compositor y un movimiento exitoso disparan revalidatePath, que
-  // trae `tareasIniciales` frescas del servidor sin remontar el
-  // componente (a diferencia de cambiar los filtros, que sí remonta
-  // por la key) — sin esto, una tarea creada por el compositor nunca
-  // aparecía hasta recargar la página a mano. Ajustar el estado durante
-  // el render (comparando contra la prop anterior) en vez de un efecto
-  // es el patrón que React recomienda para esto — evita el render en
-  // cascada que un `useEffect` con `setState` produciría.
-  const [tareasPrevias, setTareasPrevias] = useState(tareasIniciales);
-  if (tareasIniciales !== tareasPrevias) {
-    setTareasPrevias(tareasIniciales);
-    setTareas(tareasIniciales);
-  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -127,7 +123,7 @@ export function KanbanTareas({
     if (!tarea || tarea.estado === nuevoEstado) return;
 
     const estadoAnterior = tarea.estado;
-    setTareas((prev) =>
+    onTareasChange((prev) =>
       prev.map((t) => (t.id === tareaId ? { ...t, estado: nuevoEstado } : t)),
     );
     setErrores((prev) => {
@@ -140,7 +136,7 @@ export function KanbanTareas({
         // Optimista con reversión visible (criterio de aceptación del
         // PR 11): si el servidor rechaza, la tarjeta vuelve a su
         // columna y el motivo queda a la vista, no se pierde.
-        setTareas((prev) =>
+        onTareasChange((prev) =>
           prev.map((t) =>
             t.id === tareaId ? { ...t, estado: estadoAnterior } : t,
           ),
@@ -298,7 +294,12 @@ function TarjetaTarea({
         </Badge>
         {tarea.venceEn && (
           <span className="font-mono text-[0.7rem] text-muted-foreground">
-            {new Date(tarea.venceEn).toLocaleDateString("es-AR")}
+            {/* venceEn es una fecha de calendario (medianoche UTC), no
+                un instante — sin timeZone: "UTC" se corre un día para
+                atrás en Buenos Aires (-03:00). */}
+            {new Date(tarea.venceEn).toLocaleDateString("es-AR", {
+              timeZone: "UTC",
+            })}
           </span>
         )}
       </div>
