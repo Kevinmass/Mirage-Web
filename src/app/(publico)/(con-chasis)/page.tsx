@@ -1,5 +1,6 @@
 import { EspejismoHero } from "@/components/espejismo-hero/espejismo-hero";
-import { FondoSeccion } from "@/components/fondo-seccion";
+import { FondoHero } from "@/components/espejismo-hero/fondo-hero";
+import { FondoContinuo } from "@/components/fondo-continuo";
 import { FondoSeccionAurora } from "@/components/fondo-seccion-aurora";
 import { PageBreak } from "@/components/page-break";
 import { Revelado } from "@/components/revelado";
@@ -17,72 +18,93 @@ export const revalidate = 3600;
 export default function PaginaInicio() {
   return (
     <main>
-      <EspejismoHero />
+      {/* El hero y "Qué hacemos" comparten el fondo Prism, sin corte entre
+          ambos: el scrim de "Qué hacemos" funde el prisma a --background
+          hacia abajo, así el primer break real de la página es el
+          <PageBreak>. */}
+      <div className="relative isolate overflow-hidden">
+        <FondoHero />
 
-      <section className="relative">
-        <FondoSeccion tinte="turquesa">
-          <FondoSeccionAurora tono="turquesa" />
-        </FondoSeccion>
-        <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
-          <Revelado>
-            <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
-              Qué hacemos
-            </h2>
-          </Revelado>
-          <Capacidades />
-        </div>
-      </section>
+        <EspejismoHero />
+
+        <section className="relative z-10">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, transparent 0%, var(--background) 88%)",
+            }}
+          />
+          <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
+            <Revelado>
+              <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em] drop-shadow-sm">
+                Qué hacemos
+              </h2>
+            </Revelado>
+            <Capacidades />
+          </div>
+        </section>
+      </div>
 
       <PageBreak tono="turquesa">
         Un sistema propio, no una plantilla más.
       </PageBreak>
 
-      <section className="relative">
-        <FondoSeccion tinte="turquesa">
-          <FondoSeccionAurora tono="turquesa" />
-        </FondoSeccion>
-        <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
-          <Revelado>
-            <h2 className="mb-12 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
-              Cómo trabajamos
-            </h2>
-          </Revelado>
-          <ComoTrabajamos />
-        </div>
-      </section>
+      {/* Todo lo que sigue al PageBreak comparte un solo fondo continuo, sin
+          recuadros por sección (pedido de Kevin: "un flujo casi
+          ininterrumpido de los fondos"). Las dos auroras van posicionadas
+          para solaparse en el medio y no dejar costura. */}
+      <div className="relative isolate overflow-hidden">
+        <FondoContinuo />
+        <FondoSeccionAurora
+          tono="turquesa"
+          className="absolute inset-x-0 top-0 h-[62%]"
+        />
+        <FondoSeccionAurora
+          tono="ambar"
+          className="absolute inset-x-0 bottom-0 h-[62%]"
+        />
 
-      <section className="relative">
-        <FondoSeccion tinte="ambar" />
-        <div className="relative mx-auto max-w-5xl px-6 py-16 sm:py-24">
-          <Revelado>
-            <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
-              Servicios destacados
-            </h2>
-          </Revelado>
-          <ServiciosDestacados />
-        </div>
-      </section>
+        <section className="relative z-10">
+          <div className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
+            <Revelado>
+              <h2 className="mb-12 text-center text-h2 font-heading font-semibold tracking-[-0.02em] drop-shadow-sm">
+                Cómo trabajamos
+              </h2>
+            </Revelado>
+            <ComoTrabajamos />
+          </div>
+        </section>
 
-      <section className="relative">
-        <FondoSeccion tinte="ambar">
-          <FondoSeccionAurora tono="ambar" />
-        </FondoSeccion>
-        <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
-          <Revelado>
-            <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
-              Casos
-            </h2>
-          </Revelado>
-          <PruebaSocial />
-        </div>
-      </section>
+        <section className="relative z-10">
+          <div className="mx-auto max-w-5xl px-6 py-16 sm:py-24">
+            <Revelado>
+              <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em] drop-shadow-sm">
+                Servicios destacados
+              </h2>
+            </Revelado>
+            <ServiciosDestacados />
+          </div>
+        </section>
 
-      <section className="relative">
-        <FondoSeccion tinte="neutro" />
-        <div className="relative mx-auto max-w-3xl px-6 py-16 sm:py-24">
-          <CierreIndice />
-        </div>
-      </section>
+        <section className="relative z-10">
+          <div className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
+            <Revelado>
+              <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em] drop-shadow-sm">
+                Casos
+              </h2>
+            </Revelado>
+            <PruebaSocial />
+          </div>
+        </section>
+
+        <section className="relative z-10">
+          <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
+            <CierreIndice />
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

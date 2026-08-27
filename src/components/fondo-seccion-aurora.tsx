@@ -3,25 +3,32 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { tokenAHex } from "@/lib/color-token";
+import { cn } from "@/lib/utils";
 
 const SoftAurora = dynamic(() => import("@/components/SoftAurora"), {
   ssr: false,
 });
 
-// Fondo animado sutil para dos secciones de la landing (PR 2 de la ronda de
-// fixes, paso 4: "dos fondos más, de la misma familia de color, montados
-// sobre FondoSeccion"). SoftAurora de React Bits, retiñido arena↔turquesa /
-// arena↔ámbar, a bajo brillo y sin interacción con el mouse — más quieto
-// que el hero, que ya tiene el prisma girando.
+// Fondo animado sutil para la landing (PR 2 de la ronda de fixes).
+// SoftAurora de React Bits, retiñido arena↔turquesa / arena↔ámbar, a bajo
+// brillo y sin interacción con el mouse — más quieto que el hero, que ya
+// tiene el prisma girando.
 //
 // SoftAurora no trae pausa fuera de viewport, así que se monta solo cuando
-// la sección está cerca (IntersectionObserver con margen); al salir se
-// desmonta y libera el contexto WebGL. Presupuesto §5.2 (revisado en §0.2):
-// uno en el hero + hasta dos en el resto de la landing.
+// entra al viewport (IntersectionObserver con margen); al salir se desmonta
+// y libera el contexto WebGL. Presupuesto §5.2 (revisado en §0.2): uno en
+// el hero + hasta dos en el resto de la landing.
+//
+// `className` reemplaza el `absolute inset-0` por defecto: en el tramo
+// continuo de la landing las instancias se posicionan para sangrar entre
+// secciones (ej. `absolute inset-x-0 top-0 h-[65%]`) y que no se note el
+// borde de cada sección.
 export function FondoSeccionAurora({
   tono = "turquesa",
+  className = "absolute inset-0",
 }: {
   tono?: "turquesa" | "ambar";
+  className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -58,15 +65,15 @@ export function FondoSeccionAurora({
   }, [tono]);
 
   return (
-    <div ref={ref} className="absolute inset-0">
+    <div ref={ref} className={cn("overflow-hidden", className)}>
       {visible && colores ? (
         <SoftAurora
           color1={colores.c1}
           color2={colores.c2}
-          speed={0.4}
-          brightness={0.5}
+          speed={0.35}
+          brightness={0.42}
           bandHeight={0.6}
-          bandSpread={1.2}
+          bandSpread={1.3}
         />
       ) : null}
     </div>
