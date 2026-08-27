@@ -1,218 +1,199 @@
-# Bitácora — PR 2 (`fix-02-fondos-react-bits`) — **PARCIAL**
+# Bitácora — PR 2 (`fix-02-fondos-react-bits`)
 
 React Bits de verdad: hero y fondos. Rama sacada de `fix-01-base-visual`
-(PR 1 todavía en review, no mergeado a `staging`).
+(PR 1 en review). PR contra `staging`.
 
-> **Este PR no está terminado.** La parte central —elegir el fondo del hero
-> mirándolo en vivo (paso 2)— no se puede hacer desde esta sesión: el panel
-> de preview no compone frames (sin screenshots, y el `IntersectionObserver`
-> no tickea). Lo que sigue es el andamiaje listo para que Kevin haga la
-> elección en `/dev/hero` y de ahí se cierre el PR. Ver §6–7.
+> **Estado**: el fondo del hero ya está elegido y cableado (Prism, elegido
+> por Kevin en `/dev/hero`), los dos fondos de sección animados están, y el
+> bug de "todas las secciones se ven igual" está arreglado. Falta: medición
+> Lighthouse/LCP en producción y la reescritura de la documentación
+> normativa (§5.2/§6.8/`CLAUDE.md`). Ver §7.
 
 ---
 
 ## 1. Qué se hizo (contra el §3, PR 2)
 
-**Paso 1 — habilitar el registro / instalar candidatos.** ✅
-- El install de React Bits va por URL completa:
-  `npx shadcn@latest add https://reactbits.dev/r/<Nombre>-TS-TW.json`.
-  Copia el archivo a `src/components/<Nombre>.tsx` (no a `ui/`).
-  `components.json` → `registries` sigue vacío; no hizo falta el namespace
-  `@react-bits`, alcanza con la URL.
+**Paso 1 — instalar candidatos.** ✅
+- Install: `npx shadcn@latest add https://reactbits.dev/r/<Nombre>-TS-TW.json`
+  → copia a `src/components/<Nombre>.tsx`. `components.json` → `registries`
+  vacío; alcanza la URL completa.
 - Instalados: `DarkVeil`, `Prism`, `LightRays`, `SoftAurora`.
-- **`silk` descartado**: su registry declara
-  `["@react-three/fiber@^9.3.0", "three@^0.180.0"]` — ~150 KB gz de
-  dependencia nueva, contra el presupuesto "JS inicial ≤ 180 KB". Los otros
-  cinco candidatos declaran solo `ogl@^1.0.11`, que **ya está** en
-  `package.json` (lo usa `canvas-hero.tsx`): cero peso nuevo.
-- Ajustes al código vendido: `"use client"` antepuesto a los cuatro
-  (usan hooks); en `SoftAurora` un `prefer-const` con `--fix` y otro con
-  `// eslint-disable-next-line prefer-const` comentado.
+- **`silk` descartado**: arrastra `three` + `@react-three/fiber` (~150 KB gz),
+  contra el presupuesto. Los otros usan `ogl`, ya en `package.json` → cero
+  peso nuevo.
+- Ajustes al código vendido: `"use client"` a los cuatro; en `SoftAurora`
+  un `prefer-const` con `--fix` y otro con `eslint-disable` comentado.
 
-**Paso 2 — elegir el fondo comparándolo en vivo.** ⛔ **Bloqueado** (ver §6).
-En su lugar se armó el harness (`/dev/hero`, ver §3 abajo).
+**Paso 2 — elegir el fondo del hero.** ✅
+- Se armó `/dev/hero` (harness dev-only) para comparar en vivo. Kevin
+  eligió **Prism**, modo `rotate`, con el matiz rotando solo.
 
-**Paso 3 — retiñir a la paleta.** 🟡 Parcial.
-- El harness resuelve los tokens (`--turquesa-400/500/700`, `--ambar-500`,
-  `--arena-50`) a `#rrggbb` en runtime vía `src/lib/color-token.ts`
-  (canvas 2D, porque `getComputedStyle().color` devuelve `lab()` en este
-  Chrome) y se los pasa a los componentes. Valores medidos:
-  turquesa-400 `#31c5b4`, turquesa-500 `#0fa594`, arena-50 `#fdfbf7`,
-  ámbar-500 `#f2a93b`.
-- `LightRays` y `SoftAurora` toman color por prop (`raysColor`,
-  `color1`/`color2`) → retinte directo. `Prism` y `DarkVeil` solo rotan
-  matiz (`hueShift`) → el harness expone un slider.
-- **Falta**: fijar los valores definitivos en el componente elegido y
-  quitar el harness / dejar solo el ganador. Los literales del shader del
-  ganador quedarán comentados, como en `canvas-hero.tsx` hoy.
+**Paso 3 — retiñir a la paleta.** ✅ (con matiz)
+- `src/lib/color-token.ts` resuelve tokens CSS a `#rrggbb` vía canvas 2D.
+- `Prism` **no toma colores**, solo rota el matiz de su paleta procedural
+  (`hueShift` fija el arranque, `colorFrequency` la variación). Como el hero
+  cicla el matiz a propósito, no hay literales que reteñir en el hero.
+- `FondoSeccionAurora` (secciones) sí: `color1`/`color2` = arena-50 ↔
+  turquesa-500 / ámbar-500, resueltos de tokens.
 
-**Paso 4 — `FondoSeccion` acepta capa animada.** ✅
-`FondoSeccion` ahora toma `children`: se montan encima de la banda quieta,
-que queda de fallback y de fondo real bajo `prefers-reduced-motion`
-(`motion-reduce:hidden` sobre la capa animada). **Falta** montar los dos
-fondos de sección concretos (paso 4, segunda parte) — depende del ganador.
+**Paso 4 — capa animada en `FondoSeccion` + dos fondos de sección.** ✅
+- `FondoSeccion` acepta `children` (capa animada sobre la banda quieta,
+  oculta bajo `prefers-reduced-motion`).
+- `FondoSeccionAurora`: `SoftAurora` retiñido, bajo brillo, sin mouse.
+  Auto-gateado con `IntersectionObserver` (`rootMargin: 200px`) porque
+  SoftAurora no trae pausa propia — al salir del viewport se desmonta y
+  libera el contexto WebGL.
+- En `(con-chasis)/page.tsx`: "Qué hacemos" (turquesa) y "Casos" (ámbar)
+  con aurora; "Cómo trabajamos" pasa de turquesa a neutro para no repetir
+  la banda de arriba.
 
-**Paso 5 — qué se conserva / qué cambia del gate a póster.** ✅
+**Paso 5 — gate a póster.** ✅
 `fondo-hero.tsx`:
-- Se sacan los gates `hardwareConcurrency <= 4` y `min-width: 768px`
-  (§1.2: en notebook modesto o celular el hero era una imagen fija).
-- Único corte a póster ahora: `prefers-reduced-motion`.
-- En móvil (`max-width: 767px` o `pointer: coarse`) se pasa `liviano` a
-  `CanvasHero`, que baja el DPR tope de 1.5 a 1 (mitad de píxeles/frame).
-- Se conservan: pausa fuera de viewport y con pestaña oculta, póster de
-  `loading` del `next/dynamic`.
-- **Nota**: hoy `CanvasHeroDinamico` sigue apuntando al `canvas-hero.tsx`
-  actual. El swap al componente ganador es parte del cierre del PR.
+- Fuera los gates `hardwareConcurrency <= 4` y `min-width: 768px` (§1.2).
+- Único corte a póster: `prefers-reduced-motion`.
+- Móvil (`max-width: 767px` o `pointer: coarse`) → Prism en versión liviana
+  (menos glow/bloom/noise, escala menor).
+- Pausa fuera de viewport: ahora la hace Prism (`suspendWhenOffscreen`); se
+  sacó el `IntersectionObserver` a mano.
+- Póster de `loading` del `next/dynamic` = `<FondoSeccion tinte="turquesa">`.
 
-**Paso 6 — borrar `canvas-hero.tsx` / `poster-hero.tsx`.** ⛔ No se hace
-todavía: no hay ganador y `canvas-hero.tsx` es el fallback vigente + una de
-las opciones del harness.
+**Paso 6 — borrar `canvas-hero.tsx` / `poster-hero.tsx`.** ✅
+Prism los reemplaza. El harness pierde la opción "canvas-hero (actual)".
 
-**Paso 7 — medir.** 🟡 Parcial.
-- `ogl` ya pesa ~21 KB (encoded) en el bundle actual → los candidatos
-  ogl no agregan dependencia.
-- No hay medición de producción ni Lighthouse (ver §6). El `pnpm build` de
-  Next 16 + Turbopack no imprime "First Load JS", y `next dev` mezcla
-  chunks de devtools. Falta `pnpm build && pnpm start` + Lighthouse, y una
-  pasada en Render free.
+**Paso 7 — medir.** 🟡 Pendiente.
+- `ogl` ya pesa ~21 KB (encoded) en el bundle → los candidatos no agregan
+  dependencia.
+- Falta `pnpm build && pnpm start` + Lighthouse (LCP ≤ 2.5 s, JS inicial
+  ≤ 180 KB sin el shader, no empeorar el LCP +200 ms) y una pasada en
+  Render free. El `pnpm build` de Next 16 + Turbopack no imprime "First
+  Load JS" y `next dev` mezcla chunks de devtools, así que no es medible
+  desde esta sesión.
 
-**Paso 8 — documentación (§5.2, §6.8, `CLAUDE.md` según tabla §0.2).**
-⛔ No se toca hasta que haya ganador — reescribir esas reglas sin el
-resultado sería a ciegas.
+**Paso 8 — documentación (§5.2, §6.8, `CLAUDE.md` según §0.2).** ⛔ Pendiente.
+Reescribir "un solo WebGL" → "presupuesto por página (1 hero + 2 landing,
+0 en `/app` y `/portal`)" e "inventario cerrado" → "inventario abierto para
+la landing", con el motivo escrito. Se hace junto con el cierre del PR.
 
 ---
 
 ## 2. Decisiones que tomé yo
 
-- **`silk` afuera por peso**, no por gusto: `three` + `@react-three/fiber`
-  no entran en el presupuesto. La terna efectiva pasa a `dark-veil` vs
-  `prism`, con `light-rays` y `soft-aurora` de alternativa — todos ogl.
-- **Los candidatos van a `src/components/` (raíz), no a `ui/`** — igual que
-  `campo-arena.tsx` en su momento y que el resto de componentes no-shadcn.
-- **`color-token.ts` con canvas 2D** en vez de parsear el string de
-  `getComputedStyle`: este Chrome devuelve `lab(...)`, y el 2D context
-  normaliza cualquier espacio de color a bytes sRGB.
-- **Harness que monta un candidato por vez**, no los cinco a la vez: cinco
-  contextos WebGL simultáneos compiten y algunos navegadores cortan a los
-  ~16 contextos vivos.
-- **`liviano` = DPR 1** (no "menos capas"): es el ajuste de una línea con
-  más impacto y no toca el shader. "Menos capas" quedaría para el
-  componente ganador si hace falta.
-- **`FondoSeccion` usa `children`** (no un prop `animado={<X/>}`): más
-  simple y deja pasar cualquier componente.
+- **`silk` afuera por peso.** La terna efectiva fue `dark-veil` vs `prism`,
+  con `light-rays` / `soft-aurora` de alternativa — todos ogl.
+- **Prism en `rotate` con matiz que cicla** (pedido de Kevin explícito).
+  `rotate` no reacciona al cursor — se acepta; el prisma girando + el matiz
+  rotando ya cumplen "se mueve solo". Ciclo de matiz: **10 s** por vuelta
+  completa (`hueShiftSpeed = 2π/10` rad/s).
+- **`hueShiftSpeed` como adaptación a `Prism.tsx`** (§6.8), no un wrapper:
+  el prop `hueShift` de Prism re-monta todo el WebGL al cambiar, así que
+  animarlo desde afuera era inviable. La adaptación mueve el uniform
+  `uHueShift` dentro del loop de render. Comentada como tal.
+- **Fondos de sección con `SoftAurora`, no Prism**: el prisma girando es
+  mucho para una banda de contenido; SoftAurora es una cortina calma.
+- **Auto-gate por `IntersectionObserver` en `FondoSeccionAurora`**:
+  SoftAurora no tiene `suspendWhenOffscreen`. Sin esto habría 3 contextos
+  WebGL corriendo siempre en la landing.
+- **Tintes de `FondoSeccion` subidos** (claro 9→16 %, oscuro 8-10→22-24 %):
+  al valor anterior las tres bandas se leían iguales, sobre todo en oscuro
+  (feedback de Kevin sobre la captura).
+- **"Cómo trabajamos" pasa de turquesa a neutro**: quedaba pegado a la
+  banda turquesa animada de "Qué hacemos".
 
 ---
 
-## 3. El harness `/dev/hero`
+## 3. El harness `/dev/hero` (se conserva)
 
-Página dev-only (`notFound()` en producción, igual que `/dev/ui`).
-`src/app/dev/hero/page.tsx` (server, guarda) + `comparador-hero.tsx`
-(client). Qué ofrece:
-- Selector de candidato: Prism / LightRays / SoftAurora / canvas-hero
-  (actual) / DarkVeil. Monta uno por vez a pantalla completa.
-- El `<h1>`/bajada reales encima, para juzgar contraste y legibilidad.
-- Slider `hueShift` (−180…180) para Prism y DarkVeil.
-- Selector de modo para Prism (`rotate` / `hover` / `3drotate` — solo
-  `hover`/`3drotate` reaccionan al cursor).
-- Ficha por candidato: dependencia, si se mueve solo, si reacciona al
-  mouse, cómo se lee (mi lectura del shader, para orientar; la decisión
-  es visual).
-
-**Cómo lo usa Kevin**: `pnpm dev` → `http://localhost:3000/dev/hero`,
-recorrer los cinco con el mouse quieto y moviéndose, elegir uno y anotar
-`hueShift`/modo. Con eso yo cierro el PR (swap en `fondo-hero.tsx`,
-retinte fijo, borrado de `canvas-hero.tsx`/`poster-hero.tsx`, los dos
-fondos de sección, medición y docs).
-
-Criterios del plan, en orden: (a) se mueve solo, visiblemente, con el
-mouse quieto; (b) reacciona al cursor; (c) se lee como aire caliente que
-dobla la luz; (d) entra en el presupuesto. Mi apuesta a ciegas, por el
-código: **Prism** en modo `3drotate` — es refracción literal y reacciona
-al cursor; `SoftAurora` es lo más cercano al arena↔turquesa del brief pero
-más frío y sin el "doblado de luz".
+Dev-only (`notFound()` en producción). Selector Prism / LightRays /
+SoftAurora / DarkVeil, uno por vez a pantalla completa, con el `<h1>` real
+encima, slider `hueShift`, selector de modo para Prism, ficha por candidato.
+Prism ya trae el `hueShiftSpeed` de 10 s. Se deja para re-comparar o tunear
+los otros fondos.
 
 ---
 
 ## 4. Archivos tocados
 
-**Candidatos vendidos (nuevos)**
-- `src/components/{DarkVeil,Prism,LightRays,SoftAurora}.tsx` — React Bits,
-  base ogl, con `"use client"`.
+**Candidatos vendidos (nuevos)**: `src/components/{DarkVeil,Prism,LightRays,
+SoftAurora}.tsx` (React Bits, ogl, `"use client"`). `Prism.tsx` además con
+la adaptación `hueShiftSpeed`.
+
+**Hero**
+- `src/components/espejismo-hero/hero-prism.tsx` (nuevo) — wrapper del hero.
+- `src/components/espejismo-hero/fondo-hero.tsx` — monta HeroPrism, saca
+  gates de CPU/ancho y el IntersectionObserver.
+- `src/components/espejismo-hero/canvas-hero.tsx`, `poster-hero.tsx`
+  (borrados).
+
+**Fondos de sección**
+- `src/components/fondo-seccion.tsx` — `children` como capa animada opcional.
+- `src/components/fondo-seccion-aurora.tsx` (nuevo) — SoftAurora auto-gateado.
+- `src/app/globals.css` — tintes `--tinte-*` subidos, claro y oscuro.
+- `src/app/(publico)/(con-chasis)/page.tsx` — aurora en dos secciones,
+  "Cómo trabajamos" a neutro.
 
 **Harness**
-- `src/app/dev/hero/page.tsx`, `src/app/dev/hero/comparador-hero.tsx` (nuevos).
-- `src/lib/color-token.ts` (nuevo).
-
-**Hero — gate a póster**
-- `src/components/espejismo-hero/fondo-hero.tsx` — saca gates de CPU/ancho,
-  agrega `liviano` para móvil.
-- `src/components/espejismo-hero/canvas-hero.tsx` — prop `liviano` → DPR 1.
-
-**FondoSeccion**
-- `src/components/fondo-seccion.tsx` — `children` como capa animada opcional.
+- `src/app/dev/hero/{page,comparador-hero}.tsx`, `src/lib/color-token.ts`
+  (nuevos, del commit anterior) — `comparador-hero.tsx` pierde la opción
+  canvas-hero.
 
 ---
 
 ## 5. Qué verifiqué y cómo
 
-- `pnpm lint` / `pnpm typecheck` / `pnpm test` (24 archivos, 190 tests) /
-  `pnpm build` → todo en verde. `/dev/hero` compila como ruta estática.
-- Navegador (`pnpm dev`, sin Docker):
-  - `/dev/hero`: montan `Prism`, `SoftAurora`, `canvas-hero`, `DarkVeil`
-    (1 `<canvas>` cada uno, tamaños razonables). Los colores de paleta
-    resuelven bien (turquesa-400 `#31c5b4`, etc.). Sin errores de consola
-    de los componentes (solo ruido de HMR y warnings de preload de fuentes).
-  - **`LightRays` no monta acá**: gatea su init en un `IntersectionObserver`
-    que en este entorno nunca dispara (el panel no compone frames). En el
-    navegador real de Kevin va a andar. Confirmado que no es bug del
-    harness: un `IntersectionObserver` fresco sobre cualquier elemento de
-    la página tampoco dispara acá.
-  - `/` (landing): sigue sano tras los cambios — `<h1>` ok, 1 `<canvas>`
-    del hero (ahora corre WebGL donde antes caía a póster, que es el
-    objetivo del paso 5), 5 capas de `FondoSeccion`, 0 `conic-gradient`,
-    sin scroll horizontal.
-- Peso de JS: no medible en condiciones reales desde acá (dev build).
+- `pnpm lint` / `pnpm typecheck` / `pnpm test` (24 archivos, 190) /
+  `pnpm build` → todo en verde. `/dev/hero` y `/` compilan.
+- Navegador (dev server, sin compositing — sin screenshots, el
+  `IntersectionObserver` no tickea):
+  - `/`: monta **1 `<canvas>`** cuyo árbol de padres es
+    `canvas → div.w-full h-full relative (Prism) → div.absolute inset-0
+    (HeroPrism) → div (FondoHero) → section` — o sea, Prism es el fondo del
+    hero. `<h1>` en Bricolage.
+  - **Tintes de sección en oscuro ahora distintos**: `--background` L≈0.19;
+    `--tinte-turquesa` oklch(L 0.293, hue 182), `--tinte-ambar`
+    oklch(L 0.292, hue 71), `--tinte-neutro` oklch(L 0.300, ~gris). ΔL ≈
+    0.10 con el fondo y turquesa/ámbar separados por matiz.
+  - Las dos `FondoSeccionAurora` montan su wrapper; el `<SoftAurora>` en sí
+    no llega a montar acá porque su `IntersectionObserver` no dispara en
+    este entorno — en el navegador real de Kevin sí.
+  - Sin errores de consola de los componentes (solo ruido de HMR).
+- **No verificado desde acá** (necesita navegador real / Kevin): que Prism
+  se vea bien y el ciclo de matiz de 10 s sea agradable y no "modo fiesta";
+  que las auroras de sección monten al scrollear y se vean sutiles; LCP y
+  peso de JS en producción.
 
 ---
 
-## 6. Dudas y sospechas / lo que quedó bloqueado
+## 6. Dudas y sospechas
 
-- **La elección del fondo (paso 2) es de Kevin, en `/dev/hero`.** No se
-  puede hacer sin ver los cinco en movimiento. Todo lo que depende del
-  ganador quedó sin cerrar: swap en `fondo-hero.tsx` (paso 5, segunda
-  parte), retinte fijo (paso 3), borrado de `canvas-hero.tsx`/
-  `poster-hero.tsx` (paso 6), los dos fondos de sección (paso 4), y la
-  reescritura de §5.2/§6.8/`CLAUDE.md` (paso 8).
-- **`LightRays` no se pudo probar en esta sesión** (IntersectionObserver
-  no tickea). Kevin: verificá que monte en tu navegador.
-- **Lighthouse / LCP / peso en producción (paso 7)**: pendiente. Necesita
-  `pnpm build && pnpm start` + Lighthouse en una máquina con navegador, y
-  una pasada en Render free (peor caso). Presupuesto: LCP ≤ 2.5 s, JS
-  inicial ≤ 180 KB sin el shader, no empeorar el LCP actual +200 ms.
-- **`Prism` en modo `rotate` no reacciona al cursor** (criterio b). Si se
-  elige Prism hay que dejarlo en `hover` o `3drotate`, o combinar.
-- **`DarkVeil` produce una imagen oscura y psicodélica**: probablemente
-  pelee con el arena claro. Lo dejé en el harness como referencia, no
-  espero que gane.
-- El `IntersectionObserver` interno de `LightRays` y el de `fondo-hero.tsx`
-  usan `threshold`/lógica propia — si el ganador es LightRays, revisar que
-  su pausa fuera de viewport no choque con la de `fondo-hero.tsx`.
+- **El ciclo de matiz de Prism recorre todo el espectro** (rojo→verde→azul→
+  violeta) cada 10 s. Es lo que pidió Kevin ("el hue shift transicione cada
+  10 s aprox"). Si en pantalla se ve demasiado "arcoíris" para "Espejismo
+  cálido", hay dos ajustes de una línea en `hero-prism.tsx`: subir
+  `CICLO_SEGUNDOS` (más lento) o cambiar `hueShiftSpeed` por una oscilación
+  senoidal acotada a un rango cálido en `Prism.tsx`.
+- **Prism cachea `dpr = min(2, devicePixelRatio)`** y no lo expone. La
+  versión `liviano` de móvil baja el costo del fragment shader
+  (glow/bloom/noise/scale) pero no la resolución. Si en un celular real va
+  con lag, hay que exponer `dpr` en `Prism.tsx`.
+- **Prism en `rotate` no reacciona al cursor** (criterio b del plan). Kevin
+  lo eligió así a propósito.
+- **`FondoSeccionAurora` monta/desmonta con `rootMargin: 200px`**: si al
+  scrollear rápido se ve el "encendido" del shader, subir el margen o
+  mantenerlo montado y solo pausar (SoftAurora no lo permite hoy).
+- **3 contextos WebGL en la landing** (hero + 2 auroras) es el tope del
+  presupuesto revisado (§0.2). En un celular de gama baja hay que medirlo.
 
 ---
 
-## 7. Deuda que dejo (cierre del PR, tras la elección)
+## 7. Deuda que dejo (cierre del PR)
 
-1. Kevin elige fondo + `hueShift`/modo en `/dev/hero`.
-2. Wrapper retiñido del ganador (colores de paleta fijos, literales del
-   shader comentados) y swap en `fondo-hero.tsx`.
-3. Variante liviana de móvil del ganador (menos capas / menor DPR).
-4. Borrar `canvas-hero.tsx` y `poster-hero.tsx` si el ganador los
-   reemplaza; si el ganador es `canvas-hero`, este paso no aplica.
-5. Dos fondos de sección de la landing sobre `FondoSeccion` (misma familia
-   de color).
-6. Medición: `pnpm build && pnpm start` + Lighthouse local + Render free,
-   números antes/después en esta bitácora.
-7. Reescribir §5.2 y §6.8 del sistema visual y las líneas de `CLAUDE.md`
-   según la tabla del §0.2 (presupuesto por página en vez de "un solo
-   WebGL"; inventario abierto para la landing), con el motivo escrito.
-8. Confirmar en Network que `/app` y `/portal` no cargan un byte de WebGL.
+1. **Kevin**: sign-off visual de Prism (color / ciclo de matiz) y de las
+   auroras de sección, en su navegador. Si el matiz molesta, ajuste de una
+   línea (ver §6).
+2. **Medición (paso 7)**: `pnpm build && pnpm start` + Lighthouse local +
+   Render free. Números antes/después acá. Confirmar que `/app` y `/portal`
+   no cargan un byte de WebGL (pestaña Network).
+3. **Documentación (paso 8)**: reescribir §5.2 y §6.8 del sistema visual y
+   las líneas de `CLAUDE.md` según la tabla del §0.2, con el motivo escrito.
+4. Revisar en 390 px que las auroras de sección no metan scroll horizontal
+   ni tapen texto.
