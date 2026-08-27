@@ -18,12 +18,21 @@ export const revalidate = 3600;
 export default function PaginaInicio() {
   return (
     <main>
-      {/* El hero y "Qué hacemos" comparten el fondo Prism, sin corte entre
-          ambos: el scrim de "Qué hacemos" funde el prisma a --background
-          hacia abajo, así el primer break real de la página es el
-          <PageBreak>. */}
+      {/* El hero, "Qué hacemos" y el break comparten el fondo Prism. El
+          break es un panel de vidrio: deja pasar el prisma desenfocado en
+          vez de cortar con un bloque de color. Un fade en el borde inferior
+          lleva el prisma a --background para empalmar con el fondo continuo
+          de abajo sin costura. */}
       <div className="relative isolate overflow-hidden">
         <FondoHero />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[45vh]"
+          style={{
+            background:
+              "linear-gradient(180deg, transparent, var(--background))",
+          }}
+        />
 
         <EspejismoHero />
 
@@ -33,7 +42,7 @@ export default function PaginaInicio() {
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, transparent 0%, var(--background) 88%)",
+                "linear-gradient(180deg, transparent 0%, color-mix(in oklch, var(--background), transparent 42%) 65%, transparent 100%)",
             }}
           />
           <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
@@ -45,13 +54,13 @@ export default function PaginaInicio() {
             <Capacidades />
           </div>
         </section>
+
+        <PageBreak tono="turquesa" variante="vidrio">
+          Un sistema propio, no una plantilla más.
+        </PageBreak>
       </div>
 
-      <PageBreak tono="turquesa">
-        Un sistema propio, no una plantilla más.
-      </PageBreak>
-
-      {/* Todo lo que sigue al PageBreak comparte un solo fondo continuo, sin
+      {/* Todo lo que sigue al break comparte un solo fondo continuo, sin
           recuadros por sección (pedido de Kevin: "un flujo casi
           ininterrumpido de los fondos"). Las dos auroras van posicionadas
           para solaparse en el medio y no dejar costura. */}
