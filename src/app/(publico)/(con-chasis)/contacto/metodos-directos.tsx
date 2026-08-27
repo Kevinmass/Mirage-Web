@@ -1,5 +1,6 @@
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { ArrowUpRight, Mail, MessageCircle, Phone } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 const EMAIL_CONTACTO = "mirage.software.ar@gmail.com";
 
@@ -25,15 +26,24 @@ function BloqueContacto({
   return (
     <Link
       href={href}
-      className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
+      className={cn(
+        "group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm outline-none transition-[transform,box-shadow,border-color] duration-(--dur-rapida) ease-(--ease-suave)",
+        "hover:-translate-y-0.5 hover:border-primary hover:shadow-md",
+        "focus-visible:-translate-y-0.5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-turquesa-200",
+        "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+      )}
     >
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         <Icono className="size-5" />
       </span>
       <span className="flex flex-col">
         <span className="text-sm text-muted-foreground">{etiqueta}</span>
         <span className="font-medium">{dato}</span>
       </span>
+      <ArrowUpRight
+        aria-hidden
+        className="ml-auto size-5 shrink-0 text-muted-foreground transition-transform duration-(--dur-rapida) ease-(--ease-suave) group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none"
+      />
     </Link>
   );
 }
