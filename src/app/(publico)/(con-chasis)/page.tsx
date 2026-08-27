@@ -38,7 +38,9 @@ export default function PaginaInicio() {
       </PageBreak>
 
       <section className="relative">
-        <FondoSeccion tinte="neutro" />
+        <FondoSeccion tinte="turquesa">
+          <FondoSeccionAurora tono="turquesa" />
+        </FondoSeccion>
         <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-12 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
@@ -50,7 +52,7 @@ export default function PaginaInicio() {
       </section>
 
       <section className="relative">
-        <FondoSeccion tinte="neutro" />
+        <FondoSeccion tinte="ambar" />
         <div className="relative mx-auto max-w-5xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">

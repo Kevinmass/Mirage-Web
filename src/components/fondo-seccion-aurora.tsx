@@ -48,7 +48,10 @@ export function FondoSeccionAurora({
           );
         }
       },
-      { rootMargin: "200px" },
+      // Margen chico a propósito: con tres secciones animadas en la landing
+      // (Qué hacemos / Cómo trabajamos / Casos) esto acota cuántos contextos
+      // WebGL pueden estar montados a la vez — en la práctica, dos.
+      { rootMargin: "120px" },
     );
     io.observe(el);
     return () => io.disconnect();
