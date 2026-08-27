@@ -1,5 +1,5 @@
-import { CampoArena } from "@/components/campo-arena";
 import { EspejismoHero } from "@/components/espejismo-hero/espejismo-hero";
+import { FondoSeccion } from "@/components/fondo-seccion";
 import { PageBreak } from "@/components/page-break";
 import { Revelado } from "@/components/revelado";
 import { Capacidades } from "./_inicio/capacidades";
@@ -19,7 +19,7 @@ export default function PaginaInicio() {
       <EspejismoHero />
 
       <section className="relative">
-        <CampoArena tinte="arena-turquesa" />
+        <FondoSeccion tinte="turquesa" />
         <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
@@ -35,7 +35,7 @@ export default function PaginaInicio() {
       </PageBreak>
 
       <section className="relative">
-        <CampoArena tinte="arena-turquesa" />
+        <FondoSeccion tinte="turquesa" />
         <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-12 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
@@ -47,7 +47,7 @@ export default function PaginaInicio() {
       </section>
 
       <section className="relative">
-        <CampoArena tinte="arena" />
+        <FondoSeccion tinte="neutro" />
         <div className="relative mx-auto max-w-5xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
@@ -59,7 +59,7 @@ export default function PaginaInicio() {
       </section>
 
       <section className="relative">
-        <CampoArena tinte="arena-ambar" />
+        <FondoSeccion tinte="ambar" />
         <div className="relative mx-auto max-w-4xl px-6 py-16 sm:py-24">
           <Revelado>
             <h2 className="mb-10 text-center text-h2 font-heading font-semibold tracking-[-0.02em]">
@@ -71,7 +71,7 @@ export default function PaginaInicio() {
       </section>
 
       <section className="relative">
-        <CampoArena tinte="arena" />
+        <FondoSeccion tinte="neutro" />
         <div className="relative mx-auto max-w-3xl px-6 py-16 sm:py-24">
           <CierreIndice />
         </div>
