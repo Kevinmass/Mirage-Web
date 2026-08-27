@@ -163,30 +163,32 @@ export async function crearPrimerEmpleado(
     .values({ personaId: personaInicial!.id, rolId: rolInicial!.id })
     .onConflictDoNothing();
 
-  // 6. Las dos raíces del organigrama, y la persona como titular de la
-  //    interna. Sin raíces no hay árbol donde colgar nada. (El PR 5 la deja
-  //    titular también de la externa.)
+  // 6. Las dos raíces del organigrama, y la persona como titular de las
+  //    dos. Sin raíces no hay árbol donde colgar nada; sin titular en la
+  //    rama externa, esa rama nace muerta y nadie puede asignar ahí desde
+  //    la UI (PR 5 de la ronda de fixes).
   const raicesExistentes = await db
     .select({ raiz: nodo.raiz, id: nodo.id })
     .from(nodo)
     .where(isNull(nodo.padreId));
 
   for (const { raiz, nombre: nombreRaiz } of RAICES) {
-    if (raicesExistentes.some((r) => r.raiz === raiz)) {
-      continue;
-    }
-    const [creada] = await db
-      .insert(nodo)
-      .values({ nombre: nombreRaiz, raiz, padreId: null })
-      .returning();
-    log(`Raíz "${nombreRaiz}" (${raiz}) creada.`);
+    const existente = raicesExistentes.find((r) => r.raiz === raiz);
+    let raizId = existente?.id;
 
-    if (raiz === "interno") {
-      await asignarPersona(personaInicial!.id, creada!.id, true).catch(() => {
-        // Ya hay un titular vigente — no es un error para algo que se puede
-        // correr dos veces.
-      });
+    if (!raizId) {
+      const [creada] = await db
+        .insert(nodo)
+        .values({ nombre: nombreRaiz, raiz, padreId: null })
+        .returning();
+      raizId = creada!.id;
+      log(`Raíz "${nombreRaiz}" (${raiz}) creada.`);
     }
+
+    await asignarPersona(personaInicial!.id, raizId, true).catch(() => {
+      // Ya hay un titular vigente — no es un error para algo que se puede
+      // correr dos veces.
+    });
   }
 
   return { personaId: personaInicial!.id, yaExistia };

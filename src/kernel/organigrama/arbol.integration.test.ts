@@ -5,6 +5,12 @@ import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
+import {
+  capacidad,
+  personaRol,
+  rol,
+  rolCapacidad,
+} from "@/kernel/permisos/schema";
 import { asignacion, nodo } from "./schema";
 
 describe("kernel/organigrama — api del árbol", () => {
@@ -25,7 +31,7 @@ describe("kernel/organigrama — api del árbol", () => {
 
   beforeEach(async () => {
     await db.execute(
-      sql`truncate table asignacion, nodo, persona restart identity cascade`,
+      sql`truncate table asignacion, nodo, persona, persona_rol, rol_capacidad, rol, capacidad restart identity cascade`,
     );
   });
 
@@ -44,6 +50,15 @@ describe("kernel/organigrama — api del árbol", () => {
     const b = await arbol.crearNodo({ nombre: "B", padreId: a.id });
     const c = await arbol.crearNodo({ nombre: "C", padreId: b.id });
     return { raiz: raiz!, a, b, c };
+  }
+
+  // Una segunda raíz aislada, para probar "otra rama".
+  async function armarOtraRaiz() {
+    const [otra] = await db
+      .insert(nodo)
+      .values({ nombre: "Otra raíz", raiz: "externo", padreId: null })
+      .returning();
+    return otra!;
   }
 
   it("crearNodo exige un padre existente", async () => {
@@ -340,5 +355,47 @@ describe("kernel/organigrama — api del árbol", () => {
 
     expect(controlados.has(c.id)).toBe(true);
     expect(controlados.size).toBe(2);
+  });
+
+  describe("puedeAdministrarNodo", () => {
+    async function darCapacidadAdministrar(personaId: number) {
+      await db
+        .insert(capacidad)
+        .values({
+          clave: "organigrama.administrar",
+          modulo: "kernel",
+          descripcion: "d",
+        })
+        .onConflictDoNothing();
+      const [r] = await db
+        .insert(rol)
+        .values({ nombre: `admin-org-${personaId}` })
+        .returning();
+      await db.insert(rolCapacidad).values({
+        rolId: r!.id,
+        capacidadClave: "organigrama.administrar",
+      });
+      await db.insert(personaRol).values({ personaId, rolId: r!.id });
+    }
+
+    it("por defecto: true solo en la rama que ocupa la persona", async () => {
+      const { b, c } = await armarCadena();
+      const p = await crearPersonaDePrueba("pan1@mirage.test");
+      await arbol.asignarPersona(p.id, b.id, false);
+
+      expect(await arbol.puedeAdministrarNodo(p.id, c.id)).toBe(true); // subárbol
+      const otra = await armarOtraRaiz();
+      expect(await arbol.puedeAdministrarNodo(p.id, otra.id)).toBe(false);
+    });
+
+    it("con organigrama.administrar: true en cualquier nodo, se ocupe o no", async () => {
+      const otra = await armarOtraRaiz();
+      const p = await crearPersonaDePrueba("pan2@mirage.test");
+      // No ocupa ningún nodo.
+      expect(await arbol.puedeAdministrarNodo(p.id, otra.id)).toBe(false);
+
+      await darCapacidadAdministrar(p.id);
+      expect(await arbol.puedeAdministrarNodo(p.id, otra.id)).toBe(true);
+    });
   });
 });

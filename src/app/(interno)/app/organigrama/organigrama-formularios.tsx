@@ -20,9 +20,10 @@ import {
 
 // Motivo por defecto de por qué un control está deshabilitado — entender
 // la jerarquía es parte del punto (diseño §8.8), así que nunca se oculta
-// el control, se explica.
+// el control, se explica. Nombra la capacidad que lo destraba (§6 del plan
+// de fixes).
 const MOTIVO_SIN_PERMISO =
-  "Solo quien ocupa este nodo o uno de sus superiores puede editarlo acá";
+  'Para asignar acá hay que ocupar este nodo o uno superior, o tener la capacidad "organigrama.administrar"';
 
 function ErrorAccion({ estado }: { estado: EstadoAccion }) {
   if (!estado.error) return null;

@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Conflicto, Validacion } from "@/kernel/errores";
+import { Conflicto, NoAutorizado, Validacion } from "@/kernel/errores";
+import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import * as arbol from "@/kernel/organigrama/arbol";
 
 export interface EstadoAccion {
@@ -9,10 +10,30 @@ export interface EstadoAccion {
 }
 
 function mensajeDeError(error: unknown): string {
-  if (error instanceof Validacion || error instanceof Conflicto) {
+  if (
+    error instanceof Validacion ||
+    error instanceof Conflicto ||
+    error instanceof NoAutorizado
+  ) {
     return error.message;
   }
   throw error;
+}
+
+// Chequeo server-side de que la sesión puede administrar (asignar /
+// desasignar) en un nodo. El gateo de la UI (nodosControladosIds /
+// administraTodo) es solo cosmético; esto es la barrera real.
+async function exigirAdministrarNodo(nodoId: number) {
+  const sesion = await obtenerSesionActual();
+  if (!sesion) {
+    throw new NoAutorizado("Iniciá sesión.");
+  }
+  if (!(await arbol.puedeAdministrarNodo(sesion.personaId, nodoId))) {
+    throw new NoAutorizado(
+      "Para asignar acá hace falta ocupar este nodo o uno superior, " +
+        'o tener la capacidad "organigrama.administrar".',
+    );
+  }
 }
 
 export async function crearNodoAction(
@@ -65,7 +86,9 @@ export async function moverNodoAction(
   formData: FormData,
 ): Promise<EstadoAccion> {
   const nuevoPadreId = Number(formData.get("nuevoPadreId"));
-  if (!Number.isInteger(nuevoPadreId)) {
+  // Number("") es 0 y Number.isInteger(0) es true — el guardia tiene que
+  // exigir > 0, no solo "es entero" (§1.12).
+  if (!Number.isInteger(nuevoPadreId) || nuevoPadreId <= 0) {
     return { error: "Elegí un nuevo padre" };
   }
 
@@ -100,11 +123,14 @@ export async function asignarPersonaAction(
 ): Promise<EstadoAccion> {
   const personaId = Number(formData.get("personaId"));
   const esTitular = formData.get("esTitular") === "on";
-  if (!Number.isInteger(personaId)) {
+  // Number("") es 0 y Number.isInteger(0) es true — el guardia "Elegí una
+  // persona" no atrapaba el <select> vacío (§1.12). Exigir > 0.
+  if (!Number.isInteger(personaId) || personaId <= 0) {
     return { error: "Elegí una persona" };
   }
 
   try {
+    await exigirAdministrarNodo(nodoId);
     await arbol.asignarPersona(personaId, nodoId, esTitular);
   } catch (error) {
     return { error: mensajeDeError(error) };
@@ -115,6 +141,9 @@ export async function asignarPersonaAction(
 }
 
 export async function finalizarAsignacionAction(asignacionId: number) {
+  const nodoId = await arbol.nodoIdDeAsignacion(asignacionId);
+  if (nodoId === null) return;
+  await exigirAdministrarNodo(nodoId);
   await arbol.finalizarAsignacion(asignacionId);
   revalidatePath("/app/organigrama");
 }

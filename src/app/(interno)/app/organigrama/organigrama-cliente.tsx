@@ -32,6 +32,8 @@ interface Props {
   nodos: NodoConDetalle[];
   personas: PersonaResumen[];
   nodosControladosIds: number[];
+  // Capacidad organigrama.administrar: puede asignar en cualquier nodo.
+  administraTodo?: boolean;
 }
 
 type Rama = "interno" | "externo";
@@ -61,6 +63,7 @@ export function OrganigramaCliente({
   nodos,
   personas,
   nodosControladosIds,
+  administraTodo = false,
 }: Props) {
   const [seleccionadoId, setSeleccionadoId] = useState<number | null>(null);
   const [vistaLista, setVistaLista] = useState(false);
@@ -174,7 +177,9 @@ export function OrganigramaCliente({
               todosLosNodos={nodos}
               personas={personas}
               onSeleccionarHijo={setSeleccionadoId}
-              puedeControlar={nodosControlados.has(seleccionado.id)}
+              puedeControlar={
+                administraTodo || nodosControlados.has(seleccionado.id)
+              }
             />
           ) : (
             <p className="text-sm text-muted-foreground">

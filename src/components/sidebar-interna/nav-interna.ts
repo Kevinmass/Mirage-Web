@@ -7,12 +7,14 @@ import {
   ListChecks,
   Network,
   Settings,
+  ShieldCheck,
   Users,
 } from "lucide-react";
 
 export const NAV_INTERNA = [
   { href: "/app/personas", etiqueta: "Personas", icono: Users },
   { href: "/app/organigrama", etiqueta: "Organigrama", icono: Network },
+  { href: "/app/roles", etiqueta: "Roles", icono: ShieldCheck },
   { href: "/app/clientes", etiqueta: "Clientes", icono: Building2 },
   { href: "/app/proyectos", etiqueta: "Proyectos", icono: FolderKanban },
   { href: "/app/contenido", etiqueta: "Contenido", icono: FileText },

@@ -80,6 +80,18 @@ describe("kernel/identidad — arranque", () => {
       .where(isNull(organigramaSchema.nodo.padreId));
     expect(raices.map((n) => n.raiz).sort()).toEqual(["externo", "interno"]);
 
+    // El fundador es titular vigente de las DOS raíces (PR 5): sin eso la
+    // rama externa nace muerta.
+    const titularidades = await db
+      .select()
+      .from(organigramaSchema.asignacion)
+      .where(eq(organigramaSchema.asignacion.personaId, p!.id));
+    const nodosDondeEsTitular = titularidades
+      .filter((a) => a.esTitular && a.hasta === null)
+      .map((a) => a.nodoId)
+      .sort();
+    expect(nodosDondeEsTitular).toEqual(raices.map((n) => n.id).sort());
+
     expect(await arranque.existeAlgunaPersona()).toBe(true);
   });
 

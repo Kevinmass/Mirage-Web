@@ -3,6 +3,7 @@ import { db } from "@/db/client";
 import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 import { persona } from "@/kernel/identidad/schema";
+import { tienePermiso } from "@/kernel/permisos/evaluar";
 import { asignacion, nodo } from "./schema";
 
 export interface DatosNodo {
@@ -271,6 +272,18 @@ export async function asignarPersona(
   }
 }
 
+// El nodo al que pertenece una asignación — para chequear permisos antes
+// de finalizarla (que solo trae el id de la asignación).
+export async function nodoIdDeAsignacion(
+  asignacionId: number,
+): Promise<number | null> {
+  const [fila] = await db
+    .select({ nodoId: asignacion.nodoId })
+    .from(asignacion)
+    .where(eq(asignacion.id, asignacionId));
+  return fila?.nodoId ?? null;
+}
+
 // Termina la vigencia de una asignación (hasta = ahora). No se borra:
 // es historial — el criterio de aceptación del PR 3.6 pide
 // explícitamente que sobreviva a la reorganización del árbol.
@@ -319,6 +332,23 @@ export async function nodosControladosPorPersona(
     }
   }
   return controlados;
+}
+
+// ¿Puede esta persona asignar/desasignar en este nodo? Dos caminos
+// (PR 5 de la ronda de fixes):
+//   - por defecto: control por árbol — ocupa el nodo o uno de sus
+//     superiores (nodosControladosPorPersona).
+//   - `organigrama.administrar`: saltea el árbol, cualquier nodo. Era la
+//     única forma de destrabar la rama externa, que el arranque dejaba
+//     sin titular.
+export async function puedeAdministrarNodo(
+  personaId: number,
+  nodoId: number,
+): Promise<boolean> {
+  if (await tienePermiso(personaId, "organigrama.administrar")) {
+    return true;
+  }
+  return (await nodosControladosPorPersona(personaId)).has(nodoId);
 }
 
 // El titular vigente de un nodo, si lo hay — null si el nodo está

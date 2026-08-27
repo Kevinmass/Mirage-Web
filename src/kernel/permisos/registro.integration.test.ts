@@ -1,7 +1,7 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { capacidad } from "./schema";
 
@@ -19,6 +19,11 @@ describe("kernel/permisos — registro de capacidades", () => {
     ({ registrarCapacidades } = await import("./registro"));
 
     await migrate(db, { migrationsFolder: "./src/db/migrations" });
+    // La migración 0020 pre-siembra las capacidades del kernel; este test
+    // es sobre registrarCapacidades en aislamiento, así que arranca limpio.
+    await db.execute(
+      sql`truncate table capacidad, rol_capacidad, rol restart identity cascade`,
+    );
   });
 
   afterAll(async () => {
