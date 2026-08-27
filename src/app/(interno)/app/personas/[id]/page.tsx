@@ -1,16 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { IndicadorCarga } from "@/components/ui/indicador-carga";
 import { NoEncontrado } from "@/kernel/errores";
-import { obtenerPersona } from "@/kernel/identidad/personas";
+import { obtenerPersonaConAcceso } from "@/kernel/identidad/personas";
 import { obtenerArbolCompleto } from "@/kernel/organigrama/arbol";
 import {
   actualizarPersonaAction,
   archivarPersonaAction,
   invitarPersonaAction,
+  reenviarInvitacionAction,
 } from "../actions";
 import { FormularioPersona } from "../formulario-persona";
+
+const ETIQUETA_ESTADO = {
+  sin_acceso: "Sin acceso",
+  invitada: "Invitada — esperando que confirme el mail",
+  confirmada: "Acceso confirmado",
+} as const;
 
 export default async function PaginaPersona({
   params,
@@ -24,7 +32,7 @@ export default async function PaginaPersona({
   }
 
   const [persona, nodos] = await Promise.all([
-    obtenerPersona(idNumerico).catch((error) => {
+    obtenerPersonaConAcceso(idNumerico).catch((error) => {
       if (error instanceof NoEncontrado) {
         notFound();
       }
@@ -65,26 +73,45 @@ export default async function PaginaPersona({
           textoBoton="Guardar"
         />
 
-        <div className="flex gap-3">
-          {persona.usuarioId ? (
-            <p className="text-sm text-muted-foreground">
-              Ya tiene acceso al sistema.
-            </p>
-          ) : (
-            <form action={invitarPersonaAction.bind(null, idNumerico)}>
-              <Button type="submit" variant="secondary">
-                Invitar a tener acceso
-              </Button>
-            </form>
-          )}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Badge
+              variant={
+                persona.estadoAcceso === "confirmada"
+                  ? "primary"
+                  : persona.estadoAcceso === "invitada"
+                    ? "accent"
+                    : "outline"
+              }
+            >
+              {ETIQUETA_ESTADO[persona.estadoAcceso]}
+            </Badge>
+          </div>
 
-          {persona.activo && (
-            <form action={archivarPersonaAction.bind(null, idNumerico)}>
-              <Button type="submit" variant="destructive">
-                Archivar
-              </Button>
-            </form>
-          )}
+          <div className="flex flex-wrap gap-3">
+            {persona.estadoAcceso === "sin_acceso" && (
+              <form action={invitarPersonaAction.bind(null, idNumerico)}>
+                <Button type="submit" variant="secondary">
+                  Invitar a tener acceso
+                </Button>
+              </form>
+            )}
+            {persona.estadoAcceso === "invitada" && (
+              <form action={reenviarInvitacionAction.bind(null, idNumerico)}>
+                <Button type="submit" variant="secondary">
+                  Reenviar invitación
+                </Button>
+              </form>
+            )}
+
+            {persona.activo && (
+              <form action={archivarPersonaAction.bind(null, idNumerico)}>
+                <Button type="submit" variant="destructive">
+                  Archivar
+                </Button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
     </main>

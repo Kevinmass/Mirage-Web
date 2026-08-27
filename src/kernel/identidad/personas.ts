@@ -4,7 +4,35 @@ import { db } from "@/db/client";
 import { esViolacionDeUnicidad } from "@/kernel/db-utils";
 import { Conflicto, NoEncontrado, Validacion } from "@/kernel/errores";
 import { esTelefonoE164Valido } from "./telefono";
-import { persona } from "./schema";
+import { persona, usuario } from "./schema";
+
+// Estado de acceso de una persona, derivado de si tiene usuario vinculado y
+// si ese usuario tiene el mail verificado:
+//   - sin_acceso: no se la invitó todavía (usuarioId null).
+//   - invitada:   tiene login pero no confirmó el mail (no puede entrar).
+//   - confirmada: confirmó, entra normalmente.
+export type EstadoAcceso = "sin_acceso" | "invitada" | "confirmada";
+
+export interface PersonaConAcceso {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono: string | null;
+  tipo: "empleado" | "contacto_cliente";
+  usuarioId: string | null;
+  activo: boolean;
+  creadoEn: Date;
+  estadoAcceso: EstadoAcceso;
+}
+
+function estadoAcceso(
+  usuarioId: string | null,
+  emailVerificado: boolean | null,
+): EstadoAcceso {
+  if (!usuarioId) return "sin_acceso";
+  return emailVerificado ? "confirmada" : "invitada";
+}
 
 export interface DatosPersona {
   nombre: string;
@@ -27,6 +55,42 @@ function validarDatosPersona(datos: Partial<DatosPersona>) {
 
 export async function listarPersonas() {
   return db.select().from(persona).orderBy(persona.apellido, persona.nombre);
+}
+
+// Como listarPersonas pero con el estado de acceso de cada una (join a
+// usuario por el mail verificado). La usa /app/personas para mostrar
+// "sin acceso / invitada / confirmada".
+export async function listarPersonasConAcceso(): Promise<PersonaConAcceso[]> {
+  const filas = await db
+    .select({
+      p: persona,
+      emailVerified: usuario.emailVerified,
+    })
+    .from(persona)
+    .leftJoin(usuario, eq(persona.usuarioId, usuario.id))
+    .orderBy(persona.apellido, persona.nombre);
+
+  return filas.map(({ p, emailVerified }) => ({
+    ...p,
+    estadoAcceso: estadoAcceso(p.usuarioId, emailVerified),
+  }));
+}
+
+export async function obtenerPersonaConAcceso(
+  id: number,
+): Promise<PersonaConAcceso> {
+  const [fila] = await db
+    .select({ p: persona, emailVerified: usuario.emailVerified })
+    .from(persona)
+    .leftJoin(usuario, eq(persona.usuarioId, usuario.id))
+    .where(eq(persona.id, id));
+  if (!fila) {
+    throw new NoEncontrado(`No existe la persona ${id}`);
+  }
+  return {
+    ...fila.p,
+    estadoAcceso: estadoAcceso(fila.p.usuarioId, fila.emailVerified),
+  };
 }
 
 export async function obtenerPersona(id: number) {
@@ -100,10 +164,11 @@ export async function invitarPersona(id: number) {
   }
 
   // No hay flujo de invitación nativo de better-auth para email+password:
-  // se da de alta con una contraseña al azar que nadie conoce y se
-  // dispara el mismo mecanismo de "recuperar contraseña" para que la
-  // persona ponga la suya. sendResetPassword (auth.ts) encola el mail
-  // real vía notificaciones.
+  // se da de alta con una contraseña al azar que nadie conoce y se dispara
+  // el mecanismo de "recuperar contraseña" para que la persona ponga la
+  // suya. Un solo mail: completar ese reset también deja el mail verificado
+  // (auth.ts, onPasswordReset), así que ese link sirve de invitación y de
+  // confirmación a la vez. sendResetPassword (auth.ts) encola el mail real.
   const { auth } = await import("./auth");
   const contraseniaAlAzar = randomBytes(24).toString("base64url");
 
@@ -125,5 +190,22 @@ export async function invitarPersona(id: number) {
       email: personaAInvitar.email,
       redirectTo: "/restablecer-password",
     },
+  });
+}
+
+// Reenvía el mail de invitación a alguien que ya tiene login pero todavía
+// no lo completó ni confirmó el mail. Es el mismo link de reset de
+// contraseña — al completarlo pone su contraseña y queda verificada.
+export async function reenviarInvitacion(id: number) {
+  const p = await obtenerPersona(id);
+  if (!p.usuarioId) {
+    throw new Conflicto(
+      `La persona ${id} todavía no fue invitada — usá "Invitar a tener acceso".`,
+    );
+  }
+
+  const { auth } = await import("./auth");
+  await auth.api.requestPasswordReset({
+    body: { email: p.email, redirectTo: "/restablecer-password" },
   });
 }

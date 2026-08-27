@@ -139,6 +139,23 @@ function authRecuperarPassword(datos: unknown): PlantillaRenderizada {
   };
 }
 
+// La dispara better-auth (auth.ts, sendVerificationEmail) cuando hace falta
+// confirmar la dirección sin pasar por un reset de contraseña — p.ej. un
+// "reenviar verificación" desde /app/personas. El alta por invitación ya
+// verifica de paso al completar el reset, así que esta es la vía
+// secundaria.
+interface DatosVerificarEmail {
+  url: string;
+}
+
+function authVerificarEmail(datos: unknown): PlantillaRenderizada {
+  const d = datos as DatosVerificarEmail;
+  return {
+    asunto: "Confirmá tu mail en Mirage",
+    html: `<p>Confirmá que esta es tu dirección para acceder a Mirage:</p><p><a href="${d.url}">${d.url}</a></p><p>Si no esperabas este mail, ignoralo.</p>`,
+  };
+}
+
 const PLANTILLAS: Record<string, Renderizador> = {
   "cliente.creado": clienteCreado,
   "proyecto.creado": proyectoCreado,
@@ -149,6 +166,7 @@ const PLANTILLAS: Record<string, Renderizador> = {
   "solicitud.rechazada": solicitudRechazada,
   "solicitud.mensaje_agregado": solicitudMensajeAgregado,
   "auth.recuperar-password": authRecuperarPassword,
+  "auth.verificar-email": authVerificarEmail,
 };
 
 function generica(plantilla: string, datos: unknown): PlantillaRenderizada {

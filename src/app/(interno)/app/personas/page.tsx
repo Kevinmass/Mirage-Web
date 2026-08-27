@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { EstadoVacio } from "@/components/ui/estado-vacio";
-import { listarPersonas } from "@/kernel/identidad/personas";
+import { listarPersonasConAcceso } from "@/kernel/identidad/personas";
 import {
   obtenerArbolCompleto,
   type NodoConDetalle,
@@ -30,7 +30,7 @@ function ramaDeNodo(
 
 export default async function PaginaPersonas() {
   const [personas, nodos] = await Promise.all([
-    listarPersonas(),
+    listarPersonasConAcceso(),
     obtenerArbolCompleto(),
   ]);
 
@@ -51,6 +51,7 @@ export default async function PaginaPersonas() {
     email: p.email,
     tipo: p.tipo,
     activo: p.activo,
+    estadoAcceso: p.estadoAcceso,
     nodos: nodosPorPersona.get(p.id) ?? [],
   }));
 

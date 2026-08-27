@@ -7,6 +7,42 @@ import { registrarEvento } from "@/kernel/auditoria/registro";
 import { DOMINIO_CANONICO, DOMINIO_STAGING } from "@/lib/dominio";
 import { cuenta, persona, sesion, usuario, verificacion } from "./schema";
 
+// Encola un mail de identidad (reset de contraseña o verificación) para el
+// usuario dado. Mismo criterio para las dos: nunca se manda dentro del
+// request (diseño §6.5), esto solo escribe la fila y el worker la toma.
+// import() dinámico por el mismo motivo que el resto de este archivo —
+// evitar que el build de Docker evalúe módulos que necesitan env vars o la
+// base antes de que existan.
+async function encolarMailDeIdentidad(
+  usuarioId: string,
+  emailUsuario: string,
+  plantilla: "auth.recuperar-password" | "auth.verificar-email",
+  url: string,
+) {
+  const { encolarNotificacion } = await import("@/modules/notificaciones/api");
+  const [personaVinculada] = await db
+    .select({ id: persona.id })
+    .from(persona)
+    .where(eq(persona.usuarioId, usuarioId))
+    .limit(1);
+
+  if (!personaVinculada) {
+    // No debería pasar: invitarPersona vincula usuarioId antes de disparar
+    // cualquiera de estos mails. Si pasa igual (acción a mano contra un
+    // usuario sin persona), no hay a quién notificar.
+    console.error(
+      `[auth] ${plantilla} para ${emailUsuario}: no hay persona vinculada, no se pudo avisar`,
+    );
+    return;
+  }
+
+  await encolarNotificacion({
+    destinatarioPersonaId: personaVinculada.id,
+    plantilla,
+    datos: { url },
+  });
+}
+
 // Sin validar arriba a propósito, mismo motivo que db/client.ts: este
 // módulo se importa transitivamente desde la ruta de auth, que Next
 // evalúa durante el build de Docker — donde todavía no hay variables de
@@ -34,36 +70,44 @@ export const auth = betterAuth({
   verification: { modelName: "verificacion" },
   emailAndPassword: {
     enabled: true,
+    // Sin mail verificado no hay login (PR 4 de la ronda de fixes). El alta
+    // sigue siendo solo por invitación; esto garantiza que la dirección que
+    // tipeó quien invita sea real y esté en manos de la persona correcta.
+    // El primer empleado (arranque.ts / /setup) nace verificado — en una
+    // base nueva no hay Resend configurado.
+    requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
-      // Nunca se manda un mail dentro del request (diseño §6.5): esto
-      // encola, el worker de notificaciones lo toma. import() dinámico
-      // por el mismo motivo que el resto de este archivo — evitar que
-      // el build de Docker evalúe módulos que necesitan env vars o la
-      // base antes de que existan.
-      const { encolarNotificacion } =
-        await import("@/modules/notificaciones/api");
-      const [personaVinculada] = await db
-        .select({ id: persona.id })
-        .from(persona)
-        .where(eq(persona.usuarioId, user.id))
-        .limit(1);
-
-      if (!personaVinculada) {
-        // No debería pasar: invitarPersona vincula usuarioId antes de
-        // pedir el reset. Si pasa igual (reset a mano contra un
-        // usuario sin persona), no hay a quién notificar — se loguea
-        // y listo, no hay forma de encolar sin destinatario.
-        console.error(
-          `[auth] recuperar contraseña para ${user.email}: no hay persona vinculada, no se pudo avisar`,
-        );
-        return;
-      }
-
-      await encolarNotificacion({
-        destinatarioPersonaId: personaVinculada.id,
-        plantilla: "auth.recuperar-password",
-        datos: { url },
-      });
+      await encolarMailDeIdentidad(
+        user.id,
+        user.email,
+        "auth.recuperar-password",
+        url,
+      );
+    },
+    // El link de invitación es un reset de contraseña. Completarlo prueba
+    // que la persona controla esa casilla, así que de paso deja el mail
+    // verificado: un solo mail, un solo click, hace las dos cosas (plan §5).
+    // Un "olvidé mi contraseña" real también verifica de paso — clickear un
+    // link que llegó a tu inbox es exactamente lo que "verificar" comprueba.
+    onPasswordReset: async ({ user }) => {
+      await db
+        .update(usuario)
+        .set({ emailVerified: true })
+        .where(eq(usuario.id, user.id));
+    },
+  },
+  emailVerification: {
+    // No se auto-manda al hacer signUpEmail: el mail de invitación
+    // (reset de contraseña) ya cubre el caso y no queremos dos mails.
+    sendOnSignUp: false,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      await encolarMailDeIdentidad(
+        user.id,
+        user.email,
+        "auth.verificar-email",
+        url,
+      );
     },
   },
   databaseHooks: {

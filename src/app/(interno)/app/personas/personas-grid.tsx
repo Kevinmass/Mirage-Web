@@ -20,8 +20,15 @@ export interface FilaPersona {
   email: string;
   tipo: "empleado" | "contacto_cliente";
   activo: boolean;
+  estadoAcceso: "sin_acceso" | "invitada" | "confirmada";
   nodos: NodoDePersona[];
 }
+
+const BADGE_ESTADO = {
+  sin_acceso: { variant: "outline" as const, texto: "Sin acceso" },
+  invitada: { variant: "accent" as const, texto: "Invitada" },
+  confirmada: { variant: "primary" as const, texto: "Confirmada" },
+};
 
 const FILTROS_RAMA = [
   { valor: "todas", etiqueta: "Todas" },
@@ -98,7 +105,12 @@ export function PersonasGrid({ filas }: { filas: FilaPersona[] }) {
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
                 {f.tipo === "empleado" ? (
-                  <IndicadorCarga cantidadDeNodos={f.nodos.length} />
+                  <>
+                    <IndicadorCarga cantidadDeNodos={f.nodos.length} />
+                    <Badge variant={BADGE_ESTADO[f.estadoAcceso].variant}>
+                      {BADGE_ESTADO[f.estadoAcceso].texto}
+                    </Badge>
+                  </>
                 ) : (
                   <Badge variant="outline">Contacto de cliente</Badge>
                 )}

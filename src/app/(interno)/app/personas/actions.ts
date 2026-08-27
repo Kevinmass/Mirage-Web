@@ -67,5 +67,11 @@ export async function archivarPersonaAction(id: number) {
 
 export async function invitarPersonaAction(id: number) {
   await personas.invitarPersona(id);
+  revalidatePath("/app/personas");
+  revalidatePath(`/app/personas/${id}`);
+}
+
+export async function reenviarInvitacionAction(id: number) {
+  await personas.reenviarInvitacion(id);
   revalidatePath(`/app/personas/${id}`);
 }
