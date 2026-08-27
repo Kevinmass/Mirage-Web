@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Conflicto, NoAutorizado, Validacion } from "@/kernel/errores";
 import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import * as arbol from "@/kernel/organigrama/arbol";
+import { idElegido } from "@/lib/form";
 
 export interface EstadoAccion {
   error?: string;
@@ -85,10 +86,8 @@ export async function moverNodoAction(
   _previo: EstadoAccion,
   formData: FormData,
 ): Promise<EstadoAccion> {
-  const nuevoPadreId = Number(formData.get("nuevoPadreId"));
-  // Number("") es 0 y Number.isInteger(0) es true — el guardia tiene que
-  // exigir > 0, no solo "es entero" (§1.12).
-  if (!Number.isInteger(nuevoPadreId) || nuevoPadreId <= 0) {
+  const nuevoPadreId = idElegido(formData.get("nuevoPadreId"));
+  if (nuevoPadreId === null) {
     return { error: "Elegí un nuevo padre" };
   }
 
@@ -121,11 +120,9 @@ export async function asignarPersonaAction(
   _previo: EstadoAccion,
   formData: FormData,
 ): Promise<EstadoAccion> {
-  const personaId = Number(formData.get("personaId"));
+  const personaId = idElegido(formData.get("personaId"));
   const esTitular = formData.get("esTitular") === "on";
-  // Number("") es 0 y Number.isInteger(0) es true — el guardia "Elegí una
-  // persona" no atrapaba el <select> vacío (§1.12). Exigir > 0.
-  if (!Number.isInteger(personaId) || personaId <= 0) {
+  if (personaId === null) {
     return { error: "Elegí una persona" };
   }
 
