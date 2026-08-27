@@ -39,3 +39,19 @@ services:
         generateValue: true
       - key: BETTER_AUTH_URL
         value: https://miragesoftware.com.ar
+      # Se cargan a mano en el dashboard de Render (sync: false = Render no
+      # las gestiona desde acá, quedan como secreto del servicio):
+      #   RESEND_API_KEY  — envío de mails. Dominio miragesoftware.com.ar
+      #                     verificado en Resend para mandar desde
+      #                     no-reply@miragesoftware.com.ar.
+      #   SETUP_TOKEN     — habilita /setup para el arranque en frío. Poner
+      #                     un valor largo al azar; borrarlo (o la env var)
+      #                     una vez que exista el primer empleado.
+      #   GITHUB_TOKEN    — token fino de solo lectura de la org, para la
+      #                     actividad de GitHub de los proyectos.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SETUP_TOKEN
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false

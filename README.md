@@ -31,15 +31,27 @@ pnpm db:bootstrap tu@email.com "una-password-larga" Nombre Apellido
 pnpm dev                      # http://localhost:3000
 ```
 
-**`db:bootstrap` no es opcional en una base nueva.** No hay registro público —
-el alta de personas vive dentro de `/app`, y `/app` exige ser un empleado que ya
-existe. Sin ese primer empleado la base recién migrada es un callejón sin
-salida: la web pública anda, pero a `/app` y `/portal` no entra nadie nunca. El
-script crea la persona, su usuario, y un rol con todas las capacidades. Es
-idempotente; correrlo dos veces no duplica nada ni pisa la contraseña.
+**El primer empleado no es opcional en una base nueva.** No hay registro
+público — el alta de personas vive dentro de `/app`, y `/app` exige ser un
+empleado que ya existe. Sin ese primer empleado la base recién migrada es un
+callejón sin salida. Se crea de una de dos formas, con la misma lógica idempotente
+detrás:
 
-Después de eso, entrá por `/ingresar`. Los contactos de cliente **no** se crean
-con este script: se dan de alta desde `/app/clientes` y se los invita por mail.
+- **`pnpm db:bootstrap <email> <password> <Nombre> <Apellido>`** — en local, o
+  donde tengas shell.
+- **La ruta `/setup`** — para cuando no hay shell (p. ej. el plan free de Render).
+  Poné `SETUP_TOKEN=<algo-largo-al-azar>` en el entorno y entrá a
+  `/setup?token=<ese-valor>`. La ruta responde **solo** si la tabla `persona`
+  está vacía y el token coincide; en cualquier otro caso da 404. Apenas se crea
+  la primera persona deja de existir sola. Borrá `SETUP_TOKEN` después.
+
+El primer empleado nace con el mail ya verificado (en una base nueva no hay
+Resend configurado). Después, entrá por `/ingresar`.
+
+Los contactos de cliente y el resto de los empleados **no** se crean así: se dan
+de alta desde `/app` y se los invita por mail. Una persona invitada no entra
+hasta hacer click en el link del mail (pone su contraseña y de paso queda con el
+mail verificado). Para que esos mails salgan hace falta `RESEND_API_KEY`.
 
 ## Comandos
 

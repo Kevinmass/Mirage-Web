@@ -338,7 +338,16 @@ de ese pipeline, no una revisión manual aparte.
 `DATABASE_URL`, `BETTER_AUTH_SECRET` (32+ caracteres — `openssl rand -base64
 32`; sin ella better-auth arranca con un secreto default inseguro y lo
 loguea fuerte, no rompe el build), `BETTER_AUTH_URL`, `GITHUB_TOKEN` (fino,
-solo lectura, org), `RESEND_API_KEY`, `TZ=America/Argentina/Buenos_Aires`.
+solo lectura, org — sin él la actividad de GitHub de los proyectos da 403),
+`RESEND_API_KEY` (envío de mails: invitación, verificación, recuperar
+contraseña — sin él quedan encoladas y fallan al salir, el resto anda),
+`SETUP_TOKEN` (habilita `/setup`, el arranque en frío desde el navegador;
+la ruta responde solo si la tabla `persona` está vacía **y** el request
+trae `?token=` con este valor — dejarla vacía deshabilita la ruta),
+`TZ=America/Argentina/Buenos_Aires`.
+
+En Render, `RESEND_API_KEY` / `SETUP_TOKEN` / `GITHUB_TOKEN` van con
+`sync: false` en `render.yaml` y se cargan a mano en el dashboard.
 
 ## Ramas
 
