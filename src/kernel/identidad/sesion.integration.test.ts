@@ -1,8 +1,9 @@
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import type { StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { persona } from "./schema";
+import { persona, usuario } from "./schema";
 
 describe("kernel/identidad — obtenerSesion", () => {
   let container: StartedPostgreSqlContainer;
@@ -29,7 +30,14 @@ describe("kernel/identidad — obtenerSesion", () => {
     await container.stop();
   });
 
+  // requireEmailVerification está activo (PR 4): sin esto signInEmail tira
+  // EMAIL_NOT_VERIFIED. Estos tests son sobre obtenerSesion, no sobre la
+  // verificación, así que marcan el mail a mano.
   async function iniciarSesion(email: string, password: string) {
+    await db
+      .update(usuario)
+      .set({ emailVerified: true })
+      .where(eq(usuario.email, email));
     const { headers } = await auth.api.signInEmail({
       body: { email, password },
       returnHeaders: true,

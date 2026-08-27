@@ -41,10 +41,22 @@ describe("kernel/identidad — better-auth", () => {
     await container.stop();
   });
 
+  // requireEmailVerification está activo (PR 4): sin esto, signInEmail tira
+  // EMAIL_NOT_VERIFIED. Estos tests no son sobre la verificación en sí, así
+  // que marcan el mail como verificado a mano — el flujo real de
+  // verificación tiene sus propios tests más abajo.
+  async function marcarVerificado(email: string) {
+    await db
+      .update(usuario)
+      .set({ emailVerified: true })
+      .where(eq(usuario.email, email));
+  }
+
   it("el alta crea el usuario y guarda la contraseña hasheada, no en texto plano", async () => {
     await auth.api.signUpEmail({
       body: { email: EMAIL, password: CONTRASENA, name: "Prueba" },
     });
+    await marcarVerificado(EMAIL);
 
     const [fila] = await db
       .select({ password: cuenta.password })
@@ -104,6 +116,7 @@ describe("kernel/identidad — better-auth", () => {
         usuarioId: user.id,
       })
       .returning();
+    await marcarVerificado("vinculada@mirage.test");
 
     await auth.api.signInEmail({
       body: { email: "vinculada@mirage.test", password: CONTRASENA },
@@ -158,6 +171,14 @@ describe("kernel/identidad — better-auth", () => {
       body: { newPassword: "otra-contraseña-nueva-456", token: token! },
     });
 
+    // Completar el reset deja el mail verificado (auth.ts, onPasswordReset):
+    // el link llegó al inbox, clickearlo prueba lo mismo que "verificar".
+    const [trasReset] = await db
+      .select({ emailVerified: usuario.emailVerified })
+      .from(usuario)
+      .where(eq(usuario.id, user.id));
+    expect(trasReset?.emailVerified).toBe(true);
+
     const resultado = await auth.api.signInEmail({
       body: {
         email: EMAIL_RECUPERACION,
@@ -165,5 +186,28 @@ describe("kernel/identidad — better-auth", () => {
       },
     });
     expect(resultado.user.email).toBe(EMAIL_RECUPERACION);
+  });
+
+  it("una persona sin el mail verificado no puede entrar", async () => {
+    const EMAIL_SIN_VERIFICAR = "sin-verificar@mirage.test";
+    await auth.api.signUpEmail({
+      body: {
+        email: EMAIL_SIN_VERIFICAR,
+        password: CONTRASENA,
+        name: "Sin Verificar",
+      },
+    });
+
+    await expect(
+      auth.api.signInEmail({
+        body: { email: EMAIL_SIN_VERIFICAR, password: CONTRASENA },
+      }),
+    ).rejects.toThrow();
+
+    await marcarVerificado(EMAIL_SIN_VERIFICAR);
+    const resultado = await auth.api.signInEmail({
+      body: { email: EMAIL_SIN_VERIFICAR, password: CONTRASENA },
+    });
+    expect(resultado.user.email).toBe(EMAIL_SIN_VERIFICAR);
   });
 });

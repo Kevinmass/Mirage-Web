@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, like, ne } from "drizzle-orm";
+import { and, count, desc, eq, isNull, like, notInArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { NoAutorizado, NoEncontrado } from "@/kernel/errores";
 import { obtenerPersona } from "@/kernel/identidad/personas";
@@ -10,11 +10,14 @@ import {
 } from "./internal/plantillas";
 import { notificacionesNotificacion } from "./schema";
 
-// auth.recuperar-password es un mail de acceso, no un evento del bus:
-// no tiene una pantalla de origen y no pertenece al feed en pantalla
-// (diseño §8.13) — se sigue mandando por mail igual, esto solo la saca
+// Los mails de identidad (acceso, verificación) no son eventos del bus:
+// no tienen una pantalla de origen y no pertenecen al feed en pantalla
+// (diseño §8.13) — se siguen mandando por mail igual, esto solo los saca
 // de la campana y del historial.
-const PLANTILLA_EXCLUIDA_DEL_FEED = "auth.recuperar-password";
+const PLANTILLAS_EXCLUIDAS_DEL_FEED = [
+  "auth.recuperar-password",
+  "auth.verificar-email",
+];
 
 const MAX_INTENTOS = 5;
 // Backoff exponencial en minutos (diseño §6.5): 1, 2, 4, 8, 16.
@@ -175,7 +178,7 @@ export async function reintentarNotificacion(
 // aparte. estado (pendiente/enviada/fallida) es del delivery del mail;
 // algo pasó independientemente de si el mail salió bien, así que el
 // feed no filtra por eso, solo excluye lo que no tiene una pantalla de
-// origen (ver PLANTILLA_EXCLUIDA_DEL_FEED).
+// origen (ver PLANTILLAS_EXCLUIDAS_DEL_FEED).
 export interface NotificacionParaMostrar {
   id: number;
   tipo: string;
@@ -212,7 +215,10 @@ export async function listarUltimasNotificaciones(
     .where(
       and(
         eq(notificacionesNotificacion.destinatarioPersonaId, personaId),
-        ne(notificacionesNotificacion.plantilla, PLANTILLA_EXCLUIDA_DEL_FEED),
+        notInArray(
+          notificacionesNotificacion.plantilla,
+          PLANTILLAS_EXCLUIDAS_DEL_FEED,
+        ),
       ),
     )
     .orderBy(desc(notificacionesNotificacion.creadoEn))
@@ -230,7 +236,10 @@ export async function listarNotificacionesDePersona(
     .where(
       and(
         eq(notificacionesNotificacion.destinatarioPersonaId, personaId),
-        ne(notificacionesNotificacion.plantilla, PLANTILLA_EXCLUIDA_DEL_FEED),
+        notInArray(
+          notificacionesNotificacion.plantilla,
+          PLANTILLAS_EXCLUIDAS_DEL_FEED,
+        ),
         opciones?.tipo
           ? like(notificacionesNotificacion.plantilla, `${opciones.tipo}.%`)
           : undefined,
@@ -250,7 +259,10 @@ export async function contarNoLeidasDePersona(
       and(
         eq(notificacionesNotificacion.destinatarioPersonaId, personaId),
         isNull(notificacionesNotificacion.leidaEn),
-        ne(notificacionesNotificacion.plantilla, PLANTILLA_EXCLUIDA_DEL_FEED),
+        notInArray(
+          notificacionesNotificacion.plantilla,
+          PLANTILLAS_EXCLUIDAS_DEL_FEED,
+        ),
       ),
     );
   return fila?.total ?? 0;
