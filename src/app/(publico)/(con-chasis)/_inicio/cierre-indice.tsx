@@ -20,12 +20,12 @@ export function CierreIndice() {
         <Link
           key={seccion.href}
           href={seccion.href}
-          className="group relative border-b border-border py-6 first:border-t"
+          className="group relative border-b border-border py-6 outline-none first:border-t"
         >
-          <span className="font-heading text-display font-bold tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary">
+          <span className="font-heading text-display font-bold tracking-[-0.02em] text-foreground transition-colors group-hover:text-primary group-focus-visible:text-primary">
             {seccion.etiqueta}
           </span>
-          <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-primary transition-[width] duration-(--dur-media) ease-(--ease-suave) group-hover:w-full motion-reduce:transition-none" />
+          <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-primary transition-[width] duration-(--dur-media) ease-(--ease-suave) group-hover:w-full group-focus-visible:w-full motion-reduce:transition-none" />
         </Link>
       ))}
     </nav>

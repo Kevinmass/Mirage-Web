@@ -49,7 +49,7 @@ export function FooterMirage() {
                 <Link
                   key={enlace.href}
                   href={enlace.href}
-                  className="text-sm text-muted-foreground hover:text-foreground"
+                  className="-mx-1 w-fit rounded-sm px-1 text-sm text-muted-foreground underline-offset-4 outline-none transition-colors hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {enlace.etiqueta}
                 </Link>

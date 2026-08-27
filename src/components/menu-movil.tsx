@@ -59,7 +59,7 @@ export function MenuMovil({
           type="button"
           onClick={onCerrar}
           aria-label="Cerrar menú"
-          className="inline-flex size-11 items-center justify-center rounded-full hover:bg-secondary"
+          className="inline-flex size-11 items-center justify-center rounded-full outline-none transition-colors hover:bg-secondary focus-visible:ring-3 focus-visible:ring-turquesa-200"
         >
           <X className="size-6" />
         </button>
@@ -74,7 +74,8 @@ export function MenuMovil({
             className={cn(
               "animate-[menu-movil-entrar_var(--dur-entrada)_var(--ease-salida)_backwards] motion-reduce:animate-none",
               "text-h2 font-heading font-semibold text-foreground",
-              "py-2",
+              "-mx-2 rounded-md px-2 py-2 outline-none transition-colors",
+              "hover:text-primary focus-visible:text-primary focus-visible:ring-3 focus-visible:ring-turquesa-200",
             )}
           >
             {item.etiqueta}
