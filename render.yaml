@@ -1,41 +1,65 @@
-# Blueprint de Render (Infrastructure as Code). Conectar el repo desde
-# Render > New > Blueprint apunta acá y crea el web service + la base en
-# un solo paso, con auto-deploy en cada push a main.
+# ADVERTENCIA: esta rama (deploy-staging-test) es un punto de deploy
+# descartable, no una rama de trabajo — no se mergea a staging ni a
+# main. Existe solo para que este render.yaml (que reemplaza acá al de
+# producción) esté en la raíz del repo con el nombre que Render busca
+# por default, sin depender de que el asistente de "New Blueprint"
+# ofrezca elegir una ruta de archivo distinta.
+#
+# El render.yaml real de producción vive en la rama main (branch: main,
+# plan starter, dominio real) — no se toca, esto es una copia con otros
+# valores, pensada para tirarse cuando termine la prueba.
+#
+# Cómo conectarlo en Render (dashboard > New > Blueprint):
+# 1. Elegir este repositorio.
+# 2. Rama a sincronizar: deploy-staging-test.
+# 3. Aplicar — Render va a encontrar este archivo en la raíz sin que
+#    haga falta ninguna configuración extra.
 #
 # Verificar contra la documentación actual de Render antes de aplicar:
-# nombres de plan y de región cambian con el tiempo y no los puedo probar
-# sin acceso a una cuenta de Render.
+# nombres de plan y de región cambian con el tiempo y esto no se probó
+# contra una cuenta real.
 #
-# Un solo servicio sirve los tres dominios del diseño §3 (miragesoftware.
-# com.ar, .online, .store) — lo que cambia el comportamiento (indexar o
-# no, redirigir) es el host de cada request, no una variable de entorno
-# por deploy (ver src/lib/dominio.ts, robots.ts, proxy.ts). Falta
-# agregar los tres dominios como Custom Domain en la configuración del
-# servicio en Render y apuntar su DNS ahí — eso no es parte de este
-# archivo, lo hace quien tenga acceso a la cuenta.
+# Qué hay que saber del free tier antes de usarlo:
+# - El servicio web se "duerme" a los ~15 min sin tráfico; el primer
+#   request después de eso tarda 30-50s (cold start). Sirve para
+#   probar, no para mostrárselo a un cliente en vivo sin avisar.
+# - La base Postgres free de Render se borra a los 30 días si no pasa a
+#   un plan pago. Alcanza para este test, no para dejarla así de forma
+#   permanente.
+# - BETTER_AUTH_SECRET se genera solo. RESEND_API_KEY y GITHUB_TOKEN no
+#   están acá a propósito: el deploy funciona igual sin ellas, solo
+#   fallan en silencio el envío de mails y el sync de repositorios de
+#   GitHub (mismo comportamiento que en local sin configurarlas) —
+#   agregarlas a mano en el dashboard del servicio si hace falta probar
+#   esas partes puntuales.
+# - BETTER_AUTH_URL de abajo asume que Render acepta el nombre
+#   "mirage-web-staging" tal cual (los nombres de servicio son únicos
+#   por cuenta, no globalmente — no debería chocar, pero si Render
+#   asigna otra URL hay que editar esta variable en el dashboard del
+#   servicio para que coincida antes de usar el login).
 databases:
-  - name: mirage-db
+  - name: mirage-db-staging
     plan: free
     region: oregon
     postgresMajorVersion: "17"
 
 services:
   - type: web
-    name: mirage-web
+    name: mirage-web-staging
     env: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: free
     region: oregon
-    branch: main
+    branch: deploy-staging-test
     healthCheckPath: /
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: mirage-db
+          name: mirage-db-staging
           property: connectionString
       - key: TZ
         value: America/Argentina/Buenos_Aires
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: BETTER_AUTH_URL
-        value: https://miragesoftware.com.ar
+        value: https://mirage-web-staging.onrender.com
