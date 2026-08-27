@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { IndicadorCarga } from "@/components/ui/indicador-carga";
 import { NoEncontrado } from "@/kernel/errores";
 import { obtenerPersonaConAcceso } from "@/kernel/identidad/personas";
+import { obtenerSesionActual } from "@/kernel/identidad/sesion";
 import { obtenerArbolCompleto } from "@/kernel/organigrama/arbol";
+import { tienePermiso } from "@/kernel/permisos/evaluar";
+import { listarRoles, rolesDePersona } from "@/kernel/permisos/roles";
 import {
   actualizarPersonaAction,
   archivarPersonaAction,
@@ -13,6 +16,7 @@ import {
   reenviarInvitacionAction,
 } from "../actions";
 import { FormularioPersona } from "../formulario-persona";
+import { RolesDePersona } from "../roles-persona";
 
 const ETIQUETA_ESTADO = {
   sin_acceso: "Sin acceso",
@@ -31,7 +35,7 @@ export default async function PaginaPersona({
     notFound();
   }
 
-  const [persona, nodos] = await Promise.all([
+  const [persona, nodos, sesion, rolesDeEsta] = await Promise.all([
     obtenerPersonaConAcceso(idNumerico).catch((error) => {
       if (error instanceof NoEncontrado) {
         notFound();
@@ -39,10 +43,15 @@ export default async function PaginaPersona({
       throw error;
     }),
     obtenerArbolCompleto(),
+    obtenerSesionActual(),
+    rolesDePersona(idNumerico),
   ]);
   const nodosQueOcupa = nodos.filter((n) =>
     n.ocupantes.some((o) => o.personaId === idNumerico),
   );
+  const puedeAdministrarRoles =
+    !!sesion && (await tienePermiso(sesion.personaId, "identidad.administrar"));
+  const todosLosRoles = puedeAdministrarRoles ? await listarRoles() : [];
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -72,6 +81,23 @@ export default async function PaginaPersona({
           valoresIniciales={persona}
           textoBoton="Guardar"
         />
+
+        <div>
+          <p className="mb-2 text-sm font-medium">Roles</p>
+          {puedeAdministrarRoles ? (
+            <RolesDePersona
+              personaId={idNumerico}
+              roles={todosLosRoles}
+              rolesActuales={rolesDeEsta.map((r) => r.id)}
+            />
+          ) : rolesDeEsta.length > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {rolesDeEsta.map((r) => r.nombre).join(", ")}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin roles.</p>
+          )}
+        </div>
 
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">

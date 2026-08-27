@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Conflicto, Validacion } from "@/kernel/errores";
 import * as personas from "@/kernel/identidad/personas";
+import * as roles from "@/kernel/permisos/roles";
+import { exigirCapacidadActual } from "../_guardas";
 
 export interface EstadoFormulario {
   error?: string;
@@ -74,4 +76,21 @@ export async function invitarPersonaAction(id: number) {
 export async function reenviarInvitacionAction(id: number) {
   await personas.reenviarInvitacion(id);
   revalidatePath(`/app/personas/${id}`);
+}
+
+// Alterna un rol para una persona. `marcado` = estado del checkbox después
+// del click. Protegido por identidad.administrar (§3 del plan de fixes).
+export async function alternarRolAction(
+  personaId: number,
+  rolId: number,
+  marcado: boolean,
+) {
+  await exigirCapacidadActual("identidad.administrar");
+  if (marcado) {
+    await roles.asignarRolAPersona(personaId, rolId);
+  } else {
+    await roles.quitarRolDePersona(personaId, rolId);
+  }
+  revalidatePath(`/app/personas/${personaId}`);
+  revalidatePath("/app/personas");
 }
