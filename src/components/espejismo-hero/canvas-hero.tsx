@@ -105,7 +105,15 @@ const FRAGMENT = /* glsl */ `
 const COLOR_ARENA: [number, number, number] = [0.976, 0.965, 0.937];
 const COLOR_TURQUESA: [number, number, number] = [0.078, 0.639, 0.573];
 
-export function CanvasHero({ activo }: { activo: boolean }) {
+export function CanvasHero({
+  activo,
+  liviano = false,
+}: {
+  activo: boolean;
+  // Versión de bajo costo para móvil (§1.2 del plan de fixes): mismo shader,
+  // DPR tope 1 en vez de 1.5 — la mitad de píxeles a pintar por frame.
+  liviano?: boolean;
+}) {
   const contenedorRef = useRef<HTMLDivElement>(null);
   const activoRef = useRef(activo);
 
@@ -120,7 +128,7 @@ export function CanvasHero({ activo }: { activo: boolean }) {
     const renderer = new Renderer({
       alpha: false,
       antialias: false,
-      dpr: Math.min(window.devicePixelRatio, 1.5),
+      dpr: Math.min(window.devicePixelRatio, liviano ? 1 : 1.5),
     });
     const gl = renderer.gl;
     contenedor.appendChild(gl.canvas);
@@ -209,7 +217,7 @@ export function CanvasHero({ activo }: { activo: boolean }) {
       contenedor.removeChild(gl.canvas);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
-  }, []);
+  }, [liviano]);
 
   return <div ref={contenedorRef} className="absolute inset-0" aria-hidden />;
 }

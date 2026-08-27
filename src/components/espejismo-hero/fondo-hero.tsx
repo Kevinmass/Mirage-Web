@@ -9,30 +9,37 @@ const CanvasHeroDinamico = dynamic(
   { ssr: false, loading: () => <PosterHero /> },
 );
 
-// Decide WebGL o póster (§5.2, obligaciones técnicas del PR 3) y, si es
-// WebGL, si el RAF corre o no. Nunca decide el <h1>/la bajada — esos son
-// HTML del servidor, hermanos de este componente, no hijos.
+// Decide WebGL o póster y, si es WebGL, si el RAF corre o no. Nunca decide
+// el <h1>/la bajada — esos son HTML del servidor, hermanos de este
+// componente, no hijos.
+//
+// Cambio del PR 2 de la ronda de fixes (§1.2): el póster deja de dispararse
+// por `hardwareConcurrency <= 4` y por ancho de pantalla — en un notebook
+// modesto o en el celular el hero era una imagen fija. El único corte a
+// póster ahora es `prefers-reduced-motion`. En móvil se sirve la misma
+// escena en versión liviana (menor DPR), no una foto.
 export function FondoHero() {
   const [permiteWebgl, setPermiteWebgl] = useState(false);
+  const [liviano, setLiviano] = useState(false);
   const [enViewport, setEnViewport] = useState(true);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const mediaReducido = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const mediaAngosto = window.matchMedia("(min-width: 768px)");
-    const pocosNucleos = (navigator.hardwareConcurrency ?? 8) <= 4;
+    const mediaMovil = window.matchMedia(
+      "(max-width: 767px), (pointer: coarse)",
+    );
 
     function evaluar() {
-      setPermiteWebgl(
-        !mediaReducido.matches && mediaAngosto.matches && !pocosNucleos,
-      );
+      setPermiteWebgl(!mediaReducido.matches);
+      setLiviano(mediaMovil.matches);
     }
     evaluar();
     mediaReducido.addEventListener("change", evaluar);
-    mediaAngosto.addEventListener("change", evaluar);
+    mediaMovil.addEventListener("change", evaluar);
     return () => {
       mediaReducido.removeEventListener("change", evaluar);
-      mediaAngosto.removeEventListener("change", evaluar);
+      mediaMovil.removeEventListener("change", evaluar);
     };
   }, []);
 
@@ -63,7 +70,7 @@ export function FondoHero() {
   return (
     <div ref={contenedorRef} className="absolute inset-0 overflow-hidden">
       {permiteWebgl ? (
-        <CanvasHeroDinamico activo={enViewport} />
+        <CanvasHeroDinamico activo={enViewport} liviano={liviano} />
       ) : (
         <PosterHero />
       )}
