@@ -24,7 +24,12 @@ services:
     name: mirage-web
     env: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    # Plan gratis por ahora, hasta que el equipo de Mirage termine de
+    # probar la app. El free web service de Render se duerme tras ~15 min
+    # sin tráfico y arranca en frío en la siguiente request (verificar
+    # límites y soporte de dominios propios contra la doc actual de
+    # Render). Subir a un plan pago recién cuando salga a producción real.
+    plan: free
     region: oregon
     branch: main
     healthCheckPath: /

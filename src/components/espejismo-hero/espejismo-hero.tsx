@@ -12,11 +12,24 @@ import { Button } from "@/components/ui/button";
 export function EspejismoHero() {
   return (
     <section className="relative flex min-h-[calc(100vh-5rem)] items-center">
+      {/* Scrim solo detrás del copy: el prisma en modo claro es pálido y el
+          título crema-100 se perdía contra él (pedido de Kevin). Un óvalo
+          oscuro muy tenue (noche-900, fijo en los dos temas), apenas lo
+          justo para despegar el texto del fondo sin tapar el resto del
+          hero. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 z-0 w-full max-w-3xl"
+        style={{
+          background:
+            "radial-gradient(65% 60% at 30% 50%, color-mix(in oklch, var(--noche-900), transparent 58%), transparent 78%)",
+        }}
+      />
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-start gap-6 px-6 py-32">
-        <h1 className="text-hero font-heading font-extrabold tracking-[-0.03em] text-crema-100 drop-shadow-sm">
+        <h1 className="text-hero font-heading font-extrabold tracking-[-0.03em] text-crema-100 [text-shadow:0_2px_16px_color-mix(in_oklch,var(--noche-900),transparent_35%)]">
           Mirage
         </h1>
-        <p className="max-w-xl text-lead text-crema-100/90 drop-shadow-sm">
+        <p className="max-w-xl text-lead text-crema-100/95 [text-shadow:0_1px_10px_color-mix(in_oklch,var(--noche-900),transparent_40%)]">
           Desarrollamos software a medida: sistemas específicos para las
           necesidades de cada cliente, no productos estándar.
         </p>
