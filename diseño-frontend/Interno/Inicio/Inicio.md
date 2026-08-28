@@ -1,0 +1,3 @@
+Esta es la landing page de el sistema interno, no necesita que sea tan flashy como la landing de la pagina inicial pero debe mantener colores y tematicas corporativas para hacer que la narrativa tematica del programa sea consistente. Debe ser un vistazo a los engranajes internos de nuestra empresa y debe contener enlaces a las otras secciones del mismo sistema interno.
+
+Algunos componentes de reactbits que se pueden usar son:

@@ -1,0 +1,20 @@
+import { cn } from "@/lib/utils";
+
+// Etiquetas siempre visibles arriba del campo, nunca un placeholder que
+// hace de etiqueta (§6.5 del sistema visual).
+function Label({ className, ...props }: React.ComponentProps<"label">) {
+  return (
+    <label
+      data-slot="label"
+      className={cn(
+        "flex items-center gap-2 text-sm leading-none font-medium select-none",
+        "peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+        "group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export { Label };

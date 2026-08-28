@@ -1,0 +1,384 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Sistema visual "Espejismo cálido" — docs/specs/2026-08-21-sistema-visual-mirage.md
+ * Las rampas crudas (§2.1) son la única fuente de color. Los tokens
+ * semánticos (§2.2) son lo único que se usa en componentes — nunca la
+ * rampa cruda directamente ni un color literal.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist);
+  --font-heading: var(--font-bricolage);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* La rampa cruda, expuesta como utilidades de Tailwind (bg-turquesa-500,
+     text-crema-100, etc.) para los pocos lugares donde el propio sistema
+     visual pide un tono exacto en vez del semántico — la línea de marca
+     del footer, el header transparente sobre el hero, el foco de los
+     inputs. Seguir usando el token semántico para todo lo demás (§2.2):
+     esto no es una puerta para elegir colores sueltos en una pantalla de
+     negocio, es la paleta ya cerrada del §2.1. */
+  --color-arena-50: var(--arena-50);
+  --color-arena-100: var(--arena-100);
+  --color-arena-200: var(--arena-200);
+  --color-arena-300: var(--arena-300);
+  --color-arena-400: var(--arena-400);
+  --color-arena-500: var(--arena-500);
+  --color-tinta-900: var(--tinta-900);
+  --color-tinta-800: var(--tinta-800);
+  --color-tinta-700: var(--tinta-700);
+  --color-tinta-600: var(--tinta-600);
+  --color-tinta-400: var(--tinta-400);
+  --color-turquesa-700: var(--turquesa-700);
+  --color-turquesa-500: var(--turquesa-500);
+  --color-turquesa-400: var(--turquesa-400);
+  --color-turquesa-200: var(--turquesa-200);
+  --color-turquesa-50: var(--turquesa-50);
+  --color-ambar-600: var(--ambar-600);
+  --color-ambar-500: var(--ambar-500);
+  --color-ambar-300: var(--ambar-300);
+  --color-ambar-50: var(--ambar-50);
+  --color-coral-700: var(--coral-700);
+  --color-coral-500: var(--coral-500);
+  --color-coral-300: var(--coral-300);
+  --color-coral-50: var(--coral-50);
+  --color-cielo-500: var(--cielo-500);
+  --color-cielo-200: var(--cielo-200);
+  --color-noche-900: var(--noche-900);
+  --color-noche-800: var(--noche-800);
+  --color-noche-700: var(--noche-700);
+  --color-noche-600: var(--noche-600);
+  --color-noche-500: var(--noche-500);
+  --color-crema-100: var(--crema-100);
+  --color-crema-300: var(--crema-300);
+  --color-crema-500: var(--crema-500);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Sombras — tinta con tinte cálido (§4). Reemplazan la escala gris de
+     Tailwind; --shadow-cal es nueva, solo para hover de CTA. */
+  --shadow-sm: var(--sombra-sm);
+  --shadow-md: var(--sombra-md);
+  --shadow-lg: var(--sombra-lg);
+  --shadow-cal: var(--sombra-cal);
+
+  /* Tipografía — escala modular del §3. clamp() para que el hero respire
+     en desktop sin explotar en móvil. */
+  --text-hero: clamp(3rem, 9vw, 7rem);
+  --text-display: clamp(2.25rem, 5vw, 3.75rem);
+  --text-h2: clamp(1.75rem, 3vw, 2.5rem);
+  --text-h3: 1.5rem;
+  --text-lead: 1.25rem;
+  --text-lead--line-height: 1.6;
+  --text-body: 1rem;
+  --text-body--line-height: 1.65;
+
+  /* Movimiento — tiempos y curvas del §5.4. --dur-ambiente nunca baja de
+     8s: es la velocidad de los loops de fondo, no de una interacción. */
+  --dur-micro: 120ms;
+  --dur-rapida: 200ms;
+  --dur-media: 320ms;
+  --dur-entrada: 400ms;
+  --dur-ambiente: 12s;
+  --ease-salida: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-entrada: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-suave: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Entrada escalonada del menú móvil (§6.2) y de los revelados al
+   scrollear (§5.3) — mismo movimiento, dos usos. */
+@keyframes menu-movil-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Transición lateral entre pasos del recomendador (§8.3). */
+@keyframes recomendador-entrar {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* "click-spark" de React Bits, reteñido (§6.1, §8.4): una chispa que
+   sale disparada y se apaga. Cada instancia rota la línea a un ángulo
+   distinto vía --spark-angulo. */
+@keyframes click-spark {
+  from {
+    opacity: 1;
+    transform: rotate(var(--spark-angulo)) translateY(0) scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--spark-angulo)) translateY(-28px) scaleY(0.4);
+  }
+}
+
+/* "border-glow" de React Bits (§6.4/§6.8): un solo uso en toda la
+   plataforma — marcar la card del proyecto en el que el usuario está
+   inscripto. Pulso lento en --primary vía box-shadow (no cambia el
+   layout); se congela en reduced motion, no desaparece, porque sigue
+   siendo información ("este es tuyo"), no solo adorno. */
+@keyframes border-glow-pulsar {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 12px 0 color-mix(in oklch, var(--primary), transparent 55%);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 20px 2px color-mix(in oklch, var(--primary), transparent 35%);
+  }
+}
+
+.border-glow {
+  animation: border-glow-pulsar var(--dur-ambiente) var(--ease-suave) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .border-glow {
+    animation: none;
+    box-shadow:
+      0 0 0 1px var(--primary),
+      0 0 12px 0 color-mix(in oklch, var(--primary), transparent 55%);
+  }
+}
+
+:root {
+  /* Arena — la superficie del mundo claro. */
+  --arena-50: oklch(0.989 0.006 84.6);
+  --arena-100: oklch(0.974 0.01 81.8);
+  --arena-200: oklch(0.942 0.018 81.3);
+  --arena-300: oklch(0.889 0.027 80.2);
+  --arena-400: oklch(0.795 0.036 78.6);
+  --arena-500: oklch(0.619 0.039 75.3);
+
+  /* Tinta — texto y estructura. Verde-negro, nunca negro puro. */
+  --tinta-900: oklch(0.254 0.009 159.4);
+  --tinta-800: oklch(0.321 0.012 160.7);
+  --tinta-700: oklch(0.414 0.014 161.5);
+  --tinta-600: oklch(0.524 0.015 159.5);
+  --tinta-400: oklch(0.661 0.013 153.5);
+
+  /* Turquesa — el oasis. Todo lo interactivo. */
+  --turquesa-700: oklch(0.521 0.091 181.8);
+  --turquesa-500: oklch(0.649 0.114 182);
+  --turquesa-400: oklch(0.745 0.122 183.4);
+  --turquesa-200: oklch(0.877 0.064 185);
+  --turquesa-50: oklch(0.963 0.018 184.3);
+
+  /* Ámbar — el calor. Destaca sin ser acción. */
+  --ambar-600: oklch(0.69 0.14 70.8);
+  --ambar-500: oklch(0.787 0.147 73);
+  --ambar-300: oklch(0.873 0.098 79);
+  --ambar-50: oklch(0.97 0.023 82.1);
+
+  /* Coral — la alarma y el énfasis raro. */
+  --coral-700: oklch(0.54 0.172 31.8);
+  --coral-500: oklch(0.708 0.185 31);
+  --coral-300: oklch(0.809 0.109 31.4);
+  --coral-50: oklch(0.959 0.02 32.5);
+
+  /* Cielo — apoyo. Solo información neutra y gráficos. */
+  --cielo-500: oklch(0.794 0.086 228.8);
+  --cielo-200: oklch(0.915 0.034 228.3);
+
+  /* Noche y crema — el mundo oscuro. La noche es cálida, no azul. Son
+     rampa cruda como las demás (§2.1): fijas, no dependen del tema — el
+     header transparente de la landing usa crema-100 sobre el hero en
+     los dos temas, por ejemplo. */
+  --noche-900: oklch(0.18 0.004 48.5);
+  --noche-800: oklch(0.216 0.006 56);
+  --noche-700: oklch(0.259 0.008 59.3);
+  --noche-600: oklch(0.321 0.01 61.1);
+  --noche-500: oklch(0.554 0.018 67.4);
+  --crema-100: oklch(0.954 0.014 78.3);
+  --crema-300: oklch(0.855 0.019 78.2);
+  --crema-500: oklch(0.69 0.018 76.1);
+
+  /* Tokens semánticos — nunca se usa la rampa cruda directamente fuera
+     de este archivo (§2.2). */
+  /* --background sube a arena-200: con arena-100 la separación con --card
+     (arena-50) era ~1.5 % de luminosidad y el modo claro se leía como un
+     blanco plano (plan de fixes §1.7). --card se queda en arena-50. */
+  --background: var(--arena-200);
+  --foreground: var(--tinta-900);
+  --card: var(--arena-50);
+  --card-foreground: var(--tinta-900);
+  --popover: var(--arena-50);
+  --popover-foreground: var(--tinta-900);
+  --primary: var(--turquesa-700);
+  --primary-foreground: var(--arena-50);
+  /* --muted / --secondary bajan a arena-300: con el fondo nuevo en
+     arena-200 tenían que dejar de compartir tono con él para seguir
+     leyéndose como una superficie aparte. */
+  --secondary: var(--arena-300);
+  --secondary-foreground: var(--tinta-800);
+  --muted: var(--arena-300);
+  --muted-foreground: var(--tinta-700);
+  /* --accent es ámbar, no un gris (§2.2). El default de shadcn lo usa
+     como fondo de hover de ítems de menú — un módulo que necesite ese
+     hover reasigna a --secondary, o queda pintado de ámbar. */
+  --accent: var(--ambar-500);
+  --accent-foreground: var(--tinta-900);
+  --destructive: var(--coral-700);
+  --destructive-foreground: var(--arena-50);
+  /* --border y --input son distintos a propósito: el borde decorativo
+     puede ser suave, el borde de un control necesita 3:1 de contraste.
+     --border deja de ser gris cálido y toma un tinte turquesa (decisión
+     6 del plan de fixes): sigue siendo suave pero con color. */
+  --border: color-mix(in oklch, var(--turquesa-500) 18%, var(--arena-300));
+  --input: var(--arena-500);
+  --ring: var(--turquesa-700);
+  --chart-1: var(--turquesa-500);
+  --chart-2: var(--ambar-500);
+  --chart-3: var(--coral-500);
+  --chart-4: var(--cielo-500);
+  --chart-5: var(--tinta-600);
+  --radius: 0.75rem;
+  --sidebar: var(--arena-50);
+  --sidebar-foreground: var(--tinta-900);
+  --sidebar-primary: var(--turquesa-700);
+  --sidebar-primary-foreground: var(--arena-50);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* Sombras — tinta con tinte cálido, cuatro niveles (§4). */
+  --sombra-sm: 0 1px 2px oklch(0.254 0.009 159.4 / 0.06);
+  --sombra-md: 0 4px 12px oklch(0.254 0.009 159.4 / 0.08);
+  --sombra-lg: 0 12px 32px oklch(0.254 0.009 159.4 / 0.1);
+  --sombra-cal: 0 8px 24px oklch(0.649 0.114 182 / 0.18);
+
+  /* Tintes de sección — el color medio de las bandas quietas que sirve
+     <FondoSeccion> (plan de fixes §1.3/§1.4: reemplazan al cónico
+     giratorio del viejo campo-arena.tsx). Mezclados sobre --background.
+     Ajustados en el PR 2: al 9 % las tres bandas se leían iguales; ahora
+     turquesa y ámbar se distinguen entre sí y del fondo, y neutro es un
+     escalón claro de arena. */
+  --tinte-turquesa: color-mix(
+    in oklch,
+    var(--turquesa-500) 16%,
+    var(--background)
+  );
+  --tinte-ambar: color-mix(in oklch, var(--ambar-500) 16%, var(--background));
+  --tinte-neutro: color-mix(in oklch, var(--arena-400) 26%, var(--background));
+}
+
+.dark {
+  --background: var(--noche-900);
+  --foreground: var(--crema-100);
+  --card: var(--noche-800);
+  --card-foreground: var(--crema-100);
+  --popover: var(--noche-700);
+  --popover-foreground: var(--crema-100);
+  --primary: var(--turquesa-400);
+  --primary-foreground: var(--noche-900);
+  --secondary: var(--noche-700);
+  --secondary-foreground: var(--crema-100);
+  --muted: var(--noche-700);
+  --muted-foreground: var(--crema-500);
+  --accent: #f5b95c;
+  --accent-foreground: var(--noche-900);
+  --destructive: #ff8570;
+  --destructive-foreground: var(--noche-900);
+  --border: var(--noche-600);
+  --input: var(--noche-500);
+  --ring: var(--turquesa-400);
+  --chart-1: var(--turquesa-400);
+  --chart-2: var(--ambar-300);
+  --chart-3: var(--coral-300);
+  --chart-4: var(--cielo-200);
+  --chart-5: var(--crema-500);
+  --sidebar: var(--noche-800);
+  --sidebar-foreground: var(--crema-100);
+  --sidebar-primary: var(--turquesa-400);
+  --sidebar-primary-foreground: var(--noche-900);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  /* En dark mode las sombras casi desaparecen — la elevación se
+     comunica con el color de superficie, no con negro flotando. */
+  --sombra-sm: 0 1px 2px oklch(0 0 0 / 0.16);
+  --sombra-md: 0 4px 12px oklch(0 0 0 / 0.22);
+  --sombra-lg: 0 12px 32px oklch(0 0 0 / 0.28);
+  --sombra-cal: 0 8px 24px oklch(0.745 0.122 183.4 / 0.22);
+
+  /* Tintes de sección en oscuro. Ajustados en el PR 2: al 8-10 % sobre
+     noche-900 las bandas eran invisibles (todas las secciones se veían
+     iguales). Ahora la banda del medio se despega del fondo. */
+  --tinte-turquesa: color-mix(
+    in oklch,
+    var(--turquesa-500) 24%,
+    var(--background)
+  );
+  --tinte-ambar: color-mix(in oklch, var(--ambar-600) 22%, var(--background));
+  --tinte-neutro: color-mix(in oklch, var(--noche-600) 85%, var(--background));
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

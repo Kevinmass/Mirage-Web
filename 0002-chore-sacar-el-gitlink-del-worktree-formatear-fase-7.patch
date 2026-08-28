@@ -1,0 +1,315 @@
+From 29966d3b8008534698ddf3c4e6aa21b697c60999 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 21 Aug 2026 13:03:24 +0000
+Subject: [PATCH 2/2] chore: sacar el gitlink del worktree, formatear fase 7 y
+ cerrar el hueco en CI
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Tres cosas que quedaron sueltas al integrar las ramas de fase:
+
+- `.claude/worktrees/fase-0-cimientos` estaba commiteado como gitlink
+  (modo 160000) apuntando a un repo que ya no existe en disco
+  (`mirage-plataforma`). Rompía `git status` en la raíz. Se saca del
+  índice y se agrega `.claude/worktrees/` al .gitignore junto al
+  `.worktrees/` que ya estaba.
+
+- 10 archivos de la fase 7 llegaron sin pasar por Prettier. CI corría
+  lint, typecheck, test y build, pero no `format:check` — por eso nadie
+  se enteró. Se formatean los 8 de código y se agrega el paso a CI. Los
+  metadatos de drizzle-kit van a .prettierignore: los reescribe él en
+  cada `db:generate`, formatearlos a mano solo produce diffs que
+  vuelven en la migración siguiente.
+
+- `Button` avisaba en consola en cada pantalla con un botón de alta:
+  Base UI asume un `<button>` nativo y "Nueva persona" es un `<Link>`.
+  Se resuelve una vez en el componente en vez de en cada llamada.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019CcWn1PSjwutbCR8F76rmg
+---
+ .claude/worktrees/fase-0-cimientos            |  1 -
+ .github/workflows/ci.yml                      |  5 ++++
+ .gitignore                                    |  4 +++-
+ .prettierignore                               |  4 ++++
+ .../app/solicitudes/mensaje-formulario.tsx    |  8 +++----
+ .../(portal)/portal/solicitudes/actions.ts    |  4 +---
+ .../solicitudes/formulario-solicitud.tsx      |  8 +++----
+ .../portal/solicitudes/mensaje-formulario.tsx |  8 +++----
+ src/app/(portal)/portal/solicitudes/page.tsx  |  4 +---
+ src/components/ui/button.tsx                  |  7 ++++++
+ .../solicitud-a-proyecto.integration.test.ts  |  6 ++++-
+ .../solicitudes/api.integration.test.ts       | 24 ++++++++++++++-----
+ src/modules/solicitudes/api.ts                | 14 +++++------
+ 13 files changed, 63 insertions(+), 34 deletions(-)
+ delete mode 160000 .claude/worktrees/fase-0-cimientos
+
+diff --git a/.claude/worktrees/fase-0-cimientos b/.claude/worktrees/fase-0-cimientos
+deleted file mode 160000
+index aad384a..0000000
+--- a/.claude/worktrees/fase-0-cimientos
++++ /dev/null
+@@ -1 +0,0 @@
+-Subproject commit aad384ad7fcb4b97ff97d1f8f6302f39067c6cc6
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 0c951e8..75fb21d 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -23,6 +23,11 @@ jobs:
+ 
+       - run: pnpm lint
+ 
++      # Estaba fuera de CI y el formato se fue desincronizando sin que
++      # nadie se enterara (10 archivos de la fase 7 llegaron a `main` sin
++      # formatear). Va antes de typecheck porque es el paso más barato.
++      - run: pnpm format:check
++
+       - run: pnpm typecheck
+ 
+       - run: pnpm test
+diff --git a/.gitignore b/.gitignore
+index 9c5cef0..ab82f9e 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -35,5 +35,7 @@ yarn-error.log*
+ *.tsbuildinfo
+ next-env.d.ts
+ 
+-# workspaces de git aislados por rama
++# workspaces de git aislados por rama (los de Claude Code también: uno
++# se coló como gitlink y rompía `git status` en la raíz)
+ .worktrees/
++.claude/worktrees/
+diff --git a/.prettierignore b/.prettierignore
+index 87eb89c..a42aa0d 100644
+--- a/.prettierignore
++++ b/.prettierignore
+@@ -4,3 +4,7 @@ pnpm-lock.yaml
+ 
+ # documentos de diseño y plan: prosa aprobada, no se reformatea con Prettier
+ *.md
++
++# metadatos que genera drizzle-kit: los reescribe él en cada `db:generate`,
++# formatearlos a mano solo produce diffs que vuelven en la migración siguiente
++src/db/migrations/meta/
+diff --git a/src/app/(interno)/app/solicitudes/mensaje-formulario.tsx b/src/app/(interno)/app/solicitudes/mensaje-formulario.tsx
+index 2ea9881..161c20b 100644
+--- a/src/app/(interno)/app/solicitudes/mensaje-formulario.tsx
++++ b/src/app/(interno)/app/solicitudes/mensaje-formulario.tsx
+@@ -10,10 +10,10 @@ import { agregarMensajeAction, type EstadoFormulario } from "./actions";
+ // (ámbar = interno, no solo el checkbox) y hay un texto explícito al
+ // lado, no solo el estado del control.
+ export function FormularioMensaje({ solicitudId }: { solicitudId: number }) {
+-  const [estado, accion, enviando] = useActionState<
+-    EstadoFormulario,
+-    FormData
+-  >(agregarMensajeAction.bind(null, solicitudId), {});
++  const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
++    agregarMensajeAction.bind(null, solicitudId),
++    {},
++  );
+   const [visibleParaCliente, setVisibleParaCliente] = useState(true);
+ 
+   return (
+diff --git a/src/app/(portal)/portal/solicitudes/actions.ts b/src/app/(portal)/portal/solicitudes/actions.ts
+index 4c072ed..5aaab36 100644
+--- a/src/app/(portal)/portal/solicitudes/actions.ts
++++ b/src/app/(portal)/portal/solicitudes/actions.ts
+@@ -36,9 +36,7 @@ export async function crearSolicitudAction(
+ 
+   const titulo = String(formData.get("titulo") ?? "").trim();
+   const descripcion = String(formData.get("descripcion") ?? "").trim();
+-  const tipo = String(
+-    formData.get("tipo") ?? "",
+-  ) as solicitudes.TipoSolicitud;
++  const tipo = String(formData.get("tipo") ?? "") as solicitudes.TipoSolicitud;
+   if (!titulo || !descripcion) {
+     return { error: "Completá el título y la descripción." };
+   }
+diff --git a/src/app/(portal)/portal/solicitudes/formulario-solicitud.tsx b/src/app/(portal)/portal/solicitudes/formulario-solicitud.tsx
+index 4589b27..a345c32 100644
+--- a/src/app/(portal)/portal/solicitudes/formulario-solicitud.tsx
++++ b/src/app/(portal)/portal/solicitudes/formulario-solicitud.tsx
+@@ -12,10 +12,10 @@ const TIPOS = [
+ ];
+ 
+ export function FormularioSolicitud() {
+-  const [estado, accion, enviando] = useActionState<
+-    EstadoFormulario,
+-    FormData
+-  >(crearSolicitudAction, {});
++  const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
++    crearSolicitudAction,
++    {},
++  );
+ 
+   return (
+     <form
+diff --git a/src/app/(portal)/portal/solicitudes/mensaje-formulario.tsx b/src/app/(portal)/portal/solicitudes/mensaje-formulario.tsx
+index 95c95df..9ed44f5 100644
+--- a/src/app/(portal)/portal/solicitudes/mensaje-formulario.tsx
++++ b/src/app/(portal)/portal/solicitudes/mensaje-formulario.tsx
+@@ -9,10 +9,10 @@ export function FormularioMensajePortal({
+ }: {
+   solicitudId: number;
+ }) {
+-  const [estado, accion, enviando] = useActionState<
+-    EstadoFormulario,
+-    FormData
+-  >(agregarMensajeAction.bind(null, solicitudId), {});
++  const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(
++    agregarMensajeAction.bind(null, solicitudId),
++    {},
++  );
+ 
+   return (
+     <form
+diff --git a/src/app/(portal)/portal/solicitudes/page.tsx b/src/app/(portal)/portal/solicitudes/page.tsx
+index efb4295..81a4199 100644
+--- a/src/app/(portal)/portal/solicitudes/page.tsx
++++ b/src/app/(portal)/portal/solicitudes/page.tsx
+@@ -31,9 +31,7 @@ export default async function PaginaSolicitudesPortal() {
+       <div className="flex items-center justify-between">
+         <h1 className="text-3xl font-semibold">Tus solicitudes</h1>
+         <Button
+-          render={
+-            <Link href="/portal/solicitudes/nueva">Nueva solicitud</Link>
+-          }
++          render={<Link href="/portal/solicitudes/nueva">Nueva solicitud</Link>}
+         />
+       </div>
+ 
+diff --git a/src/components/ui/button.tsx b/src/components/ui/button.tsx
+index e2ee793..e5b5fb8 100644
+--- a/src/components/ui/button.tsx
++++ b/src/components/ui/button.tsx
+@@ -49,6 +49,13 @@ function Button({
+   return (
+     <ButtonPrimitive
+       data-slot="button"
++      // Base UI asume un <button> nativo. Cuando se pasa `render` (el
++      // caso de "Nueva persona", que en realidad es un <Link>) eso deja
++      // de ser cierto y la librería avisa en consola en cada pantalla
++      // con un botón de alta. Se resuelve acá una vez, no en cada
++      // llamada: si hay render, no es nativo. Un caller que sepa lo
++      // contrario lo pisa con su propio prop, porque el spread va después.
++      nativeButton={props.render === undefined}
+       className={cn(buttonVariants({ variant, size, className }))}
+       {...props}
+     />
+diff --git a/src/kernel/eventos/solicitud-a-proyecto.integration.test.ts b/src/kernel/eventos/solicitud-a-proyecto.integration.test.ts
+index 6cf52b8..98b6ae5 100644
+--- a/src/kernel/eventos/solicitud-a-proyecto.integration.test.ts
++++ b/src/kernel/eventos/solicitud-a-proyecto.integration.test.ts
+@@ -85,7 +85,11 @@ describe("kernel/eventos — flujo solicitud.aceptada → proyecto.creado", () =
+   }
+ 
+   it("aceptar una solicitud crea el proyecto real y lo linkea de vuelta, sin ningún suscriptor de prueba", async () => {
+-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
++    const {
++      nodo: n,
++      cliente,
++      personaContactoId,
++    } = await armarClienteYContacto();
+     const solicitud = await solicitudesApi.crearSolicitud(
+       cliente.id,
+       personaContactoId,
+diff --git a/src/modules/solicitudes/api.integration.test.ts b/src/modules/solicitudes/api.integration.test.ts
+index 5c653b3..5136658 100644
+--- a/src/modules/solicitudes/api.integration.test.ts
++++ b/src/modules/solicitudes/api.integration.test.ts
+@@ -86,7 +86,11 @@ describe("modules/solicitudes api", () => {
+   });
+ 
+   it("crearSolicitud hereda el nodo responsable del cliente y arranca en recibida", async () => {
+-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
++    const {
++      nodo: n,
++      cliente,
++      personaContactoId,
++    } = await armarClienteYContacto();
+ 
+     const creada = await api.crearSolicitud(cliente.id, personaContactoId, {
+       titulo: "Necesitamos un formulario nuevo",
+@@ -101,7 +105,11 @@ describe("modules/solicitudes api", () => {
+ 
+   it("crearSolicitud publica solicitud.creada con el titular del nodo como destinatario", async () => {
+     const bus = await import("@/kernel/eventos/bus");
+-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
++    const {
++      nodo: n,
++      cliente,
++      personaContactoId,
++    } = await armarClienteYContacto();
+     const { asignarPersona } = await import("@/kernel/organigrama/arbol");
+     const [titular] = await db
+       .insert(persona)
+@@ -190,9 +198,9 @@ describe("modules/solicitudes api", () => {
+       tipo: "consulta",
+     });
+ 
+-    await expect(
+-      api.obtenerSolicitudDeCliente(b.id, deA.id),
+-    ).rejects.toThrow(NoEncontrado);
++    await expect(api.obtenerSolicitudDeCliente(b.id, deA.id)).rejects.toThrow(
++      NoEncontrado,
++    );
+ 
+     const propia = await api.obtenerSolicitudDeCliente(a.cliente.id, deA.id);
+     expect(propia.id).toBe(deA.id);
+@@ -227,7 +235,11 @@ describe("modules/solicitudes api", () => {
+ 
+   it("aceptarSolicitud marca resueltoEn y publica solicitud.aceptada con el creador como destinatario", async () => {
+     const bus = await import("@/kernel/eventos/bus");
+-    const { nodo: n, cliente, personaContactoId } = await armarClienteYContacto();
++    const {
++      nodo: n,
++      cliente,
++      personaContactoId,
++    } = await armarClienteYContacto();
+     const creada = await api.crearSolicitud(cliente.id, personaContactoId, {
+       titulo: "Título",
+       descripcion: "Descripción",
+diff --git a/src/modules/solicitudes/api.ts b/src/modules/solicitudes/api.ts
+index 638a330..4807d61 100644
+--- a/src/modules/solicitudes/api.ts
++++ b/src/modules/solicitudes/api.ts
+@@ -9,8 +9,7 @@ import { solicitudesMensaje, solicitudesSolicitud } from "./schema";
+ 
+ export type EstadoSolicitud =
+   "recibida" | "en_evaluacion" | "aceptada" | "rechazada";
+-export type TipoSolicitud =
+-  "funcionalidad_nueva" | "bug" | "consulta" | "otro";
++export type TipoSolicitud = "funcionalidad_nueva" | "bug" | "consulta" | "otro";
+ 
+ export interface DatosSolicitud {
+   titulo: string;
+@@ -69,7 +68,11 @@ export async function listarSolicitudes(filtro?: { estado?: EstadoSolicitud }) {
+   return db
+     .select()
+     .from(solicitudesSolicitud)
+-    .where(filtro?.estado ? eq(solicitudesSolicitud.estado, filtro.estado) : undefined)
++    .where(
++      filtro?.estado
++        ? eq(solicitudesSolicitud.estado, filtro.estado)
++        : undefined,
++    )
+     .orderBy(desc(solicitudesSolicitud.creadoEn));
+ }
+ 
+@@ -92,10 +95,7 @@ export async function listarSolicitudesDeCliente(clienteId: number) {
+ // 403" entre /app y /portal, pero acá aplicado adentro de un mismo
+ // módulo). La ficha de /portal/solicitudes/[id] llama a esta función,
+ // nunca a obtenerSolicitud directo.
+-export async function obtenerSolicitudDeCliente(
+-  clienteId: number,
+-  id: number,
+-) {
++export async function obtenerSolicitudDeCliente(clienteId: number, id: number) {
+   const solicitud = await obtenerSolicitud(id);
+   if (solicitud.clienteId !== clienteId) {
+     throw new NoEncontrado(`No existe la solicitud ${id}`);
+-- 
+2.43.0
+

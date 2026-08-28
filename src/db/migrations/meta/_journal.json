@@ -1,0 +1,153 @@
+{
+ "version": "7",
+ "dialect": "postgresql",
+ "entries": [
+  {
+   "idx": 0,
+   "version": "7",
+   "when": 1787089229826,
+   "tag": "0000_fluffy_boom_boom",
+   "breakpoints": true
+  },
+  {
+   "idx": 1,
+   "version": "7",
+   "when": 1787091559986,
+   "tag": "0001_public_shadow_king",
+   "breakpoints": true
+  },
+  {
+   "idx": 2,
+   "version": "7",
+   "when": 1787091584854,
+   "tag": "0002_revocar_update_delete_evento_auditoria",
+   "breakpoints": true
+  },
+  {
+   "idx": 3,
+   "version": "7",
+   "when": 1787092017874,
+   "tag": "0003_omniscient_kronos",
+   "breakpoints": true
+  },
+  {
+   "idx": 4,
+   "version": "7",
+   "when": 1787228897940,
+   "tag": "0004_cloudy_black_queen",
+   "breakpoints": true
+  },
+  {
+   "idx": 5,
+   "version": "7",
+   "when": 1787231480716,
+   "tag": "0005_green_otto_octavius",
+   "breakpoints": true
+  },
+  {
+   "idx": 6,
+   "version": "7",
+   "when": 1787234134568,
+   "tag": "0006_rich_red_wolf",
+   "breakpoints": true
+  },
+  {
+   "idx": 7,
+   "version": "7",
+   "when": 1787234636801,
+   "tag": "0007_youthful_gravity",
+   "breakpoints": true
+  },
+  {
+   "idx": 8,
+   "version": "7",
+   "when": 1787235454672,
+   "tag": "0008_concerned_blur",
+   "breakpoints": true
+  },
+  {
+   "idx": 9,
+   "version": "7",
+   "when": 1787236650193,
+   "tag": "0009_tense_night_thrasher",
+   "breakpoints": true
+  },
+  {
+   "idx": 10,
+   "version": "7",
+   "when": 1787238771457,
+   "tag": "0010_rare_marvex",
+   "breakpoints": true
+  },
+  {
+   "idx": 11,
+   "version": "7",
+   "when": 1787261913824,
+   "tag": "0011_panoramic_rhino",
+   "breakpoints": true
+  },
+  {
+   "idx": 12,
+   "version": "7",
+   "when": 1787264919017,
+   "tag": "0012_fuzzy_albert_cleary",
+   "breakpoints": true
+  },
+  {
+   "idx": 13,
+   "version": "7",
+   "when": 1787763013264,
+   "tag": "0013_agregar_columnas_contenido_servicio",
+   "breakpoints": true
+  },
+  {
+   "idx": 14,
+   "version": "7",
+   "when": 1787763025972,
+   "tag": "0014_backfill_slug_contenido_servicio",
+   "breakpoints": true
+  },
+  {
+   "idx": 15,
+   "version": "7",
+   "when": 1787764015517,
+   "tag": "0015_agregar_testimonio_contenido_caso",
+   "breakpoints": true
+  },
+  {
+   "idx": 16,
+   "version": "7",
+   "when": 1787786981013,
+   "tag": "0016_shocking_wildside",
+   "breakpoints": true
+  },
+  {
+   "idx": 17,
+   "version": "7",
+   "when": 1787787491825,
+   "tag": "0017_shiny_ego",
+   "breakpoints": true
+  },
+  {
+   "idx": 18,
+   "version": "7",
+   "when": 1787788303711,
+   "tag": "0018_good_slipstream",
+   "breakpoints": true
+  },
+  {
+   "idx": 19,
+   "version": "7",
+   "when": 1787792375845,
+   "tag": "0019_nebulous_changeling",
+   "breakpoints": true
+  },
+  {
+   "idx": 20,
+   "version": "7",
+   "when": 1787792375846,
+   "tag": "0020_capacidades_kernel_a_direccion",
+   "breakpoints": true
+  }
+ ]
+}

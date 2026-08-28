@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      # Estaba fuera de CI y el formato se fue desincronizando sin que
+      # nadie se enterara (10 archivos de la fase 7 llegaron a `main` sin
+      # formatear). Va antes de typecheck porque es el paso más barato.
+      - run: pnpm format:check
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm build

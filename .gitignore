@@ -1,6 +1,41 @@
+# dependencies
 node_modules/
+/.pnp
+.pnp.*
+
+# testing
+/coverage
+
+# next.js
 .next/
+/out/
+
+# production
+dist/
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (nunca commitear; .env.example queda como plantilla)
 .env*
 !.env.example
-dist/
-.DS_Store
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# workspaces de git aislados por rama (los de Claude Code también: uno
+# se coló como gitlink y rompía `git status` en la raíz)
+.worktrees/
+.claude/worktrees/

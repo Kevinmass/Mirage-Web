@@ -1,0 +1,62 @@
+# Blueprint de Render (Infrastructure as Code). Conectar el repo desde
+# Render > New > Blueprint apunta acá y crea el web service + la base en
+# un solo paso, con auto-deploy en cada push a main.
+#
+# Verificar contra la documentación actual de Render antes de aplicar:
+# nombres de plan y de región cambian con el tiempo y no los puedo probar
+# sin acceso a una cuenta de Render.
+#
+# Un solo servicio sirve los tres dominios del diseño §3 (miragesoftware.
+# com.ar, .online, .store) — lo que cambia el comportamiento (indexar o
+# no, redirigir) es el host de cada request, no una variable de entorno
+# por deploy (ver src/lib/dominio.ts, robots.ts, proxy.ts). Falta
+# agregar los tres dominios como Custom Domain en la configuración del
+# servicio en Render y apuntar su DNS ahí — eso no es parte de este
+# archivo, lo hace quien tenga acceso a la cuenta.
+databases:
+  - name: mirage-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: "17"
+
+services:
+  - type: web
+    name: mirage-web
+    env: docker
+    dockerfilePath: ./Dockerfile
+    # Plan gratis por ahora, hasta que el equipo de Mirage termine de
+    # probar la app. El free web service de Render se duerme tras ~15 min
+    # sin tráfico y arranca en frío en la siguiente request (verificar
+    # límites y soporte de dominios propios contra la doc actual de
+    # Render). Subir a un plan pago recién cuando salga a producción real.
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mirage-db
+          property: connectionString
+      - key: TZ
+        value: America/Argentina/Buenos_Aires
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_URL
+        value: https://miragesoftware.com.ar
+      # Se cargan a mano en el dashboard de Render (sync: false = Render no
+      # las gestiona desde acá, quedan como secreto del servicio):
+      #   RESEND_API_KEY  — envío de mails. Dominio miragesoftware.com.ar
+      #                     verificado en Resend para mandar desde
+      #                     no-reply@miragesoftware.com.ar.
+      #   SETUP_TOKEN     — habilita /setup para el arranque en frío. Poner
+      #                     un valor largo al azar; borrarlo (o la env var)
+      #                     una vez que exista el primer empleado.
+      #   GITHUB_TOKEN    — token fino de solo lectura de la org, para la
+      #                     actividad de GitHub de los proyectos.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SETUP_TOKEN
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false

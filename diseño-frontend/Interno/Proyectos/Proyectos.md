@@ -1,0 +1,3 @@
+Aca debe haber primero una pantalla donde se muestren todos los proyectos de Mirage en formato cards, con fotos o colores de fondo y una breve descripcion. Primero se mostraran los proyectos a los que el usuario este anotado y arriba en una esquina de cada proyecto debe mostrarse un contador 0/X de los usuarios inscriptos en cada proyecto. Al iniciar cada proyecto se deben establecer la cantidad de usuarios que pueden anotarse en un proyecto y este nuemero lo puede cambiar el lider de proyecto en cualquier momento. Los proyectos pueden estar relacionados a un cliente o no.
+
+Algunos componentes de reactbits que se pueden usar son:

@@ -1,0 +1,21 @@
+// Punto central que agrega las capacidades que cada módulo declara en su
+// permissions.ts — mismo patrón que db/schema.ts con las tablas. El
+// kernel (registro.ts) no conoce ningún módulo en particular, solo
+// procesa esta lista; un módulo nuevo con capacidades agrega una línea
+// acá.
+import { capacidades as capacidadesClientes } from "@/modules/clientes/permissions";
+import { capacidades as capacidadesContenido } from "@/modules/contenido/permissions";
+import { capacidades as capacidadesNotificaciones } from "@/modules/notificaciones/permissions";
+import { capacidades as capacidadesProyectos } from "@/modules/proyectos/permissions";
+import { capacidades as capacidadesSolicitudes } from "@/modules/solicitudes/permissions";
+import { capacidadesKernel } from "./capacidades-kernel";
+import type { CapacidadDeclarada } from "./registro";
+
+export const capacidadesDeclaradas: readonly CapacidadDeclarada[] = [
+  ...capacidadesKernel,
+  ...capacidadesClientes,
+  ...capacidadesContenido,
+  ...capacidadesNotificaciones,
+  ...capacidadesProyectos,
+  ...capacidadesSolicitudes,
+];

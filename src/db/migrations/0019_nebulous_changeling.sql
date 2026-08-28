@@ -1,0 +1,1 @@
+ALTER TABLE "notificaciones_notificacion" ADD COLUMN "leida_en" timestamp with time zone;
